@@ -1,0 +1,129 @@
+*{
+	margin: 0;
+	padding: 0;
+}
+
+.div_hero_section {
+    width: 100%;
+    height: 1000px;
+    background-image: url("public/images/pistas_recortada2.jpg");
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    gap: 30px;
+    text-shadow: 0 0 10px black;
+    border-bottom: 10px solid #cb2c30;
+}
+
+.h2_hero_section{
+  font-weight: 500;
+  font-size: 40px;
+}
+
+.h1_hero_section{
+  font-size: 70px;
+}
+
+
+.ul_hero_section{
+  list-style: none;
+  display: flex;
+}
+
+
+.ul_hero_section li:not(:last-child)::after {
+  content: "-";
+  margin: 0 30px 0 30px;  
+  color: white;
+}
+
+.li_hero_section{
+  font-size: 30px;
+  font-weight: 500;
+}
+
+
+
+
+@media (max-width: 1700px) {
+  .div_hero_section {
+    height: 850px;
+  }
+  .ul_hero_section{
+    flex-direction: column;
+    gap: 10px;
+    text-align: center;
+  }
+  .ul_hero_section li:not(:last-child)::after {
+    content: none;
+    margin: 0;  
+  }
+  .h2_hero_section{
+    font-size: 30px;
+  }
+  .h1_hero_section{
+    font-size: 60px;
+  }
+  .li_hero_section{
+    font-size: 25px;
+  }
+  .div_hero_section {
+    background-image: url("public/images/pistas.jpg");
+  }
+}
+
+
+
+@media (max-width: 800px) {
+  .div_hero_section {
+    height: 600px;
+  }
+  .h2_hero_section{
+    font-size: 25px;
+  }
+  .h1_hero_section{
+    font-size: 50px;
+  }
+  .li_hero_section{
+    font-size: 22px;
+  }
+}
+
+
+
+@media (max-width: 600px) {
+  .div_hero_section {
+    height: 400px;
+  }
+  .h2_hero_section{
+    font-size: 20px;
+  }
+  .h1_hero_section{
+    font-size: 40px;
+  }
+  .li_hero_section{
+    font-size: 20px;
+  }
+}
+
+
+
+@media (max-width: 400px) {
+  .div_hero_section {
+    height: 340px;
+  }
+    .h2_hero_section{
+    font-size: 15px;
+  }
+  .h1_hero_section{
+    font-size: 30px;
+  }
+  .li_hero_section{
+    font-size: 15px;
+  }
+}
