@@ -52,6 +52,7 @@ body{
     align-items: center;
     color: white;
     font-weight: 500;
+    cursor: pointer;
     
 }
 
@@ -132,6 +133,7 @@ body{
     /* font-weight: bold; */
     
     font-weight: 500;
+    cursor: pointer;
     
 }
 

@@ -59,9 +59,17 @@
 
 	.div_footer {
 		flex-direction: column;
-        gap: 60px;
+        gap: 40px;
 	}
     .div_div_footer_1 {
         margin-right: 0;
+        font-size: 14px;
     }
+    .ul_footer{
+    font-size: 14px;
+    }  
+    .h2_footer{
+        font-size: 20px;
+    }
+    
 }

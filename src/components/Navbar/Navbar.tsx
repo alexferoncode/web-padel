@@ -20,10 +20,9 @@ function Navbar() {
 
   return (
     <>
-      {/* Navbar horizonal */}
+      {/* Navbar horizontal */}
       <nav className="horizontal_navbar">
-        {/* Logo del club */}
-
+        {/* Logo */}
         <img
           className="horizontal_imagen_logo_club"
           src="images/logo.png"
@@ -31,42 +30,60 @@ function Navbar() {
           onClick={() => navigate("/")}
         />
 
-        {/* Enlaces de navegación */}
+        {/* Enlaces horizontales */}
         <ul className="horizontal_ul">
           <li className="horizontal_li">
-            <a className="horizontal_href horizontal_href_reservar" href="#">
+            <span
+              className="horizontal_href horizontal_href_reservar"
+              onClick={() => navigate("/reservar")}
+            >
               RESERVAR
-            </a>
-          </li>
-          <li className="horizontal_li hideOnMobile">
-            <a className="horizontal_href" href="/tarifas">
-              TARIFAS
-            </a>
-          </li>
-          <li className="horizontal_li hideOnMobile">
-            <a className="horizontal_href" href="#">
-              CLASES
-            </a>
-          </li>
-          <li className="horizontal_li hideOnMobile">
-            <a className="horizontal_href" href="#">
-              CONTACTO
-            </a>
-          </li>
-          <li className="horizontal_li hideOnMobile">
-            <a className="horizontal_href" href="#">
-              LOGIN / REGISTRO
-            </a>
+            </span>
           </li>
 
-          {/* Icono de menú hamburguesa */}
+          <li className="horizontal_li hideOnMobile">
+            <span
+              className="horizontal_href"
+              onClick={() => navigate("/tarifas")}
+            >
+              TARIFAS
+            </span>
+          </li>
+
+          <li className="horizontal_li hideOnMobile">
+            <span
+              className="horizontal_href"
+              onClick={() => navigate("/clases")}
+            >
+              CLASES
+            </span>
+          </li>
+
+          <li className="horizontal_li hideOnMobile">
+            <span
+              className="horizontal_href"
+              onClick={() => navigate("/contacto")}
+            >
+              CONTACTO
+            </span>
+          </li>
+
+          <li className="horizontal_li hideOnMobile">
+            <span
+              className="horizontal_href"
+              onClick={() => navigate("/login")}
+            >
+              LOGIN / REGISTRO
+            </span>
+          </li>
+
+          {/* Menú hamburguesa */}
           <li
             onClick={handleMenuClickAbrir}
             className="horizontal_li horizontal_icono_abrir_menu"
           >
-            <a className="horizontal_href" href="#">
+            <span className="horizontal_href">
               <svg
-                // className="horizontal_icono_abrir_menu"
                 xmlns="http://www.w3.org/2000/svg"
                 height="24px"
                 viewBox="0 -960 960 960"
@@ -75,18 +92,17 @@ function Navbar() {
               >
                 <path d="M120-240v-80h720v80H120Zm0-200v-80h720v80H120Zm0-200v-80h720v80H120Z" />
               </svg>
-            </a>
+            </span>
           </li>
         </ul>
       </nav>
 
       {/* Navbar vertical */}
       <nav className="vertical_navbar">
-        {/* Enlaces de navegación */}
         <ul className="vertical_ul">
-          {/* Icono de menú cerrar */}
+          {/* Cerrar menú */}
           <li onClick={handleMenuClickCerrar} className="vertical_li">
-            <a className="vertical_href" href="#">
+            <span className="vertical_href">
               <svg
                 className="vertical_icono_cerrar_menu"
                 xmlns="http://www.w3.org/2000/svg"
@@ -97,32 +113,55 @@ function Navbar() {
               >
                 <path d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z" />
               </svg>
-            </a>
+            </span>
           </li>
-          {/* <li className="vertical_li">
-            <a className="vertical_href vertical_href_reservar" href="#">
-              RESERVAR
-            </a>
-          </li> */}
+
           <li className="vertical_li">
-            <a className="vertical_href" href="#">
+            <span
+              className="vertical_href"
+              onClick={() => {
+                navigate("/tarifas");
+                handleMenuClickCerrar();
+              }}
+            >
               TARIFAS
-            </a>
+            </span>
           </li>
+
           <li className="vertical_li">
-            <a className="vertical_href" href="#">
+            <span
+              className="vertical_href"
+              onClick={() => {
+                navigate("/clases");
+                handleMenuClickCerrar();
+              }}
+            >
               CLASES
-            </a>
+            </span>
           </li>
+
           <li className="vertical_li">
-            <a className="vertical_href" href="#">
+            <span
+              className="vertical_href"
+              onClick={() => {
+                navigate("/contacto");
+                handleMenuClickCerrar();
+              }}
+            >
               CONTACTO
-            </a>
+            </span>
           </li>
+
           <li className="vertical_li">
-            <a className="vertical_href" href="#">
+            <span
+              className="vertical_href"
+              onClick={() => {
+                navigate("/login");
+                handleMenuClickCerrar();
+              }}
+            >
               LOGIN / REGISTRO
-            </a>
+            </span>
           </li>
         </ul>
       </nav>

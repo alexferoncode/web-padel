@@ -18,7 +18,7 @@ function Footer() {
             </p>
           </div>
           <div className="div_div_footer">
-            <h2>Conoce el club</h2>
+            <h2 className="h2_footer">Conoce el club</h2>
             <ul className="ul_footer">
               <li>Tarifas</li>
               <li>Clases</li>
@@ -26,7 +26,7 @@ function Footer() {
             </ul>
           </div>
           <div className="div_div_footer">
-            <h2>Contacta</h2>
+            <h2 className="h2_footer">Contacta</h2>
             <ul className="ul_footer">
               <li>Calle B, 22, Polígono Industrial Campollano, Albacete</li>
               <li>WhatsApp: 649 28 07 34</li>
