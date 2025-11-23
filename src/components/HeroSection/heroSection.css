@@ -4,20 +4,21 @@
 }
 
 .div_hero_section {
-    width: 100%;
-    height: 1000px;
-    background-image: url("public/images/pistas_recortada2.jpg");
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    gap: 30px;
-    text-shadow: 0 0 10px black;
-    border-bottom: 10px solid #cb2c30;
+  padding-top: 100px;
+  width: 100%;
+  height: 1000px;
+  background-image: url("/images/pistas_recortada2.jpg");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  gap: 30px;
+  text-shadow: 0 0 10px black;
+  border-bottom: 5px solid #cb2c30;
 }
 
 .h2_hero_section{

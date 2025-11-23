@@ -1,6 +1,9 @@
 import "./navbar.css";
+import { useNavigate } from "react-router-dom";
 
 function Navbar() {
+  const navigate = useNavigate();
+
   const handleMenuClickAbrir = () => {
     const navbarVertical = document.querySelector(
       ".vertical_navbar"
@@ -25,6 +28,7 @@ function Navbar() {
           className="horizontal_imagen_logo_club"
           src="images/logo.png"
           alt="Logo del club"
+          onClick={() => navigate("/")}
         />
 
         {/* Enlaces de navegación */}
@@ -35,7 +39,7 @@ function Navbar() {
             </a>
           </li>
           <li className="horizontal_li hideOnMobile">
-            <a className="horizontal_href" href="#">
+            <a className="horizontal_href" href="/tarifas">
               TARIFAS
             </a>
           </li>
@@ -81,7 +85,7 @@ function Navbar() {
         {/* Enlaces de navegación */}
         <ul className="vertical_ul">
           {/* Icono de menú cerrar */}
-          <li onClick={handleMenuClickCerrar} className="vretical_li">
+          <li onClick={handleMenuClickCerrar} className="vertical_li">
             <a className="vertical_href" href="#">
               <svg
                 className="vertical_icono_cerrar_menu"

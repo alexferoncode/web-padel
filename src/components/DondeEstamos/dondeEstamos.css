@@ -1,0 +1,53 @@
+*{
+	margin: 0;
+	padding: 0;
+}
+
+.div_donde_estamos{
+    padding: 30px 0 40px 0;
+    background: #003b5c;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    color: white;
+    text-shadow: 0px 0px 5px black;
+    text-align: center;
+}
+
+.h2_donde_estamos{
+    font-size: 35px;
+    font-weight: 600;
+}
+
+.h3_donde_estamos{
+    font-size: 25px;
+    font-weight: 600;
+}
+
+.iframe_donde_estamos{
+    box-shadow: 0px 0px 10px black;
+    width: 70%;
+    aspect-ratio: 2 / 1;
+}
+
+
+@media (max-width: 1600px) {
+    .iframe_donde_estamos {
+        width: 90%;
+    }
+}
+
+@media (max-width: 600px) {
+.h2_donde_estamos{
+    font-size: 30px;
+    font-weight: 600;
+}
+
+.h3_donde_estamos{
+    font-size: 20px;
+    font-weight: 600;
+}
+}
+

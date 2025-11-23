@@ -2,3 +2,143 @@
 	margin: 0;
 	padding: 0;
 }
+
+.div_secciones{
+	display: grid;
+	gap: 40px;
+	justify-content: center;
+	place-self: center;
+	background: #001a29;
+	margin: 0 auto;
+	padding: 50px 0 50px 0;
+	color: white;
+    text-shadow: 0 0 5px black;
+	
+	
+}
+
+.div_seccion{
+	/* background: lightblue; */
+	height: 350px;
+	width: 500px;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	border: #cb2c30 solid 3px;
+	cursor: pointer;
+	transition: 300ms;
+    box-shadow: 0 0 10px black;
+}
+
+.div_seccion:hover{
+	filter: brightness(0.7);
+}
+
+
+.div_div_seccion{
+	text-align: center;
+	background-color: rgba(24, 24, 24, 0.4);
+    backdrop-filter: blur(3px);
+	width: 100%;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	gap: 20px;
+	height: 150px;
+	
+}
+
+.grid1 {
+	grid-area: 1 / 1 / 2 / 3;
+	width: 1046px;
+	background-image: url("/images/seccion_reserva.jpg");
+	background-size: cover;
+	background-repeat: no-repeat;
+	background-position: center;
+
+}
+
+.grid2 {
+	grid-area: 2 / 1 / 3 / 2;
+	background-image: url("/images/seccion_tarifas.jpg");
+	background-size: cover;
+	background-repeat: no-repeat;
+	background-position: center;
+	
+}
+
+.grid3 {
+	grid-area: 2 / 2 / 3 / 3;
+	background-image: url("/images/seccion_clases.jpg");
+	background-size: cover;
+	background-repeat: no-repeat;
+	background-position: center;
+}
+
+.grid4 {
+	grid-area: 3 / 1 / 4 / 2;
+	background-image: url("/images/seccion_contacto.jpg");
+	background-size: cover;
+	background-repeat: no-repeat;
+	background-position: center;
+}
+
+.grid5 {
+	grid-area: 3 / 2 / 4 / 3;
+	background-image: url("/images/seccion_registrar.jpg");
+	background-size: cover;
+	background-repeat: no-repeat;
+	background-position: center;
+} 
+
+.h2_seccion{
+	font-size: 30px;
+}
+
+
+@media (max-width: 1100px) {
+
+	.grid1 {
+		grid-area: 1 / 1 / 2 / 2;
+		width: 500px;
+	}
+
+	.grid2 { grid-area: 2 / 1 / 3 / 2; }
+	.grid3 { grid-area: 3 / 1 / 4 / 2; }
+	.grid4 { grid-area: 4 / 1 / 5 / 2; }
+	.grid5 { grid-area: 5 / 1 / 6 / 2; }
+}
+
+
+@media (max-width: 600px) {
+
+.div_secciones{
+	padding: 30px 0 20px 0;
+	gap: 20px;
+}
+
+.div_seccion{
+	height: 300px;
+	width: 420px;
+}
+
+.div_div_seccion{
+	height: 120px;
+}
+
+.h2_seccion{
+	font-size: 25px;
+}
+
+}
+
+
+
+@media (max-width: 450px) {
+
+.div_seccion{
+	height: 250px;
+	width: 350px;
+}
+}

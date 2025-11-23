@@ -1,27 +1,52 @@
 import "./secciones.css";
+import { useNavigate } from "react-router-dom";
 
 function Secciones() {
+  const navigate = useNavigate();
+
   return (
     <>
       <div className="div_secciones">
-        <div>
-          <h2>¿Buscas pista?</h2>
-          <h2>Reserva en 2 clicks</h2>
+        <div
+          className="div_seccion grid1"
+          onClick={() => navigate("/reservar")}
+        >
+          <div
+            className="div_div_seccion"
+            onClick={() => navigate("/reservar")}
+          >
+            <h2 className="h2_seccion">¿Buscas pista?</h2>
+            <h2 className="h2_seccion">Reserva en 2 clicks</h2>
+          </div>
         </div>
-        <div>
-          <h2>Consulta nuestras tarifas</h2>
+        <div className="div_seccion grid2" onClick={() => navigate("/tarifas")}>
+          <div className="div_div_seccion">
+            <h2 className="h2_seccion">Consulta nuestras tarifas</h2>
+          </div>
         </div>
-        <div>
-          <h2>¿Quieres dar clase?</h2>
-          <h2>Conoce a nuestros monitores</h2>
+        <div className="div_seccion grid3" onClick={() => navigate("/clases")}>
+          <div className="div_div_seccion">
+            <h2 className="h2_seccion">¿Quieres dar clase?</h2>
+            <h2 className="h2_seccion">Conoce a nuestros monitores</h2>
+          </div>
         </div>
-        <div>
-          <h2>¿Alguna duda?</h2>
-          <h2>¡Contáctanos!</h2>
+        <div
+          className="div_seccion grid4"
+          onClick={() => navigate("/contacto")}
+        >
+          <div className="div_div_seccion">
+            <h2 className="h2_seccion">¿Alguna duda?</h2>
+            <h2 className="h2_seccion">¡Contáctanos!</h2>
+          </div>
         </div>
-        <div>
-          <h2>¿Aún no tienes cuenta?</h2>
-          <h2>¡Regístrate!</h2>
+        <div
+          className="div_seccion grid5"
+          onClick={() => navigate("/registro")}
+        >
+          <div className="div_div_seccion">
+            <h2 className="h2_seccion">¿Aún no tienes cuenta?</h2>
+            <h2 className="h2_seccion">¡Regístrate!</h2>
+          </div>
         </div>
       </div>
     </>
