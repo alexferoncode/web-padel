@@ -1,6 +1,6 @@
-import Navbar from "../components/Navbar/Navbar.tsx";
-import Tarifas from "../components/Tarifas/Tarifas.tsx";
-import Footer from "../components/Footer/Footer.tsx";
+import Navbar from "../componentes/Navbar/Navbar.tsx";
+import Tarifas from "../componentes/Tarifas/Tarifas.tsx";
+import Footer from "../componentes/Footer/Footer.tsx";
 
 export default function Home() {
   return (

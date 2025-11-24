@@ -7,10 +7,12 @@ import Pagina_Home from "./pages/Pagina_Home";
 import Pagina_Tarifas from "./pages/Pagina_Tarifas";
 // import Pagina_Clases from "./pages/Pagina_Clases";
 // import Pagina_Contacto from "./pages/Pagina_Contacto";
+// import ScrollToTop from "./componentes/Utilidades/ScrollToTop";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <BrowserRouter>
+      {/* <ScrollToTop /> */}
       <Routes>
         <Route path="/" element={<Pagina_Home />} />
         {/* <Route path="/reservar" element={<Pagina_Reservar />} /> */}
