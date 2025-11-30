@@ -26,7 +26,7 @@ function Footer() {
             </ul>
           </div>
           <div className="div_div_footer">
-            <h2 className="h2_footer">Contacta</h2>
+            <h2 className="h2_footer">Contacto</h2>
             <ul className="ul_footer">
               <li>Calle B, 22, Polígono Industrial Campollano, Albacete</li>
               <li>WhatsApp: 649 28 07 34</li>
