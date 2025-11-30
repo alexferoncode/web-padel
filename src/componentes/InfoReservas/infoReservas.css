@@ -26,3 +26,13 @@
     font-size: 20px;
     font-weight: 500;
 }
+
+
+@media(max-width: 900px){
+.cancelacion_reservas{
+    width: 80%;
+}
+.section_reservas{
+    padding: 100px 20px 40px 20px;
+}
+}
