@@ -21,6 +21,20 @@ function Navbar() {
     navbarVertical.style.display = "none";
   };
 
+  const handleCerrarSesionAbrir = () => {
+    const navbarVertical = document.querySelector(
+      ".cerrar_sesion_aviso"
+    ) as HTMLElement;
+    navbarVertical.style.display = "flex";
+  };
+
+  const handleCerrarSesionCerrar = () => {
+    const navbarVertical = document.querySelector(
+      ".cerrar_sesion_aviso"
+    ) as HTMLElement;
+    navbarVertical.style.display = "none";
+  };
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
     handleMenuClickCerrar();
@@ -86,7 +100,13 @@ function Navbar() {
                 LOGIN / REGISTRO
               </span>
             ) : (
-              <span className="horizontal_href" onClick={handleLogout}>
+              <span
+                className="horizontal_href"
+                onClick={() => {
+                  handleCerrarSesionAbrir();
+                  handleMenuClickCerrar();
+                }}
+              >
                 CERRAR SESIÓN
               </span>
             )}
@@ -179,13 +199,40 @@ function Navbar() {
                 LOGIN / REGISTRO
               </span>
             ) : (
-              <span className="vertical_href" onClick={handleLogout}>
+              <span
+                className="vertical_href"
+                onClick={() => {
+                  handleCerrarSesionAbrir();
+                  handleMenuClickCerrar();
+                }}
+              >
                 CERRAR SESIÓN
               </span>
             )}
           </li>
         </ul>
       </nav>
+
+      <div className="cerrar_sesion_aviso">
+        <h2 className="cerrar_sesion_h2">¿Quieres cerrar sesión?</h2>
+        <div className="cerrar_sesion_div_botones">
+          <button
+            className="cerrar_sesion_boton"
+            onClick={handleCerrarSesionCerrar}
+          >
+            Cancelar
+          </button>
+          <button
+            className="cerrar_sesion_boton cerrar_sesion_boton_cerrar"
+            onClick={() => {
+              handleLogout();
+              handleCerrarSesionCerrar();
+            }}
+          >
+            Cerrar sesión
+          </button>
+        </div>
+      </div>
     </>
   );
 }

@@ -102,9 +102,7 @@ body{
     flex-direction: column;
     align-items: flex-start;
     justify-content: flex-start;
-
-    
-        display: none;
+    display: none;
 }
 
 .vertical_ul{
@@ -159,6 +157,57 @@ body{
 .vertical_icono_cerrar_menu:hover{
     fill: #ff4b4f;
     transition: 0.3s;
+}
+
+
+
+/* Botón cerrar sesión */
+.cerrar_sesion_aviso{
+
+    background-color: rgba(24, 24, 24, 0.8);
+    backdrop-filter: blur(10px);
+    position: fixed;
+    top: 0;
+    z-index: 999;
+    height: 100%;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 50px 0 0 0;
+
+    display: none;
+
+}
+
+.cerrar_sesion_h2{
+    margin-bottom: 35px;
+    font-size: 25px;
+    font-weight: 600;
+    color: white;
+}
+
+.cerrar_sesion_div_botones{
+    display: flex;
+    gap: 40px;
+}
+
+.cerrar_sesion_boton {
+    height: 50px;
+    width: 150px;
+    padding: 10px 20px;
+    background-color: #cb2c30;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    text-shadow: 0 0 5px black;
+}
+
+.cerrar_sesion_boton:hover {
+  background-color: #a1191e;
 }
 
 
