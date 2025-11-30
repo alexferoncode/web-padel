@@ -1,8 +1,11 @@
 import "./navbar.css";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
+import { supabase } from "../../../supabaseClient";
 
 function Navbar() {
   const navigate = useNavigate();
+  const { user: authUser } = useAuth();
 
   const handleMenuClickAbrir = () => {
     const navbarVertical = document.querySelector(
@@ -16,6 +19,12 @@ function Navbar() {
       ".vertical_navbar"
     ) as HTMLElement;
     navbarVertical.style.display = "none";
+  };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    handleMenuClickCerrar();
+    navigate("/"); // opcional: redirige a home
   };
 
   return (
@@ -69,12 +78,18 @@ function Navbar() {
           </li>
 
           <li className="horizontal_li hideOnMobile">
-            <span
-              className="horizontal_href"
-              onClick={() => navigate("/login")}
-            >
-              LOGIN / REGISTRO
-            </span>
+            {!authUser ? (
+              <span
+                className="horizontal_href"
+                onClick={() => navigate("/login")}
+              >
+                LOGIN / REGISTRO
+              </span>
+            ) : (
+              <span className="horizontal_href" onClick={handleLogout}>
+                CERRAR SESIÓN
+              </span>
+            )}
           </li>
 
           {/* Menú hamburguesa */}
@@ -153,15 +168,21 @@ function Navbar() {
           </li>
 
           <li className="vertical_li">
-            <span
-              className="vertical_href"
-              onClick={() => {
-                navigate("/login");
-                handleMenuClickCerrar();
-              }}
-            >
-              LOGIN / REGISTRO
-            </span>
+            {!authUser ? (
+              <span
+                className="vertical_href"
+                onClick={() => {
+                  navigate("/login");
+                  handleMenuClickCerrar();
+                }}
+              >
+                LOGIN / REGISTRO
+              </span>
+            ) : (
+              <span className="vertical_href" onClick={handleLogout}>
+                CERRAR SESIÓN
+              </span>
+            )}
           </li>
         </ul>
       </nav>
