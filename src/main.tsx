@@ -9,6 +9,7 @@ import Pagina_Tarifas from "./pages/Pagina_Tarifas";
 // import Pagina_Contacto from "./pages/Pagina_Contacto";
 import Pagina_Login from "./pages/Pagina_Login";
 import ScrollToTop from "./componentes/Utilidades/ScrollToTop";
+import ProtectedRoute from "./componentes/ProtectedRoute/ProtectedRoute";
 
 import { AuthProvider } from "./context/AuthContext"; // <--- IMPORTAR EL CONTEXT
 
@@ -21,7 +22,14 @@ createRoot(document.getElementById("root")!).render(
         <ScrollToTop />
         <Routes>
           <Route path="/" element={<Pagina_Home />} />
-          <Route path="/reservar" element={<Pagina_Reservar />} />
+          <Route
+            path="/reservar"
+            element={
+              <ProtectedRoute>
+                <Pagina_Reservar />
+              </ProtectedRoute>
+            }
+          />
           <Route path="/tarifas" element={<Pagina_Tarifas />} />
           {/* <Route path="/clases" element={<Pagina_Clases />} />
           <Route path="/contacto" element={<Pagina_Contacto />} /> */}

@@ -45,9 +45,12 @@
 .div_hora_celda {
   padding: 4px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-  font-size: 0.8rem;
+  font-size: 1rem;
   text-align: center;
   color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* Celda vacía */
@@ -70,22 +73,17 @@
 }
 
 /* Colores según estado */
-.div_reserva_bloque.cerrado {
-  background-color: #666666; /* gris oscuro */
-  color: white;
-}
-
+/* Bloques que NO son libres: cerrado, ocupada, clase */
+.div_reserva_bloque.cerrado,
+.div_reserva_bloque.ocupada,
 .div_reserva_bloque.clase {
-  background-color: #003b5c;
-  color: white;
+  background-color: #666666; /* gris oscuro */
 }
 
-.div_reserva_bloque.ocupada {
-  background-color: #a1191e; /* rojo */
-  color: white;
-}
-
+/* Libre sigue igual */
 .div_reserva_bloque.libre {
-  background-color: #00a859; /* verde oscuro */
-  color: white;
+  background-color: #04b704;
+  color: white
 }
+
+

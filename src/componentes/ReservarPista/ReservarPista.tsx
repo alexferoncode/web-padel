@@ -75,18 +75,18 @@ function ReservarPista() {
     { pista: 3, inicio: "10:30", fin: "12:00", estado: "libre" },
     { pista: 3, inicio: "12:00", fin: "13:30", estado: "ocupada" },
     { pista: 3, inicio: "16:00", fin: "17:30", estado: "libre" },
-    { pista: 3, inicio: "17:30", fin: "19:00", estado: "ocupada" },
-    { pista: 3, inicio: "19:00", fin: "20:30", estado: "ocupada" },
-    { pista: 3, inicio: "20:30", fin: "22:00", estado: "ocupada" },
+    { pista: 3, inicio: "18:00", fin: "19:30", estado: "ocupada" },
+    { pista: 3, inicio: "19:30", fin: "21:00", estado: "ocupada" },
+    { pista: 3, inicio: "21:00", fin: "22:30", estado: "libre" },
 
     // Pista 4
     { pista: 4, inicio: "09:00", fin: "10:30", estado: "libre" },
     { pista: 4, inicio: "10:30", fin: "12:00", estado: "libre" },
     { pista: 4, inicio: "12:00", fin: "13:30", estado: "libre" },
-    { pista: 4, inicio: "16:00", fin: "17:30", estado: "libre" },
-    { pista: 4, inicio: "17:30", fin: "19:00", estado: "ocupada" },
-    { pista: 4, inicio: "19:00", fin: "20:30", estado: "ocupada" },
-    { pista: 4, inicio: "20:30", fin: "22:00", estado: "ocupada" },
+    { pista: 4, inicio: "16:00", fin: "17:30", estado: "ocupada" },
+    { pista: 4, inicio: "18:00", fin: "19:30", estado: "ocupada" },
+    { pista: 4, inicio: "19:30", fin: "21:00", estado: "ocupada" },
+    { pista: 4, inicio: "21:00", fin: "22:30", estado: "ocupada" },
 
     // Pista 5
     { pista: 5, inicio: "09:00", fin: "10:30", estado: "libre" },
@@ -157,15 +157,11 @@ function ReservarPista() {
                       gridColumn: idx + 2,
                       gridRow: `${calcularFila(bloque.inicio)} / span ${filas}`,
                       fontSize: "0.9rem",
+                      color:
+                        bloque.estado === "libre" ? "white" : "transparent", // <-- OCULTA TEXTO en ocupada/clase/cerrado
                     }}
                   >
-                    {bloque.estado === "libre"
-                      ? "Libre"
-                      : bloque.estado === "ocupada"
-                      ? "Ocupada"
-                      : bloque.estado === "clase"
-                      ? "Clase"
-                      : "Cerrado"}
+                    {bloque.estado === "libre" ? "Libre" : ""}
                   </div>
                 );
               }

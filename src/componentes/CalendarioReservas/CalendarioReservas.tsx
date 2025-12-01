@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { Calendar } from "react-calendar";
 import "react-calendar/dist/Calendar.css";
-import "./CalendarioReservas.css"; // CSS personalizado
+import "./calendarioReservas.css";
+import "../../index.css";
 
 function CalendarioReservas() {
   const [date, setDate] = useState<Date>(new Date());
@@ -10,27 +11,46 @@ function CalendarioReservas() {
   const maxDate = new Date();
   maxDate.setDate(today.getDate() + 14);
 
-  // Wrapper seguro para TypeScript
-  const handleChange = (value: Date | Date[] | null) => {
-    if (value instanceof Date) {
-      setDate(value);
-    }
-  };
-
   return (
-    <div className="calendar-container">
-      <Calendar
-        className="custom-calendar"
-        locale="es-ES" // idioma español
-        onChange={(value) => setDate(value as Date)}
-        value={date}
-        minDate={today}
-        maxDate={maxDate}
-        calendarType="iso8601"
-        prevLabel="‹" // solo una flecha izquierda
-        nextLabel="›" // solo una flecha derecha
-      />
-    </div>
+    <>
+      <section className="reservas_section">
+        <section className="reservas_info_section">
+          <div className="reservas_div">
+            <h2 className="reservas_h2">Reserva de pistas</h2>
+            <p className="reservas_p">
+              Para reservar una pista, debes reservarla completa (4 personas).
+            </p>
+            <p className="reservas_p">
+              Puedes cancelar la pista hasta 24 horas antes de la reserva.
+            </p>
+          </div>
+        </section>
+        <section className="pistas_section">
+          <img
+            className="pistas_img"
+            src="/images/pistas_dibujo_nombres.png"
+            alt=""
+          />
+        </section>
+        <section className="calendar_section">
+          <div className="calendar_div">
+            <Calendar
+              className="calendar"
+              locale="es-ES"
+              onChange={(value) => setDate(value as Date)}
+              value={date}
+              minDate={today}
+              maxDate={maxDate}
+              calendarType="iso8601"
+              prevLabel="‹"
+              nextLabel="›"
+              prev2Label={null}
+              next2Label={null}
+            />
+          </div>
+        </section>
+      </section>
+    </>
   );
 }
 

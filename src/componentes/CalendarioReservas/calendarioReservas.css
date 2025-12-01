@@ -1,40 +1,88 @@
-.calendar-container {
+.reservas_section{
+    display: grid;
+    grid-template-columns: 2fr 1fr; /* columna 1: reservas+calendar, columna 2: pistas */
+    grid-template-rows: auto auto;  /* dos filas */
+    gap: 80px;
+    padding: 150px 20px 40px 20px;
+    max-width: 1100px;
+    justify-items: center;
+    margin: 0 auto;
+}
+
+.reservas_info_section{
+    grid-column: 1 / 2;
+    grid-row: 1 / 2;
+
+    color:white;
+    text-shadow: 0 0 5px black;
+}
+
+.reservas_div{
+    margin: 0 auto;
+    background: #003b5c;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding: 20px 30px;
+    box-shadow: 0 0 10px black;
+}
+
+.reservas_h2{
+    font-size: 30px;
+    font-weight: 600;
+    margin-bottom: 20px;
+}
+
+.reservas_p{
+    font-size: 20px;
+    font-weight: 500;
+}
+
+.calendar_section{
+    grid-column: 1 / 2;
+    grid-row: 2 / 3;
+}
+
+.calendar_div {
   display: flex;
-  justify-content: center;
-  margin: 30px;
+  justify-content: center;  
 }
 
 /* Calendario general */
-.custom-calendar {
+.calendar {
   border: none;
   border-radius: 12px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-  font-family: 'Inter', sans-serif;
-  background: #ffffff; 
+  font-family: 'Barlow', sans-serif;
+  background: #ffffff;
+  width: 400px;
+  height: 350px;
+  font-size: 20px;
+  font-weight: 600;
 }
 
 /* Mes actual más grande */
-.custom-calendar .react-calendar__navigation__label {
+.calendar .react-calendar__navigation__label {
   font-size: 1.5rem;
   font-weight: 600;
   color: #001a29;
 }
 
 /* Quitar fondo de navegación */
-.custom-calendar .react-calendar__navigation button {
+.calendar .react-calendar__navigation button {
   background: transparent;
   color: #003b5c;
   border: none;
-  font-size: 1.2rem;
+  font-size: 1.5rem;
   font-weight: 600;
 }
 
-.custom-calendar .react-calendar__navigation button:hover {
+.calendar .react-calendar__navigation button:hover {
   color: #cb2c30;
 }
 
 /* Días de la semana: sin subrayado ni fondo */
-.custom-calendar .react-calendar__month-view__weekdays {
+.calendar .react-calendar__month-view__weekdays {
   background: transparent;
   color: #001a29;
   font-weight: 600;
@@ -42,28 +90,63 @@
 }
 
 /* Bordes y hover de los días */
-.custom-calendar .react-calendar__tile {
+.calendar .react-calendar__tile {
   border-radius: 8px;
 }
 
-.custom-calendar .react-calendar__tile:hover {
+.calendar .react-calendar__tile:hover {
   background-color: #003b5c;
   color: white;
 }
 
 /* Día seleccionado */
-.custom-calendar .react-calendar__tile--active {
+.calendar .react-calendar__tile--active {
   background: #cb2c30 !important;
   color: white !important;
 }
 
 /* Día de hoy: no marcar de ningún color */
-.custom-calendar .react-calendar__tile--now {
+.calendar .react-calendar__tile--now {
   background: transparent;
   color: inherit;
 }
 
 /* Días fuera del mes */
-.custom-calendar .react-calendar__tile--neighboringMonth {
+.calendar .react-calendar__tile--neighboringMonth {
   color: #999;
+}
+
+.pistas_section{
+  grid-column: 2 / 3;
+  grid-row: 1 / 3;
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+  color: white;
+}
+
+.pistas_img{
+  height: 800px;
+  width: 291px;
+}
+
+@media(max-width: 900px){
+    .reservas_section{
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap:40px;
+    }
+    .reservas_div{
+        width: 80%;
+    }
+    .reservas_section{
+    padding: 110px 20px 40px 20px;
+    }
+}
+
+@media(max-width: 450px){
+    .calendar{
+        width: 100%;
+    }
 }
