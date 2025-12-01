@@ -1,8 +1,10 @@
 .reservas_section{
-    display: grid;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
     grid-template-columns: 2fr 1fr; /* columna 1: reservas+calendar, columna 2: pistas */
     grid-template-rows: auto auto;  /* dos filas */
-    gap: 80px;
+    gap: 50px;
     padding: 150px 20px 40px 20px;
     max-width: 1100px;
     justify-items: center;
@@ -10,9 +12,6 @@
 }
 
 .reservas_info_section{
-    grid-column: 1 / 2;
-    grid-row: 1 / 2;
-
     color:white;
     text-shadow: 0 0 5px black;
 }
@@ -38,10 +37,6 @@
     font-weight: 500;
 }
 
-.calendar_section{
-    grid-column: 1 / 2;
-    grid-row: 2 / 3;
-}
 
 .calendar_div {
   display: flex;
@@ -117,8 +112,6 @@
 }
 
 .pistas_section{
-  grid-column: 2 / 3;
-  grid-row: 1 / 3;
   display: flex;
   flex-direction: column;
   gap: 30px;
@@ -132,10 +125,7 @@
 
 @media(max-width: 900px){
     .reservas_section{
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap:40px;
+        gap:30px;
     }
     .reservas_div{
         width: 80%;

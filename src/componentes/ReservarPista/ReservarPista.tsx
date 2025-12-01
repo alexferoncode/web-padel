@@ -1,114 +1,93 @@
 import "./reservarPista.css";
 import "../../index.css";
+import { useEffect, useState } from "react";
+import { createClient } from "@supabase/supabase-js";
+
+const supabase = createClient(
+  import.meta.env.VITE_SUPABASE_URL!,
+  import.meta.env.VITE_SUPABASE_ANON_KEY!
+);
 
 type EstadoReserva = "libre" | "ocupada" | "clase" | "cerrado";
 
-interface Reserva {
-  pista: number;
-  inicio: string; // HH:MM
-  fin: string; // HH:MM
+interface ReservaDB {
+  id: number;
+  pista_id: number;
   estado: EstadoReserva;
+  inicio: string;
+  fin: string;
 }
 
-function ReservarPista() {
+interface BloqueReserva {
+  pista: number;
+  estado: EstadoReserva;
+  inicio: string;
+  fin: string;
+}
+
+function ReservarPista({ date }: { date: Date }) {
   const pistas = [1, 2, 3, 4, 5, 6];
   const startHour = 8;
-  const endHour = 23; // último bloque visible 23:00-23:30
+  const endHour = 23;
 
+  const [reservasSupabase, setReservasSupabase] = useState<ReservaDB[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  /* -------------------------------------------
+      1) CALCULAR HORAS DEL CALENDARIO
+  --------------------------------------------*/
   const horas: string[] = [];
   for (let h = startHour; h <= endHour; h++) {
     horas.push(`${h.toString().padStart(2, "0")}:00`);
-    if (h < endHour) {
-      horas.push(`${h.toString().padStart(2, "0")}:30`);
-    }
+    if (h < endHour) horas.push(`${h.toString().padStart(2, "0")}:30`);
   }
 
-  // Bloques cerrados
-  const bloquesCerrado = [
-    { inicio: "08:00", fin: "09:00" },
-    { inicio: "14:00", fin: "16:00" },
-    { inicio: "23:00", fin: "23:30" },
-  ];
+  /* -------------------------------------------
+      2) CARGAR RESERVAS DEL DÍA DESDE SUPABASE
+  --------------------------------------------*/
+  useEffect(() => {
+    const cargarReservas = async () => {
+      setLoading(true);
 
-  const generarCerrado = (
-    pistas: number[],
-    bloques: { inicio: string; fin: string }[]
-  ): Reserva[] => {
-    const reservas: Reserva[] = [];
-    pistas.forEach((pista) => {
-      bloques.forEach((b) => {
-        reservas.push({
-          pista,
-          inicio: b.inicio,
-          fin: b.fin,
-          estado: "cerrado",
-        });
-      });
-    });
-    return reservas;
-  };
+      // Formatear la fecha como YYYY-MM-DD
+      const año = date.getFullYear();
+      const mes = (date.getMonth() + 1).toString().padStart(2, "0");
+      const dia = date.getDate().toString().padStart(2, "0");
+      const fechaStr = `${año}-${mes}-${dia}`;
 
-  const reservasCerradas = generarCerrado(pistas, bloquesCerrado);
+      console.log("Consultando reservas para fecha:", fechaStr);
 
-  // Ejemplos para rellenar huecos
-  const reservasEjemplo: Reserva[] = [
-    // Pista 1
-    { pista: 1, inicio: "09:00", fin: "10:30", estado: "libre" },
-    { pista: 1, inicio: "10:30", fin: "12:00", estado: "ocupada" },
-    { pista: 1, inicio: "12:00", fin: "13:30", estado: "clase" },
-    { pista: 1, inicio: "16:00", fin: "17:30", estado: "libre" },
-    { pista: 1, inicio: "17:30", fin: "19:00", estado: "ocupada" },
-    { pista: 1, inicio: "19:00", fin: "20:00", estado: "clase" },
-    { pista: 1, inicio: "20:30", fin: "22:00", estado: "libre" },
+      // Usar la función de PostgreSQL para filtrar por fecha
+      const { data, error } = await supabase
+        .from("reservas")
+        .select("*")
+        .filter("inicio", "gte", `${fechaStr}T00:00:00`)
+        .filter(
+          "inicio",
+          "lt",
+          `${año}-${mes}-${(parseInt(dia) + 1)
+            .toString()
+            .padStart(2, "0")}T00:00:00`
+        )
+        .order("inicio", { ascending: true });
 
-    // Pista 2
-    { pista: 2, inicio: "09:00", fin: "10:30", estado: "ocupada" },
-    { pista: 2, inicio: "10:30", fin: "12:00", estado: "libre" },
-    { pista: 2, inicio: "12:00", fin: "13:00", estado: "clase" },
-    { pista: 2, inicio: "16:00", fin: "17:30", estado: "libre" },
-    { pista: 2, inicio: "17:30", fin: "19:00", estado: "ocupada" },
-    { pista: 2, inicio: "19:00", fin: "20:30", estado: "ocupada" },
-    { pista: 2, inicio: "20:30", fin: "22:00", estado: "ocupada" },
+      if (error) {
+        console.error("Error cargando reservas:", error);
+        setLoading(false);
+        return;
+      }
 
-    // Pista 3
-    { pista: 3, inicio: "09:00", fin: "10:30", estado: "libre" },
-    { pista: 3, inicio: "10:30", fin: "12:00", estado: "libre" },
-    { pista: 3, inicio: "12:00", fin: "13:30", estado: "ocupada" },
-    { pista: 3, inicio: "16:00", fin: "17:30", estado: "libre" },
-    { pista: 3, inicio: "18:00", fin: "19:30", estado: "ocupada" },
-    { pista: 3, inicio: "19:30", fin: "21:00", estado: "ocupada" },
-    { pista: 3, inicio: "21:00", fin: "22:30", estado: "libre" },
+      console.log(`Reservas encontradas: ${data?.length || 0}`, data);
+      setReservasSupabase(data || []);
+      setLoading(false);
+    };
 
-    // Pista 4
-    { pista: 4, inicio: "09:00", fin: "10:30", estado: "libre" },
-    { pista: 4, inicio: "10:30", fin: "12:00", estado: "libre" },
-    { pista: 4, inicio: "12:00", fin: "13:30", estado: "libre" },
-    { pista: 4, inicio: "16:00", fin: "17:30", estado: "ocupada" },
-    { pista: 4, inicio: "18:00", fin: "19:30", estado: "ocupada" },
-    { pista: 4, inicio: "19:30", fin: "21:00", estado: "ocupada" },
-    { pista: 4, inicio: "21:00", fin: "22:30", estado: "ocupada" },
+    cargarReservas();
+  }, [date]);
 
-    // Pista 5
-    { pista: 5, inicio: "09:00", fin: "10:30", estado: "libre" },
-    { pista: 5, inicio: "10:30", fin: "12:00", estado: "libre" },
-    { pista: 5, inicio: "12:00", fin: "13:30", estado: "ocupada" },
-    { pista: 5, inicio: "16:00", fin: "17:30", estado: "libre" },
-    { pista: 5, inicio: "17:30", fin: "19:00", estado: "ocupada" },
-    { pista: 5, inicio: "19:00", fin: "20:30", estado: "ocupada" },
-    { pista: 5, inicio: "20:30", fin: "22:00", estado: "ocupada" },
-
-    // Pista 6
-    { pista: 6, inicio: "09:00", fin: "10:30", estado: "libre" },
-    { pista: 6, inicio: "10:30", fin: "12:00", estado: "clase" },
-    { pista: 6, inicio: "12:00", fin: "13:30", estado: "ocupada" },
-    { pista: 6, inicio: "16:00", fin: "17:30", estado: "libre" },
-    { pista: 6, inicio: "17:30", fin: "19:00", estado: "ocupada" },
-    { pista: 6, inicio: "19:00", fin: "20:30", estado: "libre" },
-    { pista: 6, inicio: "20:30", fin: "22:00", estado: "libre" },
-  ];
-
-  const reservasDelDia = [...reservasCerradas, ...reservasEjemplo];
-
+  /* -------------------------------------------
+      3) FUNCIONES DE POSICIÓN EN LA GRID
+  --------------------------------------------*/
   const calcularFila = (hora: string) => {
     const [h, m] = hora.split(":").map(Number);
     return (h - startHour) * 2 + (m === 30 ? 2 : 1);
@@ -118,19 +97,123 @@ function ReservarPista() {
     return calcularFila(fin) - calcularFila(inicio);
   };
 
+  /* -------------------------------------------
+      4) TRANSFORMAR RESERVAS SUPABASE A BLOQUES
+  --------------------------------------------*/
+  const reservasDelDia: BloqueReserva[] = reservasSupabase.map((r) => {
+    const inicioDate = new Date(r.inicio);
+    const finDate = new Date(r.fin);
+
+    const inicioStr =
+      inicioDate.getHours().toString().padStart(2, "0") +
+      ":" +
+      inicioDate.getMinutes().toString().padStart(2, "0");
+
+    const finStr =
+      finDate.getHours().toString().padStart(2, "0") +
+      ":" +
+      finDate.getMinutes().toString().padStart(2, "0");
+
+    return {
+      pista: r.pista_id,
+      estado: r.estado,
+      inicio: inicioStr,
+      fin: finStr,
+    };
+  });
+
+  /* -------------------------------------------
+      4.5) GENERAR BLOQUES "CERRADO" DINÁMICAMENTE
+      Horarios cerrados: 00:00-09:00, 14:00-16:00, 23:00-00:00
+  --------------------------------------------*/
+  const horariosCerrados: Array<{ inicio: string; fin: string }> = [
+    { inicio: "08:00", fin: "09:00" }, // Antes de abrir
+    { inicio: "14:00", fin: "16:00" }, // Pausa mediodía
+    { inicio: "23:00", fin: "23:30" }, // Cierre (última media hora visible)
+  ];
+
+  const bloquesCerrados: BloqueReserva[] = [];
+
+  pistas.forEach((pista) => {
+    horariosCerrados.forEach((horario) => {
+      // Verificar si ya existe una reserva en este horario para esta pista
+      const yaExisteReserva = reservasDelDia.some(
+        (r) =>
+          r.pista === pista &&
+          r.inicio <= horario.inicio &&
+          r.fin >= horario.fin
+      );
+
+      // Si no existe reserva, añadir bloque cerrado
+      if (!yaExisteReserva) {
+        bloquesCerrados.push({
+          pista: pista,
+          estado: "cerrado",
+          inicio: horario.inicio,
+          fin: horario.fin,
+        });
+      }
+    });
+  });
+
+  // Combinar reservas de DB con bloques cerrados
+  const todasLasReservas = [...reservasDelDia, ...bloquesCerrados];
+
+  /* -------------------------------------------
+      5) VERIFICAR SI UNA CELDA ESTÁ OCUPADA
+  --------------------------------------------*/
+  const estaCeldaOcupada = (pista: number, hora: string): boolean => {
+    const [h, m] = hora.split(":").map(Number);
+    const horaMinutos = h * 60 + m;
+
+    return todasLasReservas.some((r) => {
+      if (r.pista !== pista) return false;
+
+      const [ih, im] = r.inicio.split(":").map(Number);
+      const [fh, fm] = r.fin.split(":").map(Number);
+
+      const inicioMinutos = ih * 60 + im;
+      const finMinutos = fh * 60 + fm;
+
+      return horaMinutos >= inicioMinutos && horaMinutos < finMinutos;
+    });
+  };
+
+  /* -------------------------------------------
+      6) RENDERIZADO
+  --------------------------------------------*/
   return (
     <section className="section_reservar_pista">
       <div className="div_calendario_pistas">
+        {/* HEADER */}
         <div className="div_calendario_header">
-          <div className="div_hora_columna_header">Hora</div>
+          <div className="div_hora_columna_header">HORA</div>
           {pistas.map((p) => (
             <div key={p} className="div_pista_columna_header">
-              Pista {p}
+              <span className="nombre_pc">{`PISTA ${p}`}</span>
+              <span className="nombre_movil">{`P${p}`}</span>
             </div>
           ))}
         </div>
 
+        {/* BODY */}
         <div className="div_calendario_body">
+          {loading && (
+            <div
+              style={{
+                gridColumn: "1 / -1",
+                gridRow: "1 / -1",
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                background: "rgba(255,255,255,0.8)",
+              }}
+            >
+              Cargando reservas...
+            </div>
+          )}
+
+          {/* HORAS */}
           {horas.map((h) => (
             <div
               key={h}
@@ -141,36 +224,43 @@ function ReservarPista() {
             </div>
           ))}
 
+          {/* BLOQUES DE RESERVAS */}
           {pistas.map((p, idx) =>
-            horas.map((h) => {
-              const bloque = reservasDelDia.find(
-                (r) => r.pista === idx + 1 && r.inicio === h
-              );
-
-              if (bloque) {
+            todasLasReservas
+              .filter((r) => r.pista === p)
+              .map((bloque, bloqueIdx) => {
                 const filas = calcularFilasBloque(bloque.inicio, bloque.fin);
                 return (
                   <div
-                    key={`${p}-${h}`}
+                    key={`${p}-${bloque.inicio}-${bloqueIdx}`}
                     className={`div_reserva_bloque ${bloque.estado}`}
                     style={{
                       gridColumn: idx + 2,
                       gridRow: `${calcularFila(bloque.inicio)} / span ${filas}`,
-                      fontSize: "0.9rem",
-                      color:
-                        bloque.estado === "libre" ? "white" : "transparent", // <-- OCULTA TEXTO en ocupada/clase/cerrado
                     }}
-                  >
-                    {bloque.estado === "libre" ? "Libre" : ""}
-                  </div>
+                  />
                 );
-              }
+              })
+          )}
+
+          {/* CELDAS VACÍAS (solo donde NO hay reservas) */}
+          {pistas.map((p, idx) =>
+            horas.map((h) => {
+              if (estaCeldaOcupada(p, h)) return null;
 
               return (
                 <div
-                  key={`${p}-${h}`}
+                  key={`${p}-${h}-vacia`}
                   className="div_celda_vacia"
-                  style={{ gridColumn: idx + 2, gridRow: calcularFila(h) }}
+                  style={{
+                    gridColumn: idx + 2,
+                    gridRow: calcularFila(h),
+                    cursor: "pointer",
+                  }}
+                  onClick={() => {
+                    console.log(`Celda vacía clickeada: Pista ${p}, Hora ${h}`);
+                    // Aquí puedes añadir la lógica para crear una reserva
+                  }}
                 />
               );
             })

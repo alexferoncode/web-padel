@@ -1,23 +1,28 @@
 .section_reservar_pista {
-  margin: 20px;
+  margin: 20px 30px;
   font-family: 'Inter', sans-serif;
+  display: flex;
+  justify-content: center;
 }
 
 .div_calendario_pistas {
-  display: flex;
-  flex-direction: column;
   border: 1px solid white;
   overflow: hidden;
+  width: 1000px;
+  background: #003b5c;
 }
 
 /* Header */
 .div_calendario_header {
   display: grid;
   grid-template-columns: 80px repeat(6, 1fr);
-  background-color: #f5f5f5;
+  background-color: #cb2c30;
   border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  text-shadow: 0 0 5px black;
 }
 
+.div_hora_cadena_header,
 .div_hora_columna_header {
   padding: 8px;
   font-weight: 600;
@@ -32,7 +37,16 @@
   border-right: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-/* Body del calendario */
+/* TEXTOS DIFERENTES PARA PC/MÓVIL */
+.nombre_movil {
+  display: none;
+}
+
+.nombre_pc {
+  display: inline;
+}
+
+/* Body */
 .div_calendario_body {
   display: grid;
   grid-template-columns: 80px repeat(6, 1fr);
@@ -45,7 +59,7 @@
 .div_hora_celda {
   padding: 4px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-  font-size: 1rem;
+  font-size: 1.1rem;
   text-align: center;
   color: white;
   display: flex;
@@ -53,37 +67,55 @@
   justify-content: center;
 }
 
-/* Celda vacía */
+/* Celdas vacías */
 .div_celda_vacia {
   border-bottom: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-/* Bloques de reserva */
+/* Bloques reserva */
 .div_reserva_bloque {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1rem; /* tamaño de texto más grande */
+  font-size: 1rem;
   font-weight: 600;
-  /* border-radius: 6px; */
   margin: 2px;
   color: white;
   position: relative;
-  z-index: 10; /* Bloques encima de líneas de cuadrícula */
+  z-index: 10;
 }
 
-/* Colores según estado */
-/* Bloques que NO son libres: cerrado, ocupada, clase */
 .div_reserva_bloque.cerrado,
 .div_reserva_bloque.ocupada,
 .div_reserva_bloque.clase {
-  background-color: #666666; /* gris oscuro */
+  background-color: #666666;
 }
 
-/* Libre sigue igual */
 .div_reserva_bloque.libre {
   background-color: #04b704;
-  color: white
+  color: white;
 }
 
+/* --- MÓVIL (<700px) --- */
+@media(max-width: 700px){
+  .section_reservar_pista {
+    margin: 0 20px 20px 20px;
+  }
 
+  .div_calendario_header {
+    font-size: 0.9rem;
+  }
+
+  .div_hora_celda {
+    font-size: 1rem;
+  }
+
+  /* Cambiar texto: de PISTA 1 -> P1 */
+  .nombre_pc {
+    display: none;
+  }
+
+  .nombre_movil {
+    display: inline;
+  }
+}
