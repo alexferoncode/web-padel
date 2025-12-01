@@ -1,0 +1,91 @@
+.section_reservar_pista {
+  margin: 20px;
+  font-family: 'Inter', sans-serif;
+}
+
+.div_calendario_pistas {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid white;
+  overflow: hidden;
+}
+
+/* Header */
+.div_calendario_header {
+  display: grid;
+  grid-template-columns: 80px repeat(6, 1fr);
+  background-color: #f5f5f5;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.div_hora_columna_header {
+  padding: 8px;
+  font-weight: 600;
+  border-right: 1px solid rgba(255, 255, 255, 0.2);
+  text-align: center;
+}
+
+.div_pista_columna_header {
+  padding: 8px;
+  font-weight: 600;
+  text-align: center;
+  border-right: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Body del calendario */
+.div_calendario_body {
+  display: grid;
+  grid-template-columns: 80px repeat(6, 1fr);
+  grid-auto-rows: 30px;
+  overflow-y: auto;
+  position: relative;
+}
+
+/* Horas */
+.div_hora_celda {
+  padding: 4px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  font-size: 0.8rem;
+  text-align: center;
+  color: white;
+}
+
+/* Celda vacía */
+.div_celda_vacia {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Bloques de reserva */
+.div_reserva_bloque {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem; /* tamaño de texto más grande */
+  font-weight: 600;
+  /* border-radius: 6px; */
+  margin: 2px;
+  color: white;
+  position: relative;
+  z-index: 10; /* Bloques encima de líneas de cuadrícula */
+}
+
+/* Colores según estado */
+.div_reserva_bloque.cerrado {
+  background-color: #666666; /* gris oscuro */
+  color: white;
+}
+
+.div_reserva_bloque.clase {
+  background-color: #003b5c;
+  color: white;
+}
+
+.div_reserva_bloque.ocupada {
+  background-color: #a1191e; /* rojo */
+  color: white;
+}
+
+.div_reserva_bloque.libre {
+  background-color: #00a859; /* verde oscuro */
+  color: white;
+}

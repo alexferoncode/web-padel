@@ -1,7 +1,7 @@
 .calendar-container {
   display: flex;
   justify-content: center;
-  margin: 20px;
+  margin: 30px;
 }
 
 /* Calendario general */
@@ -30,7 +30,7 @@
 }
 
 .custom-calendar .react-calendar__navigation button:hover {
-  color: #a1191e;
+  color: #cb2c30;
 }
 
 /* Días de la semana: sin subrayado ni fondo */
@@ -53,7 +53,7 @@
 
 /* Día seleccionado */
 .custom-calendar .react-calendar__tile--active {
-  background: #a1191e !important;
+  background: #cb2c30 !important;
   color: white !important;
 }
 
