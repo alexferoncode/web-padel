@@ -214,6 +214,13 @@ function Navbar() {
       </nav>
 
       <div className="cerrar_sesion_aviso">
+        {/* Mostrar el email del usuario logueado */}
+        {authUser && authUser.email && (
+          <h3 className="cerrar_sesion_h3">
+            Has iniciado sesión con la cuenta {authUser.email}
+          </h3>
+        )}
+
         <h2 className="cerrar_sesion_h2">¿Quieres cerrar sesión?</h2>
         <div className="cerrar_sesion_div_botones">
           <button

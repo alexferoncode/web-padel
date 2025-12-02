@@ -181,6 +181,12 @@ body{
 
 }
 
+.cerrar_sesion_h3{
+  font-size: 2rem;
+  margin-bottom: 10px;
+  text-align: center;
+}
+
 .cerrar_sesion_h2{
   font-size: 3rem;
   margin-bottom: 20px;

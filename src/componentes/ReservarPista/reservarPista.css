@@ -95,6 +95,18 @@
   background-color: #666666;
 }
 
+/* NUEVO: reservas propias */
+.div_reserva_bloque.propia {
+  background-color: #cb2c30; /* rojo del header */
+  color: white;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.div_reserva_bloque.propia:hover {
+  background-color: #a1191e;
+}
+
 /* Overlay reserva */
 .reserva_overlay {
   background-color: rgba(24, 24, 24, 0.8);
@@ -172,6 +184,12 @@
   gap: 30px;
 }
 
+.reserva_success {
+  color: #04b704;
+  margin-top: 20px;
+  font-size: 1.2rem;
+}
+
 /* --- MÓVIL (<700px) --- */
 @media(max-width: 700px){
   .section_reservar_pista {
@@ -199,5 +217,10 @@
     width: 150px;
     height: 50px;
     font-size: 16px;
+  }
+
+  /* No mostrar texto en bloques libres o propias */
+  .div_reserva_bloque span {
+    display: none;
   }
 }

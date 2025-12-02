@@ -8,7 +8,7 @@ const supabase = createClient(
   import.meta.env.VITE_SUPABASE_ANON_KEY!
 );
 
-type EstadoReserva = "libre" | "ocupada" | "clase" | "cerrado";
+type EstadoReserva = "libre" | "ocupada" | "clase" | "cerrado" | "propia";
 
 interface ReservaDB {
   id: number;
@@ -16,6 +16,7 @@ interface ReservaDB {
   estado: EstadoReserva;
   inicio: string;
   fin: string;
+  user_id?: string | null;
 }
 
 interface PistaDB {
@@ -24,10 +25,12 @@ interface PistaDB {
 }
 
 interface BloqueReserva {
+  id?: number;
   pista: number;
   estado: EstadoReserva;
   inicio: string;
   fin: string;
+  user_id?: string | null;
 }
 
 function ReservarPista({ date }: { date: Date }) {
@@ -37,12 +40,17 @@ function ReservarPista({ date }: { date: Date }) {
   const [reservasSupabase, setReservasSupabase] = useState<ReservaDB[]>([]);
   const [pistasDB, setPistasDB] = useState<PistaDB[]>([]);
   const [loading, setLoading] = useState(true);
+  const [userId, setUserId] = useState<string | null>(null);
 
   // Overlay
   const [showOverlay, setShowOverlay] = useState(false);
   const [bloqueSeleccionado, setBloqueSeleccionado] =
     useState<BloqueReserva | null>(null);
+  const [reservaSeleccionadaId, setReservaSeleccionadaId] = useState<
+    number | null
+  >(null);
   const [errorMsg, setErrorMsg] = useState("");
+  const [successMsg, setSuccessMsg] = useState("");
 
   /* ----------------------------------------------------
       0) CARGAR PISTAS
@@ -63,6 +71,19 @@ function ReservarPista({ date }: { date: Date }) {
     };
 
     cargarPistas();
+  }, []);
+
+  /* ----------------------------------------------------
+      0.5) OBTENER USUARIO LOGUEADO
+  -----------------------------------------------------*/
+  useEffect(() => {
+    const obtenerUsuario = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      setUserId(user?.id || null);
+    };
+    obtenerUsuario();
   }, []);
 
   /* ----------------------------------------------------
@@ -130,10 +151,12 @@ function ReservarPista({ date }: { date: Date }) {
     const finDate = new Date(r.fin);
 
     return {
+      id: r.id,
       pista: r.pista_id,
       estado: r.estado,
       inicio: inicioDate.toTimeString().slice(0, 5),
       fin: finDate.toTimeString().slice(0, 5),
+      user_id: r.user_id || null,
     };
   });
 
@@ -196,10 +219,77 @@ function ReservarPista({ date }: { date: Date }) {
   const handleClickLibre = (bloque: BloqueReserva) => {
     try {
       setBloqueSeleccionado(bloque);
+      setReservaSeleccionadaId(bloque.id || null);
       setShowOverlay(true);
+      setErrorMsg("");
+      setSuccessMsg("");
     } catch (e) {
       console.error(e);
       setErrorMsg("No se pudo abrir el menú de reserva.");
+    }
+  };
+
+  /* ----------------------------------------------------
+      6.5) CONFIRMAR RESERVA
+  -----------------------------------------------------*/
+  const handleConfirmarReserva = async () => {
+    if (!reservaSeleccionadaId) {
+      setErrorMsg("No se pudo identificar la reserva.");
+      return;
+    }
+
+    try {
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+      if (userError || !user) {
+        setErrorMsg("Debes iniciar sesión para reservar una pista.");
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("reservas")
+        .update({
+          estado: "ocupada",
+          user_id: user.id,
+        })
+        .eq("id", reservaSeleccionadaId)
+        .eq("estado", "libre");
+
+      if (error) {
+        console.error("Error al reservar:", error);
+        setErrorMsg("Error al confirmar la reserva. Inténtalo de nuevo.");
+        return;
+      }
+
+      setSuccessMsg("¡Pista reservada con éxito!");
+
+      setTimeout(() => {
+        setShowOverlay(false);
+        setSuccessMsg("");
+        const cargarReservas = async () => {
+          const año = date.getFullYear();
+          const mes = (date.getMonth() + 1).toString().padStart(2, "0");
+          const dia = date.getDate().toString().padStart(2, "0");
+          const fechaStr = `${año}-${mes}-${dia}`;
+
+          const { data, error } = await supabase
+            .from("reservas")
+            .select("*")
+            .gte("inicio", `${fechaStr}T00:00:00`)
+            .lt("inicio", `${fechaStr}T23:59:59`)
+            .order("inicio", { ascending: true });
+
+          if (!error) {
+            setReservasSupabase(data || []);
+          }
+        };
+        cargarReservas();
+      }, 1500);
+    } catch (error) {
+      console.error("Error inesperado:", error);
+      setErrorMsg("Error inesperado al reservar.");
     }
   };
 
@@ -215,7 +305,6 @@ function ReservarPista({ date }: { date: Date }) {
     <>
       {/* OVERLAY */}
       <div className={`reserva_overlay ${showOverlay ? "show" : ""}`}>
-        {/* <h2>Reserva seleccionada</h2> */}
         {bloqueSeleccionado ? (
           <div className="div_confirmar_reserva">
             <h2>
@@ -238,18 +327,15 @@ function ReservarPista({ date }: { date: Date }) {
           <p>Error al cargar el bloque</p>
         )}
         {errorMsg && <p className="reserva_error">{errorMsg}</p>}
+        {successMsg && <p className="reserva_success">{successMsg}</p>}
         <div className="div_confirmar_reserva_botones">
           <button
-            className="reserva_boton"
-            id="reserva_boton_cerrar"
+            className="reserva_boton reserva_boton"
             onClick={() => setShowOverlay(false)}
           >
-            Cancelar
+            Cerrar
           </button>
-          <button
-            className="reserva_boton"
-            onClick={() => setShowOverlay(false)}
-          >
+          <button className="reserva_boton" onClick={handleConfirmarReserva}>
             Confirmar reserva
           </button>
         </div>
@@ -261,7 +347,6 @@ function ReservarPista({ date }: { date: Date }) {
           {/* HEADER */}
           <div className="div_calendario_header">
             <div className="div_hora_columna_header">HORA</div>
-
             {pistasDB.map((p) => (
               <div key={p.id} className="div_pista_columna_header">
                 <span className="nombre_pc">{p.nombre.replace(/_/g, " ")}</span>
@@ -286,11 +371,16 @@ function ReservarPista({ date }: { date: Date }) {
                 .map((bloque, i) => {
                   const filas = calcularFilasBloque(bloque.inicio, bloque.fin);
                   const esLibre = bloque.estado === "libre";
+                  const esPropia =
+                    bloque.estado === "ocupada" && bloque.user_id === userId;
+
+                  let claseBloque = bloque.estado;
+                  if (esPropia) claseBloque = "propia";
 
                   return (
                     <div
                       key={`${p}-${bloque.inicio}-${i}`}
-                      className={`div_reserva_bloque ${bloque.estado}`}
+                      className={`div_reserva_bloque ${claseBloque}`}
                       data-libres={esLibre ? "true" : "false"}
                       onClick={() => esLibre && handleClickLibre(bloque)}
                       style={{
@@ -300,15 +390,15 @@ function ReservarPista({ date }: { date: Date }) {
                         )} / span ${filas}`,
                       }}
                     >
-                      {esLibre && (
-                        <span>{`${bloque.inicio} - ${bloque.fin}`}</span>
+                      {(esLibre || esPropia) && (
+                        <span className="texto_reserva">{`${bloque.inicio} - ${bloque.fin}`}</span>
                       )}
                     </div>
                   );
                 })
             )}
 
-            {/* CELDAS VACÍAS (NO CLICABLES) */}
+            {/* CELDAS VACÍAS */}
             {pistas.map((p, idx) =>
               horas.map((h) => {
                 if (estaCeldaOcupada(p, h)) return null;
