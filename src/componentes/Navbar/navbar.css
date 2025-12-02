@@ -168,39 +168,39 @@ body{
     backdrop-filter: blur(10px);
     position: fixed;
     top: 0;
-    z-index: 999;
-    height: 100%;
-    width: 100%;
-    display: flex;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 9999;
+    display: none;
     flex-direction: column;
+    justify-content: center;
     align-items: center;
     padding: 50px 0 0 0;
-
-    display: none;
+    color: white;
 
 }
 
 .cerrar_sesion_h2{
-    margin-bottom: 35px;
-    font-size: 25px;
-    font-weight: 600;
-    color: white;
+  font-size: 3rem;
+  margin-bottom: 20px;
+  text-align: center;
 }
 
 .cerrar_sesion_div_botones{
     display: flex;
-    gap: 40px;
+    gap: 30px;
 }
 
 .cerrar_sesion_boton {
-    height: 50px;
-    width: 150px;
-    padding: 10px 20px;
+    margin-top: 30px;
+  height: 70px;
+  width: 220px;
     background-color: #cb2c30;
     color: white;
     border: none;
     border-radius: 8px;
-    font-size: 16px;
+    font-size: 22px;
     cursor: pointer;
     transition: background-color 0.2s ease;
     text-shadow: 0 0 5px black;
@@ -209,6 +209,15 @@ body{
 .cerrar_sesion_boton:hover {
   background-color: #a1191e;
 }
+
+#cerrar_sesion_boton_cancelar{
+  background-color: rgb(110, 110, 110);
+}
+
+#cerrar_sesion_boton_cancelar:hover{
+  background-color: rgb(82, 82, 82);
+}
+
 
 
 

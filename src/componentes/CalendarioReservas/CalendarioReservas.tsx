@@ -22,6 +22,10 @@ function CalendarioReservas({ date, setDate }: Props) {
             Para reservar una pista, debes reservarla completa (4 personas).
           </p>
           <p className="reservas_p">
+            Puedes reservar cualquier pista que veas en color verde pulsando en
+            ella.
+          </p>
+          <p className="reservas_p">
             Puedes cancelar la pista hasta 24 horas antes de la reserva.
           </p>
         </div>

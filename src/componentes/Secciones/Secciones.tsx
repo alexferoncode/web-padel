@@ -39,10 +39,7 @@ function Secciones() {
             <h2 className="h2_seccion">¡Contáctanos!</h2>
           </div>
         </div>
-        <div
-          className="div_seccion grid5"
-          onClick={() => navigate("/registro")}
-        >
+        <div className="div_seccion grid5" onClick={() => navigate("/login")}>
           <div className="div_div_seccion">
             <h2 className="h2_seccion">¿Aún no tienes cuenta?</h2>
             <h2 className="h2_seccion">¡Regístrate!</h2>

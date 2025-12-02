@@ -218,6 +218,7 @@ function Navbar() {
         <div className="cerrar_sesion_div_botones">
           <button
             className="cerrar_sesion_boton"
+            id="cerrar_sesion_boton_cancelar"
             onClick={handleCerrarSesionCerrar}
           >
             Cancelar

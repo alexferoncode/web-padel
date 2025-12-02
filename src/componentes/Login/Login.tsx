@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "../../../supabaseClient";
 import { useAuth } from "../../context/AuthContext";
 import "./Login.css";
 
 export default function Login() {
   const { user: authUser, loading } = useAuth();
+  const navigate = useNavigate();
   const [isLogin, setIsLogin] = useState(true);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -22,11 +24,13 @@ export default function Login() {
       setUser(authUser);
       if (authUser.email_confirmed_at) {
         setStep("verified");
+        // Redirigir a /reservar si ya está verificado
+        navigate("/reservar");
       } else {
         setStep("verifyEmail");
       }
     }
-  }, [authUser]);
+  }, [authUser, navigate]);
 
   // Detectar si viene de verificación: /login?verified=1
   useEffect(() => {
@@ -47,6 +51,8 @@ export default function Login() {
       if (data.user?.email_confirmed_at) {
         setUser(data.user);
         setStep("verified");
+        // Redirigir a /reservar después de verificar
+        navigate("/reservar");
       }
     } catch (err: any) {
       setErrorMsg("Error verificando la cuenta");
@@ -87,6 +93,8 @@ export default function Login() {
       if (data.user?.email_confirmed_at) {
         setUser(data.user);
         setStep("verified");
+        // Redirigir a /reservar después de login exitoso
+        navigate("/reservar");
       } else {
         setUser(data.user);
         setStep("verifyEmail");

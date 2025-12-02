@@ -1,8 +1,10 @@
 .section_reservar_pista {
   margin: 20px 30px;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Barlow', sans-serif;
   display: flex;
   justify-content: center;
+  text-shadow: 0 0 5px black;
+  font-size: 1.2rem;
 }
 
 .div_calendario_pistas {
@@ -19,10 +21,8 @@
   background-color: #cb2c30;
   border-bottom: 1px solid rgba(255, 255, 255, 0.2);
   color: white;
-  text-shadow: 0 0 5px black;
 }
 
-.div_hora_cadena_header,
 .div_hora_columna_header {
   padding: 8px;
   font-weight: 600;
@@ -37,14 +37,8 @@
   border-right: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-/* TEXTOS DIFERENTES PARA PC/MÓVIL */
-.nombre_movil {
-  display: none;
-}
-
-.nombre_pc {
-  display: inline;
-}
+.nombre_movil { display: none; }
+.nombre_pc { display: inline; }
 
 /* Body */
 .div_calendario_body {
@@ -58,8 +52,7 @@
 /* Horas */
 .div_hora_celda {
   padding: 4px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-  font-size: 1.1rem;
+  border-bottom: 1px solid rgba(255,255,255,0.2);
   text-align: center;
   color: white;
   display: flex;
@@ -69,7 +62,7 @@
 
 /* Celdas vacías */
 .div_celda_vacia {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  border-bottom: 1px solid rgba(255,255,255,0.2);
 }
 
 /* Bloques reserva */
@@ -77,23 +70,106 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1rem;
   font-weight: 600;
   margin: 2px;
   color: white;
   position: relative;
   z-index: 10;
-}
-
-.div_reserva_bloque.cerrado,
-.div_reserva_bloque.ocupada,
-.div_reserva_bloque.clase {
-  background-color: #666666;
+  cursor: default;
 }
 
 .div_reserva_bloque.libre {
   background-color: #04b704;
   color: white;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.div_reserva_bloque.libre:hover {
+  background-color: #0e7f0e;
+}
+
+.div_reserva_bloque.ocupada,
+.div_reserva_bloque.clase,
+.div_reserva_bloque.cerrado {
+  background-color: #666666;
+}
+
+/* Overlay reserva */
+.reserva_overlay {
+  background-color: rgba(24, 24, 24, 0.8);
+  backdrop-filter: blur(10px);
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 9999;
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  color: white;
+}
+
+.reserva_overlay.show {
+  display: flex;
+}
+
+.reserva_overlay h2 {
+  font-size: 3rem;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.reserva_overlay .reserva_boton {
+  margin-top: 30px;
+  height: 70px;
+  width: 220px;
+  background-color: #cb2c30;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 22px;
+  cursor: pointer;
+  text-shadow: 0 0 5px black;
+  transition: background-color 0.2s ease;
+}
+
+.reserva_overlay .reserva_boton:hover {
+  background-color: #a1191e;
+}
+
+#reserva_boton_cerrar{
+  background-color: rgb(110, 110, 110);
+}
+
+#reserva_boton_cerrar:hover{
+  background-color: rgb(82, 82, 82);
+}
+
+.reserva_error {
+  color: red;
+  margin-top: 20px;
+}
+
+/* Cargando */
+.cargando, .cargando_reservas {
+  padding: 40px;
+  color: white;
+  text-align: center;
+  font-size: 1.2rem;
+}
+
+.div_confirmar_reserva{
+  display: flex;
+  flex-direction: column;
+  gap:30px;
+}
+
+.div_confirmar_reserva_botones{
+  display: flex;
+  gap: 30px;
 }
 
 /* --- MÓVIL (<700px) --- */
@@ -103,19 +179,25 @@
   }
 
   .div_calendario_header {
-    font-size: 0.9rem;
+    font-size: 1rem;
   }
 
   .div_hora_celda {
     font-size: 1rem;
   }
 
-  /* Cambiar texto: de PISTA 1 -> P1 */
-  .nombre_pc {
-    display: none;
-  }
+  .nombre_pc { display: none; }
+  .nombre_movil { display: inline; }
 
-  .nombre_movil {
-    display: inline;
+  .reserva_overlay h2 {
+    font-size: 1.5rem;
+  }
+  .reserva_overlay p {
+    font-size: 1rem;
+  }
+  .reserva_overlay .reserva_boton {
+    width: 150px;
+    height: 50px;
+    font-size: 16px;
   }
 }
