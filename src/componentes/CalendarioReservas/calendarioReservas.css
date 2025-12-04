@@ -37,7 +37,6 @@
     font-weight: 500;
 }
 
-
 .calendar_div {
   display: flex;
   justify-content: center;  
@@ -123,6 +122,53 @@
   width: 291px;
 }
 
+/* --- LEYENDA DE COLORES --- */
+.colores_leyenda_section {
+  margin-top: 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-family: 'Barlow', sans-serif;
+  color: white;
+  text-shadow: 0 0 3px black;
+  font-size: 1rem;
+}
+
+.colores_leyenda_section h3 {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.colores_leyenda_div {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 1.4em;
+}
+
+.colores_leyenda_span {
+  display: inline-block;
+  width: 25px;
+  height: 25px;
+  border-radius: 4px;
+  border: 1px solid #ffffff55;
+}
+
+.colores_leyenda_span.disponible {
+  background-color: #04b704;
+}
+
+.colores_leyenda_span.propia {
+  background-color: #cb2c30;
+}
+
+.colores_leyenda_span.ocupada {
+  background-color: #666666;
+}
+
+/* --- MÓVIL (<900px) --- */
 @media(max-width: 900px){
     .reservas_section{
         gap:30px;
@@ -131,12 +177,22 @@
         width: 80%;
     }
     .reservas_section{
-    padding: 110px 20px 40px 20px;
+        padding: 110px 20px 40px 20px;
     }
 }
 
+/* --- MÓVIL (<450px) --- */
 @media(max-width: 450px){
     .calendar{
         width: 100%;
+    }
+    .calendar_leyenda {
+        font-size: 0.9rem;
+        gap: 6px;
+    }
+
+    .color_bloque {
+        width: 20px;
+        height: 20px;
     }
 }
