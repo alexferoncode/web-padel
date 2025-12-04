@@ -152,17 +152,33 @@
   background-color: #a1191e;
 }
 
-#reserva_boton_cerrar{
+#reserva_boton_cerrar {
   background-color: rgb(110, 110, 110);
 }
 
-#reserva_boton_cerrar:hover{
+#reserva_boton_cerrar:hover {
   background-color: rgb(82, 82, 82);
 }
 
 .reserva_error {
   color: red;
   margin-top: 20px;
+  font-size: 1.8rem; /* tamaño aumentado */
+  font-weight: 700;
+  text-align: center;
+}
+
+.reserva_success {
+  color: #04b704;
+  margin-top: 20px;
+  font-size: 1.8rem; /* tamaño aumentado */
+  font-weight: 700;
+  text-align: center;
+}
+
+/* Clase extra por si quieres control manual */
+.grande {
+  font-size: 2rem;
 }
 
 /* Cargando */
@@ -173,21 +189,15 @@
   font-size: 1.2rem;
 }
 
-.div_confirmar_reserva{
+.div_confirmar_reserva {
   display: flex;
   flex-direction: column;
-  gap:30px;
-}
-
-.div_confirmar_reserva_botones{
-  display: flex;
   gap: 30px;
 }
 
-.reserva_success {
-  color: #04b704;
-  margin-top: 20px;
-  font-size: 1.2rem;
+.div_confirmar_reserva_botones {
+  display: flex;
+  gap: 30px;
 }
 
 /* --- MÓVIL (<700px) --- */
@@ -210,9 +220,11 @@
   .reserva_overlay h2 {
     font-size: 1.5rem;
   }
+
   .reserva_overlay p {
-    font-size: 1rem;
+    font-size: 1.3rem; /* tamaño aumentado en móvil */
   }
+
   .reserva_overlay .reserva_boton {
     width: 150px;
     height: 50px;

@@ -230,7 +230,7 @@ function ReservarPista({ date }: { date: Date }) {
   };
 
   /* ----------------------------------------------------
-      6.5) CONFIRMAR RESERVA
+      6.5) CONFIRMAR RESERVA (CONCURRENCIA-SAFE)
   -----------------------------------------------------*/
   const handleConfirmarReserva = async () => {
     if (!reservaSeleccionadaId) {
@@ -243,19 +243,19 @@ function ReservarPista({ date }: { date: Date }) {
         data: { user },
         error: userError,
       } = await supabase.auth.getUser();
+
       if (userError || !user) {
         setErrorMsg("Debes iniciar sesión para reservar una pista.");
         return;
       }
 
+      // Intentar actualizar solo si sigue libre
       const { data, error } = await supabase
         .from("reservas")
-        .update({
-          estado: "ocupada",
-          user_id: user.id,
-        })
+        .update({ estado: "ocupada", user_id: user.id })
         .eq("id", reservaSeleccionadaId)
-        .eq("estado", "libre");
+        .eq("estado", "libre")
+        .select("*"); // aquí solo un argumento
 
       if (error) {
         console.error("Error al reservar:", error);
@@ -263,11 +263,19 @@ function ReservarPista({ date }: { date: Date }) {
         return;
       }
 
+      // Si no se afectó ninguna fila => ya estaba ocupada
+      if (!data || data.length === 0) {
+        setErrorMsg("Esta pista ya ha sido reservada por otro usuario.");
+        return;
+      }
+
       setSuccessMsg("¡Pista reservada con éxito!");
 
+      // Refrescar reservas y cerrar overlay
       setTimeout(() => {
         setShowOverlay(false);
         setSuccessMsg("");
+
         const cargarReservas = async () => {
           const año = date.getFullYear();
           const mes = (date.getMonth() + 1).toString().padStart(2, "0");
@@ -326,11 +334,11 @@ function ReservarPista({ date }: { date: Date }) {
         ) : (
           <p>Error al cargar el bloque</p>
         )}
-        {errorMsg && <p className="reserva_error">{errorMsg}</p>}
-        {successMsg && <p className="reserva_success">{successMsg}</p>}
+        {errorMsg && <p className="reserva_error grande">{errorMsg}</p>}
+        {successMsg && <p className="reserva_success grande">{successMsg}</p>}
         <div className="div_confirmar_reserva_botones">
           <button
-            className="reserva_boton reserva_boton"
+            className="reserva_boton"
             onClick={() => setShowOverlay(false)}
           >
             Cerrar
