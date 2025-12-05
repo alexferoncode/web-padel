@@ -2,11 +2,47 @@ import "./navbar.css";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { supabase } from "../../../supabaseClient";
+import { useEffect, useState } from "react";
+
+interface ReservaUsuario {
+  id: number;
+  pista_id: number;
+  inicio: string;
+  fin: string;
+  estado: string;
+}
 
 function Navbar() {
   const navigate = useNavigate();
   const { user: authUser } = useAuth();
+  const [reservasUsuario, setReservasUsuario] = useState<ReservaUsuario[]>([]);
 
+  /* ----------------- Cargar reservas del usuario ----------------- */
+  useEffect(() => {
+    const cargarReservasUsuario = async () => {
+      if (!authUser) {
+        setReservasUsuario([]);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("reservas")
+        .select("*")
+        .eq("user_id", authUser.id)
+        .order("inicio", { ascending: true });
+
+      if (error) {
+        console.error("Error cargando reservas del usuario:", error);
+        return;
+      }
+
+      setReservasUsuario(data || []);
+    };
+
+    cargarReservasUsuario();
+  }, [authUser]);
+
+  /* ----------------- Funciones de menú y logout ----------------- */
   const handleMenuClickAbrir = () => {
     const navbarVertical = document.querySelector(
       ".vertical_navbar"
@@ -17,6 +53,20 @@ function Navbar() {
   const handleMenuClickCerrar = () => {
     const navbarVertical = document.querySelector(
       ".vertical_navbar"
+    ) as HTMLElement;
+    navbarVertical.style.display = "none";
+  };
+
+  const handleReservasAbrir = () => {
+    const navbarVertical = document.querySelector(
+      ".lista_reservas_overlay"
+    ) as HTMLElement;
+    navbarVertical.style.display = "flex";
+  };
+
+  const handleReservasCerrar = () => {
+    const navbarVertical = document.querySelector(
+      ".lista_reservas_overlay"
     ) as HTMLElement;
     navbarVertical.style.display = "none";
   };
@@ -55,6 +105,20 @@ function Navbar() {
 
         {/* Enlaces horizontales */}
         <ul className="horizontal_ul">
+          {authUser && reservasUsuario.length > 0 && (
+            <li className="horizontal_li hideOnMobile">
+              <span
+                className="horizontal_href horizontal_href_mis_reservas"
+                onClick={() => {
+                  handleReservasAbrir();
+                  handleMenuClickCerrar();
+                }}
+              >
+                MIS RESERVAS ({reservasUsuario.length})
+              </span>
+            </li>
+          )}
+
           <li className="horizontal_li">
             <span
               className="horizontal_href horizontal_href_reservar"
@@ -151,6 +215,20 @@ function Navbar() {
             </span>
           </li>
 
+          {authUser && reservasUsuario.length > 0 && (
+            <li className="vertical_li">
+              <span
+                className="vertical_href"
+                onClick={() => {
+                  handleReservasAbrir();
+                  handleMenuClickCerrar();
+                }}
+              >
+                MIS RESERVAS ({reservasUsuario.length})
+              </span>
+            </li>
+          )}
+
           <li className="vertical_li">
             <span
               className="vertical_href"
@@ -214,7 +292,6 @@ function Navbar() {
       </nav>
 
       <div className="cerrar_sesion_aviso">
-        {/* Mostrar el email del usuario logueado */}
         {authUser && authUser.email && (
           <h3 className="cerrar_sesion_h3">
             Has iniciado sesión con la cuenta {authUser.email}
@@ -240,6 +317,58 @@ function Navbar() {
             Cerrar sesión
           </button>
         </div>
+      </div>
+
+      <div className="lista_reservas_overlay">
+        <h2 className="lista_reservas_h2">Mis reservas</h2>
+        <ul className="lista_reservas_lista">
+          {reservasUsuario.map((r) => {
+            const fechaInicio = new Date(r.inicio);
+            const fechaFin = new Date(r.fin);
+
+            const diaSemana = fechaInicio.toLocaleDateString("es-ES", {
+              weekday: "long",
+            });
+
+            return (
+              <li key={r.id}>
+                <span className="lista_reservas_hide_mobile">
+                  {diaSemana.charAt(0).toUpperCase() + diaSemana.slice(1)}
+                  {", "}
+                </span>
+                {fechaInicio.toLocaleDateString("es-ES")},{" "}
+                {fechaInicio.toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}{" "}
+                -{" "}
+                {fechaFin.toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+                <span className="lista_reservas_hide_mobile">
+                  , Pista {r.pista_id}
+                </span>
+                <button
+                  className="lista_reservas_boton"
+                  id="lista_reservas_boton_cancelar"
+                  onClick={() => {
+                    const fechaISO = r.inicio;
+                    const fecha = fechaISO.split("T")[0];
+                    navigate(`/reservar?date=${fecha}`);
+                    handleReservasCerrar();
+                  }}
+                >
+                  Ir a reservas
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+
+        <button className="lista_reservas_boton" onClick={handleReservasCerrar}>
+          Cerrar
+        </button>
       </div>
     </>
   );

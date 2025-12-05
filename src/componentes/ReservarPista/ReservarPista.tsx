@@ -2,6 +2,7 @@ import "./reservarPista.css";
 import "../../index.css";
 import { useEffect, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
+import { useSearchParams } from "react-router-dom";
 
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL!,
@@ -260,7 +261,7 @@ function ReservarPista({ date }: { date: Date }) {
             "No se puede modificar una reserva con inicio en el pasado"
           )
         ) {
-          setErrorMsg("No se puede modificar una reserva que ya comenzó.");
+          setErrorMsg("No se puede reservar una pista ya iniciada.");
         } else if (
           error.message.includes(
             "El usuario ya tiene una reserva que solapa con este horario"

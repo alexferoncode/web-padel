@@ -11,6 +11,7 @@ export default function Login() {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
+  const [telefono, setTelefono] = useState("");
   const [password, setPassword] = useState("");
   const [repeatPassword, setRepeatPassword] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
@@ -109,7 +110,14 @@ export default function Login() {
     setErrorMsg("");
     setSuccessMsg("");
 
-    if (!firstName || !lastName || !email || !password || !repeatPassword) {
+    if (
+      !firstName ||
+      !lastName ||
+      !email ||
+      !password ||
+      !repeatPassword ||
+      !telefono
+    ) {
       setErrorMsg("Todos los campos son obligatorios");
       return;
     }
@@ -125,7 +133,7 @@ export default function Login() {
         password,
         options: {
           emailRedirectTo: `${window.location.origin}/login?verified=1`,
-          data: { first_name: firstName, last_name: lastName },
+          data: { first_name: firstName, last_name: lastName, tlf: telefono },
         },
       });
 
@@ -137,6 +145,7 @@ export default function Login() {
       setStep("verifyEmail");
       setFirstName("");
       setLastName("");
+      setTelefono("");
       setEmail("");
       setPassword("");
       setRepeatPassword("");
@@ -181,6 +190,17 @@ export default function Login() {
                   placeholder="Apellidos"
                   value={lastName}
                   onChange={(e) => setLastName(e.target.value)}
+                  className="login_input"
+                />{" "}
+                <input
+                  type="tel" // tipo "tel" es más semántico para teléfonos
+                  placeholder="Teléfono"
+                  value={telefono}
+                  onChange={(e) => {
+                    // Filtra solo dígitos
+                    const onlyNumbers = e.target.value.replace(/\D/g, "");
+                    setTelefono(onlyNumbers);
+                  }}
                   className="login_input"
                 />
               </>
