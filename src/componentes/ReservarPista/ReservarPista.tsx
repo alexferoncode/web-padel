@@ -2,7 +2,6 @@ import "./reservarPista.css";
 import "../../index.css";
 import { useEffect, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
-import { useSearchParams } from "react-router-dom";
 
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL!,

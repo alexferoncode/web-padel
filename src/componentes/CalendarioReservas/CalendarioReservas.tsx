@@ -19,24 +19,13 @@ function CalendarioReservas({ date, setDate }: Props) {
         <div className="reservas_div">
           <h2 className="reservas_h2">Reserva de pistas</h2>
           <p className="reservas_p">
-            Para reservar una pista, debes reservarla completa (4 personas).
+            Para reservar una pista, debes cogerla completa (4 personas).
           </p>
           <p className="reservas_p">
-            Puedes reservar cualquier pista que veas disponible pulsando en
-            ella.
-          </p>
-          <p className="reservas_p">
-            Puedes cancelar una pista hasta 24 horas antes de la hora de inicio.
+            Sólo puedes cancelar una pista hasta 24 horas antes de la hora de
+            inicio.
           </p>
         </div>
-      </section>
-
-      <section className="pistas_section">
-        <img
-          className="pistas_img"
-          src="/images/pistas_dibujo_nombres.png"
-          alt="Pistas"
-        />
       </section>
 
       <section className="calendar_section">
@@ -55,18 +44,18 @@ function CalendarioReservas({ date, setDate }: Props) {
             next2Label={null}
           />
         </div>
-        <div className="colores_leyenda_section">
-          <div className="colores_leyenda_div">
-            <span className="colores_leyenda_span disponible" /> Disponible
-          </div>
-          <div className="colores_leyenda_div">
-            <span className="colores_leyenda_span propia" /> Ya la has reservado
-          </div>
-          <div className="colores_leyenda_div">
-            <span className="colores_leyenda_span ocupada" /> No disponible
-          </div>
-        </div>
       </section>
+      <div className="colores_leyenda_section">
+        <div className="colores_leyenda_div">
+          <span className="colores_leyenda_span disponible" /> Disponible
+        </div>
+        <div className="colores_leyenda_div">
+          <span className="colores_leyenda_span propia" /> Ya la has reservado
+        </div>
+        <div className="colores_leyenda_div">
+          <span className="colores_leyenda_span ocupada" /> No disponible
+        </div>
+      </div>
     </section>
   );
 }

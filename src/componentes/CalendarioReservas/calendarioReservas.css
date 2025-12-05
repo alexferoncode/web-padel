@@ -18,7 +18,7 @@
 
 .reservas_div{
     margin: 0 auto;
-    background: #003b5c;
+    border: solid 3px #003b5c;
     display: flex;
     flex-direction: column;
     gap: 20px;
@@ -124,7 +124,7 @@
 
 /* --- LEYENDA DE COLORES --- */
 .colores_leyenda_section {
-  margin-top: 40px;
+  margin-top: 10px;
   display: flex;
   flex-direction: column;
   gap: 10px;
