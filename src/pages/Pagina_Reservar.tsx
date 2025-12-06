@@ -12,12 +12,15 @@ export default function Pagina_Reservar() {
   const [date, setDate] = useState<Date>(new Date());
 
   useEffect(() => {
-    const dateParam = searchParams.get("date"); // ⬅️ leer ?date=YYYY-MM-DD
+    const dateParam = searchParams.get("date");
 
     if (dateParam) {
-      // Convertir YYYY-MM-DD → Date
-      const parsed = new Date(dateParam + "T00:00:00");
-      setDate(parsed);
+      const [year, month, day] = dateParam.split("-").map(Number);
+
+      // Crear fecha en horario local (sin problema de UTC)
+      const parsedDate = new Date(year, month - 1, day);
+
+      setDate(parsedDate);
     }
   }, [searchParams]);
 

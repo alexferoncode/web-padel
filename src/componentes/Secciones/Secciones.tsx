@@ -19,18 +19,25 @@ function Secciones() {
             <h2 className="h2_seccion">Reserva en 2 clicks</h2>
           </div>
         </div>
-        <div className="div_seccion grid2" onClick={() => navigate("/tarifas")}>
-          <div className="div_div_seccion">
-            <h2 className="h2_seccion">Consulta nuestras tarifas</h2>
-          </div>
-        </div>
-        <div className="div_seccion grid3" onClick={() => navigate("/clases")}>
+
+        <div className="div_seccion grid2" onClick={() => navigate("/clases")}>
           <div className="div_div_seccion">
             <h2 className="h2_seccion">¿Quieres dar clase?</h2>
             <h2 className="h2_seccion">Conoce a nuestros monitores</h2>
           </div>
         </div>
-        <div
+        <div className="div_seccion grid3">
+          <div className="div_div_seccion">
+            <h2 className="h2_seccion">¿Quieres relajarte después de jugar?</h2>
+            <h2 className="h2_seccion">Disfruta de nuestro bar</h2>
+          </div>
+        </div>
+        {/* <div className="div_seccion grid2" onClick={() => navigate("/tarifas")}>
+          <div className="div_div_seccion">
+            <h2 className="h2_seccion">Consulta nuestras tarifas</h2>
+          </div>
+        </div> */}
+        {/* <div
           className="div_seccion grid4"
           onClick={() => navigate("/contacto")}
         >
@@ -44,7 +51,7 @@ function Secciones() {
             <h2 className="h2_seccion">¿Aún no tienes cuenta?</h2>
             <h2 className="h2_seccion">¡Regístrate!</h2>
           </div>
-        </div>
+        </div> */}
       </div>
     </>
   );

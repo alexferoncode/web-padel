@@ -25,10 +25,13 @@ function Navbar() {
         return;
       }
 
+      const now = new Date().toISOString();
+
       const { data, error } = await supabase
         .from("reservas")
         .select("*")
         .eq("user_id", authUser.id)
+        .gt("inicio", now)
         .order("inicio", { ascending: true });
 
       if (error) {
