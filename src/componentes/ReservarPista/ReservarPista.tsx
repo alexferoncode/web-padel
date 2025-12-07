@@ -347,7 +347,7 @@ function ReservarPista({ date }: { date: Date }) {
         return;
       }
 
-      setSuccessMsg("Reserva cancelada con éxito!");
+      setSuccessMsg("¡Reserva cancelada con éxito!");
       setTimeout(() => {
         setShowOverlay(false);
         setSuccessMsg("");

@@ -264,6 +264,12 @@ body{
     color: white;
 }
 
+.lista_reservas_contenido{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
 
 .lista_reservas_h2{
   font-size: 3rem;
@@ -308,7 +314,29 @@ body{
 
 
 
+.active_nav {
+    color: #ff4b4f !important;
+}
 
+.active_nav_reservar {
+    background: #a1191e;
+    box-shadow: 0 0 5px #ff4b4f;
+}
+
+.nav_icon_pelota {
+    width: 18px;
+    height: 18px;
+    margin-top: 3px;
+    position: relative;
+}
+
+.cerrar_sesion_contenido {
+    position: relative;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
 
 /* Diseño responsive móviles */
 

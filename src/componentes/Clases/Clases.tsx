@@ -47,7 +47,7 @@ function Clases() {
                     alt=""
                   />
                   <p className="clases_precios_p">
-                    Individuales: 80€ mes (20€/clase)
+                    Individuales: 90€ mes (22,5€/clase)
                   </p>
                 </li>
                 <li className="clases_precios_li">
@@ -57,7 +57,7 @@ function Clases() {
                     alt=""
                   />
                   <p className="clases_precios_p">
-                    Grupo de 2: 64€ alumno/mes (16€/clase)
+                    Grupo de 2: 50€ alumno/mes (12,5€/clase)
                   </p>
                 </li>
                 <li className="clases_precios_li">
@@ -67,7 +67,7 @@ function Clases() {
                     alt=""
                   />
                   <p className="clases_precios_p">
-                    Grupo de 3: 48€ alumno/mes (12€/clase)
+                    Grupo de 3: 40€ alumno/mes (10€/clase)
                   </p>
                 </li>
                 <li className="clases_precios_li">
@@ -77,7 +77,7 @@ function Clases() {
                     alt=""
                   />
                   <p className="clases_precios_p">
-                    Grupo de 4: 40€ alumno/mes (10€/clase)
+                    Grupo de 4: 30€ alumno/mes (7,5€/clase)
                   </p>
                 </li>
               </ul>
@@ -102,7 +102,7 @@ function Clases() {
                     alt=""
                   />
                   <p className="clases_precios_p">
-                    Grupo de 2: 80 alumno/mes (20€/clase)
+                    Grupo de 2: 60 alumno/mes (15€/clase)
                   </p>
                 </li>
                 <li className="clases_precios_li">
@@ -112,7 +112,7 @@ function Clases() {
                     alt=""
                   />
                   <p className="clases_precios_p">
-                    Grupo de 3: 64€ alumno/mes (16€/clase)
+                    Grupo de 3: 45€ alumno/mes (11,25€/clase)
                   </p>
                 </li>
                 <li className="clases_precios_li">
@@ -122,7 +122,7 @@ function Clases() {
                     alt=""
                   />
                   <p className="clases_precios_p">
-                    Grupo de 4: 48€ alumno/mes (12€/clase)
+                    Grupo de 4: 35€ alumno/mes (8,75€/clase)
                   </p>
                 </li>
               </ul>

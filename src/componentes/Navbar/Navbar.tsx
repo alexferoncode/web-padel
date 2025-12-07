@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { supabase } from "../../../supabaseClient";
 import { useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 
 interface ReservaUsuario {
   id: number;
@@ -13,6 +14,8 @@ interface ReservaUsuario {
 }
 
 function Navbar() {
+  const location = useLocation();
+  const isActive = (path: string) => location.pathname.startsWith(path);
   const navigate = useNavigate();
   const { user: authUser } = useAuth();
   const [reservasUsuario, setReservasUsuario] = useState<ReservaUsuario[]>([]);
@@ -124,7 +127,9 @@ function Navbar() {
 
           <li className="horizontal_li">
             <span
-              className="horizontal_href horizontal_href_reservar"
+              className={`horizontal_href horizontal_href_reservar ${
+                isActive("/reservar") ? "active_nav_reservar" : ""
+              }`}
               onClick={() => navigate("/reservar")}
             >
               RESERVAR
@@ -133,7 +138,9 @@ function Navbar() {
 
           <li className="horizontal_li hideOnMobile">
             <span
-              className="horizontal_href"
+              className={`horizontal_href ${
+                isActive("/tarifas") ? "active_nav" : ""
+              }`}
               onClick={() => navigate("/tarifas")}
             >
               TARIFAS
@@ -142,7 +149,9 @@ function Navbar() {
 
           <li className="horizontal_li hideOnMobile">
             <span
-              className="horizontal_href"
+              className={`horizontal_href ${
+                isActive("/clases") ? "active_nav" : ""
+              }`}
               onClick={() => navigate("/clases")}
             >
               CLASES
@@ -151,7 +160,9 @@ function Navbar() {
 
           <li className="horizontal_li hideOnMobile">
             <span
-              className="horizontal_href"
+              className={`horizontal_href ${
+                isActive("/contacto") ? "active_nav" : ""
+              }`}
               onClick={() => navigate("/contacto")}
             >
               CONTACTO
@@ -161,7 +172,9 @@ function Navbar() {
           <li className="horizontal_li hideOnMobile">
             {!authUser ? (
               <span
-                className="horizontal_href"
+                className={`horizontal_href ${
+                  isActive("/login") ? "active_nav" : ""
+                }`}
                 onClick={() => navigate("/login")}
               >
                 LOGIN / REGISTRO
@@ -234,7 +247,9 @@ function Navbar() {
 
           <li className="vertical_li">
             <span
-              className="vertical_href"
+              className={`vertical_href ${
+                isActive("/tarifas") ? "active_nav" : ""
+              }`}
               onClick={() => {
                 navigate("/tarifas");
                 handleMenuClickCerrar();
@@ -246,7 +261,9 @@ function Navbar() {
 
           <li className="vertical_li">
             <span
-              className="vertical_href"
+              className={`vertical_href ${
+                isActive("/clases") ? "active_nav" : ""
+              }`}
               onClick={() => {
                 navigate("/clases");
                 handleMenuClickCerrar();
@@ -258,7 +275,9 @@ function Navbar() {
 
           <li className="vertical_li">
             <span
-              className="vertical_href"
+              className={`vertical_href ${
+                isActive("/contacto") ? "active_nav" : ""
+              }`}
               onClick={() => {
                 navigate("/contacto");
                 handleMenuClickCerrar();
@@ -271,7 +290,9 @@ function Navbar() {
           <li className="vertical_li">
             {!authUser ? (
               <span
-                className="vertical_href"
+                className={`vertical_href ${
+                  isActive("/login") ? "active_nav" : ""
+                }`}
                 onClick={() => {
                   navigate("/login");
                   handleMenuClickCerrar();
@@ -294,84 +315,100 @@ function Navbar() {
         </ul>
       </nav>
 
-      <div className="cerrar_sesion_aviso">
-        {authUser && authUser.email && (
-          <h3 className="cerrar_sesion_h3">
-            Has iniciado sesión con la cuenta {authUser.email}
-          </h3>
-        )}
+      <div className="cerrar_sesion_aviso" onClick={handleCerrarSesionCerrar}>
+        <div
+          className="cerrar_sesion_contenido"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {authUser && authUser.email && (
+            <h3 className="cerrar_sesion_h3">
+              Has iniciado sesión con la cuenta {authUser.email}
+            </h3>
+          )}
 
-        <h2 className="cerrar_sesion_h2">¿Quieres cerrar sesión?</h2>
-        <div className="cerrar_sesion_div_botones">
-          <button
-            className="cerrar_sesion_boton"
-            id="cerrar_sesion_boton_cancelar"
-            onClick={handleCerrarSesionCerrar}
-          >
-            Cancelar
-          </button>
-          <button
-            className="cerrar_sesion_boton cerrar_sesion_boton_cerrar"
-            onClick={() => {
-              handleLogout();
-              handleCerrarSesionCerrar();
-            }}
-          >
-            Cerrar sesión
-          </button>
+          <h2 className="cerrar_sesion_h2">¿Quieres cerrar sesión?</h2>
+          <div className="cerrar_sesion_div_botones">
+            <button
+              className="cerrar_sesion_boton"
+              id="cerrar_sesion_boton_cancelar"
+              onClick={handleCerrarSesionCerrar}
+            >
+              Atrás
+            </button>
+            <button
+              className="cerrar_sesion_boton cerrar_sesion_boton_cerrar"
+              onClick={() => {
+                handleLogout();
+                handleCerrarSesionCerrar();
+              }}
+            >
+              Cerrar sesión
+            </button>
+          </div>
         </div>
       </div>
 
-      <div className="lista_reservas_overlay">
-        <h2 className="lista_reservas_h2">Mis reservas</h2>
-        <ul className="lista_reservas_lista">
-          {reservasUsuario.map((r) => {
-            const fechaInicio = new Date(r.inicio);
-            const fechaFin = new Date(r.fin);
+      <div
+        className="lista_reservas_overlay"
+        onClick={handleReservasCerrar} // 🔹 cerrar si se hace clic en el fondo
+      >
+        <div
+          className="lista_reservas_contenido"
+          onClick={(e) => e.stopPropagation()} // 🔹 evitar cierre si se hace clic dentro
+        >
+          <h2 className="lista_reservas_h2">Mis reservas</h2>
+          <ul className="lista_reservas_lista">
+            {reservasUsuario.map((r) => {
+              const fechaInicio = new Date(r.inicio);
+              const fechaFin = new Date(r.fin);
 
-            const diaSemana = fechaInicio.toLocaleDateString("es-ES", {
-              weekday: "long",
-            });
+              const diaSemana = fechaInicio.toLocaleDateString("es-ES", {
+                weekday: "long",
+              });
 
-            return (
-              <li key={r.id}>
-                <span className="lista_reservas_hide_mobile">
-                  {diaSemana.charAt(0).toUpperCase() + diaSemana.slice(1)}
-                  {", "}
-                </span>
-                {fechaInicio.toLocaleDateString("es-ES")},{" "}
-                {fechaInicio.toLocaleTimeString([], {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}{" "}
-                -{" "}
-                {fechaFin.toLocaleTimeString([], {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
-                <span className="lista_reservas_hide_mobile">
-                  , Pista {r.pista_id}
-                </span>
-                <button
-                  className="lista_reservas_boton"
-                  id="lista_reservas_boton_cancelar"
-                  onClick={() => {
-                    const fechaISO = r.inicio;
-                    const fecha = fechaISO.split("T")[0];
-                    navigate(`/reservar?date=${fecha}`);
-                    handleReservasCerrar();
-                  }}
-                >
-                  Ir a reservas
-                </button>
-              </li>
-            );
-          })}
-        </ul>
+              return (
+                <li key={r.id}>
+                  <span className="lista_reservas_hide_mobile">
+                    {diaSemana.charAt(0).toUpperCase() + diaSemana.slice(1)}
+                    {", "}
+                  </span>
+                  {fechaInicio.toLocaleDateString("es-ES")},{" "}
+                  {fechaInicio.toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}{" "}
+                  -{" "}
+                  {fechaFin.toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                  <span className="lista_reservas_hide_mobile">
+                    , Pista {r.pista_id}
+                  </span>
+                  <button
+                    className="lista_reservas_boton"
+                    id="lista_reservas_boton_cancelar"
+                    onClick={() => {
+                      const fechaISO = r.inicio;
+                      const fecha = fechaISO.split("T")[0];
+                      navigate(`/reservar?date=${fecha}`);
+                      handleReservasCerrar();
+                    }}
+                  >
+                    Ir a reservas
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
 
-        <button className="lista_reservas_boton" onClick={handleReservasCerrar}>
-          Cerrar
-        </button>
+          <button
+            className="lista_reservas_boton"
+            onClick={handleReservasCerrar}
+          >
+            Atrás
+          </button>
+        </div>
       </div>
     </>
   );
