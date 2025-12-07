@@ -323,13 +323,6 @@ body{
     box-shadow: 0 0 5px #ff4b4f;
 }
 
-.nav_icon_pelota {
-    width: 18px;
-    height: 18px;
-    margin-top: 3px;
-    position: relative;
-}
-
 .cerrar_sesion_contenido {
     position: relative;
     text-align: center;
@@ -337,6 +330,14 @@ body{
     flex-direction: column;
     align-items: center;
 }
+
+
+.horizontal_href_mis_reservas_icono{
+    display: none;
+    width: 36px;
+    height: 36px;
+}
+
 
 /* Diseño responsive móviles */
 
@@ -355,8 +356,24 @@ body{
     height: 40px;
     }
     .horizontal_href{
-    padding: 0 20px;
+    padding: 0 15px;
     }
+
+    .horizontal_href_mis_reservas_texto {
+        display: none !important;
+    }
+
+    .horizontal_href_mis_reservas_icono {
+        display: block !important;
+    }
+
+    .horizontal_href_mis_reservas{
+        background: none;
+        padding: 0 5px;
+        margin-right: 10px;
+    }
+
+
 }
 
 

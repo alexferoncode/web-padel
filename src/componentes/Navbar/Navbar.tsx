@@ -112,7 +112,7 @@ function Navbar() {
         {/* Enlaces horizontales */}
         <ul className="horizontal_ul">
           {authUser && reservasUsuario.length > 0 && (
-            <li className="horizontal_li hideOnMobile">
+            <li className="horizontal_li">
               <span
                 className="horizontal_href horizontal_href_mis_reservas"
                 onClick={() => {
@@ -120,7 +120,17 @@ function Navbar() {
                   handleMenuClickCerrar();
                 }}
               >
-                MIS RESERVAS ({reservasUsuario.length})
+                {/* texto visible solo en pantallas grandes */}
+                <span className="horizontal_href_mis_reservas_texto">
+                  MIS RESERVAS ({reservasUsuario.length})
+                </span>
+
+                {/* icono visible solo en móviles */}
+                <img
+                  src="/images/reloj2.png"
+                  alt="Mis Reservas"
+                  className="horizontal_href_mis_reservas_icono"
+                />
               </span>
             </li>
           )}
@@ -231,7 +241,7 @@ function Navbar() {
             </span>
           </li>
 
-          {authUser && reservasUsuario.length > 0 && (
+          {/* {authUser && reservasUsuario.length > 0 && (
             <li className="vertical_li">
               <span
                 className="vertical_href"
@@ -243,7 +253,7 @@ function Navbar() {
                 MIS RESERVAS ({reservasUsuario.length})
               </span>
             </li>
-          )}
+          )} */}
 
           <li className="vertical_li">
             <span

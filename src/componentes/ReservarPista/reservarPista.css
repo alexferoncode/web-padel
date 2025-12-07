@@ -200,7 +200,17 @@
   gap: 30px;
 }
 
-/* --- MÓVIL (<700px) --- */
+.reservas_contenido{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.texto_reserva_movil{
+  display: none;
+}
+
+/* Diseño responsive móviles */
 @media(max-width: 850px){
   .section_reservar_pista {
     margin: 0 20px 20px 20px;
@@ -231,8 +241,33 @@
     font-size: 16px;
   }
 
-  /* No mostrar texto en bloques libres o propias */
-  .div_reserva_bloque span {
+  .texto_reserva_movil{
+    display: block;
+  }
+
+  .texto_reserva_pc{
     display: none;
+  }
+}
+
+@media(max-width: 500px){
+  .section_reservar_pista {
+    margin: 0 10px 20px 10px;
+  }
+  .texto_reserva_movil{
+     transform: rotate(-90deg);
+     font-size: 18px;
+  }
+}
+
+@media(max-width: 420px){
+  .texto_reserva_movil{
+     font-size: 16px;
+  }
+}
+
+@media(max-width: 380px){
+  .texto_reserva_movil{
+     font-size: 15px;
   }
 }

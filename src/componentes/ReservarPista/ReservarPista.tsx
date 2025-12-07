@@ -286,7 +286,7 @@ function ReservarPista({ date }: { date: Date }) {
         return;
       }
 
-      setSuccessMsg("¡Pista reservada con éxito!");
+      setSuccessMsg("¡Pista reservada!");
       setTimeout(() => {
         setShowOverlay(false);
         setSuccessMsg("");
@@ -347,7 +347,7 @@ function ReservarPista({ date }: { date: Date }) {
         return;
       }
 
-      setSuccessMsg("¡Reserva cancelada con éxito!");
+      setSuccessMsg("¡Reserva cancelada!");
       setTimeout(() => {
         setShowOverlay(false);
         setSuccessMsg("");
@@ -384,48 +384,59 @@ function ReservarPista({ date }: { date: Date }) {
   return (
     <>
       {/* OVERLAY */}
-      <div className={`reserva_overlay ${showOverlay ? "show" : ""}`}>
-        {bloqueSeleccionado ? (
-          <div className="div_confirmar_reserva">
-            {cancelOverlay && <h2>¿Quieres cancelar esta pista?</h2>}
-            <h2>
-              {date
-                .toLocaleDateString("es-ES", {
-                  weekday: "long",
-                  day: "2-digit",
-                  month: "long",
-                  year: "numeric",
-                })
-                .replace(/^./, (c) => c.toUpperCase())}
-            </h2>
-            <h2>
-              {bloqueSeleccionado.inicio} - {bloqueSeleccionado.fin}
-            </h2>
-            <h2>Pista {bloqueSeleccionado.pista}</h2>
-          </div>
-        ) : (
-          <p>Error al cargar el bloque</p>
-        )}
-        {errorMsg && <p className="reserva_error grande">{errorMsg}</p>}
-        {successMsg && <p className="reserva_success grande">{successMsg}</p>}
-
-        <div className="div_confirmar_reserva_botones">
-          <button
-            className="reserva_boton"
-            id="reserva_boton_cerrar"
-            onClick={() => setShowOverlay(false)}
-          >
-            Atrás
-          </button>
-          {cancelOverlay ? (
-            <button className="reserva_boton" onClick={handleCancelarReserva}>
-              Cancelar pista
-            </button>
+      <div
+        onClick={() => setShowOverlay(false)}
+        className={`reserva_overlay ${showOverlay ? "show" : ""}`}
+      >
+        <div
+          className="reservas_contenido"
+          onClick={(e) => e.stopPropagation()} // 🔹 evitar cierre si se hace clic dentro
+        >
+          {bloqueSeleccionado ? (
+            <div className="div_confirmar_reserva">
+              {cancelOverlay && <h2>¿Quieres cancelar esta pista?</h2>}
+              <h2>
+                {date
+                  .toLocaleDateString("es-ES", {
+                    weekday: "long",
+                    day: "2-digit",
+                    month: "long",
+                    year: "numeric",
+                  })
+                  .replace(/^./, (c) => c.toUpperCase())}
+              </h2>
+              <h2>
+                {bloqueSeleccionado.inicio} - {bloqueSeleccionado.fin}
+              </h2>
+              <h2>Pista {bloqueSeleccionado.pista}</h2>
+            </div>
           ) : (
-            <button className="reserva_boton" onClick={handleConfirmarReserva}>
-              Confirmar reserva
-            </button>
+            <p>Error al cargar el bloque</p>
           )}
+          {errorMsg && <p className="reserva_error grande">{errorMsg}</p>}
+          {successMsg && <p className="reserva_success grande">{successMsg}</p>}
+
+          <div className="div_confirmar_reserva_botones">
+            <button
+              className="reserva_boton"
+              id="reserva_boton_cerrar"
+              onClick={() => setShowOverlay(false)}
+            >
+              Atrás
+            </button>
+            {cancelOverlay ? (
+              <button className="reserva_boton" onClick={handleCancelarReserva}>
+                Cancelar pista
+              </button>
+            ) : (
+              <button
+                className="reserva_boton"
+                onClick={handleConfirmarReserva}
+              >
+                Confirmar reserva
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -481,7 +492,15 @@ function ReservarPista({ date }: { date: Date }) {
                       }}
                     >
                       {(esLibre || esPropia) && (
-                        <span className="texto_reserva">{`${bloque.inicio} - ${bloque.fin}`}</span>
+                        <>
+                          {/* versión escritorio */}
+                          <span className="texto_reserva texto_reserva_pc">{`${bloque.inicio} - ${bloque.fin}`}</span>
+
+                          {/* versión móvil */}
+                          <span className="texto_reserva texto_reserva_movil">
+                            {bloque.inicio}
+                          </span>
+                        </>
                       )}
                     </div>
                   );
