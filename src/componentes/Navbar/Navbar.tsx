@@ -24,6 +24,10 @@ function Navbar() {
   // const [reservasUsuario, setReservasUsuario] = useState<ReservaUsuario[]>([]);
 
   /* ----------------- Funciones de menú y logout ----------------- */
+
+  console.log("Pagina_Admin - user:", authUser);
+  console.log("Pagina_Admin - reservas:", reservas);
+
   const handleMenuClickAbrir = () => {
     const navbarVertical = document.querySelector(
       ".vertical_navbar"

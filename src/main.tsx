@@ -1,8 +1,6 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-
-import AdminRoute from "./componentes/Utilidades/AdminRoute";
 import Pagina_Home from "./pages/Pagina_Home";
 import Pagina_Reservar from "./pages/Pagina_Reservar";
 import Pagina_Tarifas from "./pages/Pagina_Tarifas";
@@ -16,8 +14,8 @@ import { AuthProvider } from "./context/AuthContext";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <AuthProvider>
-      <BrowserRouter>
+    <BrowserRouter>
+      <AuthProvider>
         <ScrollToTop />
         <Routes>
           <Route path="/" element={<Pagina_Home />} />
@@ -36,16 +34,9 @@ createRoot(document.getElementById("root")!).render(
           <Route path="/login" element={<Pagina_Login />} />
 
           {/* Protegemos /admin con AdminRoute */}
-          <Route
-            path="/admin"
-            element={
-              <AdminRoute>
-                <Pagina_Admin />
-              </AdminRoute>
-            }
-          />
+          <Route path="/admin" element={<Pagina_Admin />} />
         </Routes>
-      </BrowserRouter>
-    </AuthProvider>
+      </AuthProvider>
+    </BrowserRouter>
   </StrictMode>
 );
