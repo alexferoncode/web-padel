@@ -2,7 +2,7 @@ import "./navbar.css";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { supabase } from "../../../supabaseClient";
-import { useEffect, useState } from "react";
+// import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 
 interface ReservaUsuario {
@@ -17,36 +17,11 @@ function Navbar() {
   const location = useLocation();
   const isActive = (path: string) => location.pathname.startsWith(path);
   const navigate = useNavigate();
-  const { user: authUser } = useAuth();
-  const [reservasUsuario, setReservasUsuario] = useState<ReservaUsuario[]>([]);
-
-  /* ----------------- Cargar reservas del usuario ----------------- */
-  useEffect(() => {
-    const cargarReservasUsuario = async () => {
-      if (!authUser) {
-        setReservasUsuario([]);
-        return;
-      }
-
-      const now = new Date().toISOString();
-
-      const { data, error } = await supabase
-        .from("reservas")
-        .select("*")
-        .eq("user_id", authUser.id)
-        .gt("inicio", now)
-        .order("inicio", { ascending: true });
-
-      if (error) {
-        console.error("Error cargando reservas del usuario:", error);
-        return;
-      }
-
-      setReservasUsuario(data || []);
-    };
-
-    cargarReservasUsuario();
-  }, [authUser]);
+  const { user: authUser, reservas } = useAuth() as {
+    user: any;
+    reservas: ReservaUsuario[];
+  };
+  // const [reservasUsuario, setReservasUsuario] = useState<ReservaUsuario[]>([]);
 
   /* ----------------- Funciones de menú y logout ----------------- */
   const handleMenuClickAbrir = () => {
@@ -111,7 +86,7 @@ function Navbar() {
 
         {/* Enlaces horizontales */}
         <ul className="horizontal_ul">
-          {authUser && reservasUsuario.length > 0 && (
+          {authUser && reservas.length > 0 && (
             <li className="horizontal_li">
               <span
                 className="horizontal_href horizontal_href_mis_reservas"
@@ -120,12 +95,10 @@ function Navbar() {
                   handleMenuClickCerrar();
                 }}
               >
-                {/* texto visible solo en pantallas grandes */}
                 <span className="horizontal_href_mis_reservas_texto">
-                  MIS RESERVAS ({reservasUsuario.length})
+                  MIS RESERVAS ({reservas.length})
                 </span>
 
-                {/* icono visible solo en móviles */}
                 <img
                   src="/images/reloj2.png"
                   alt="Mis Reservas"
@@ -368,7 +341,7 @@ function Navbar() {
         >
           <h2 className="lista_reservas_h2">Mis reservas</h2>
           <ul className="lista_reservas_lista">
-            {reservasUsuario.map((r) => {
+            {reservas.map((r) => {
               const fechaInicio = new Date(r.inicio);
               const fechaFin = new Date(r.fin);
 

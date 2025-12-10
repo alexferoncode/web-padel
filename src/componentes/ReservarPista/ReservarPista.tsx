@@ -1,12 +1,8 @@
 import "./reservarPista.css";
 import "../../index.css";
 import { useEffect, useState } from "react";
-import { createClient } from "@supabase/supabase-js";
-
-const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL!,
-  import.meta.env.VITE_SUPABASE_ANON_KEY!
-);
+import { supabase } from "../../../supabaseClient";
+import { useNavigate } from "react-router-dom";
 
 type EstadoReserva = "libre" | "ocupada" | "clase" | "cerrado" | "propia";
 
@@ -34,6 +30,8 @@ interface BloqueReserva {
 }
 
 function ReservarPista({ date }: { date: Date }) {
+  const navigate = useNavigate();
+
   const startHour = 8;
   const endHour = 23;
 
@@ -240,7 +238,8 @@ function ReservarPista({ date }: { date: Date }) {
         error: userError,
       } = await supabase.auth.getUser();
       if (userError || !user) {
-        setErrorMsg("Debes iniciar sesión para reservar una pista.");
+        // si no hay usuario, llevar a la página de login
+        navigate("/login");
         return;
       }
 
