@@ -1,7 +1,6 @@
 import Navbar from "../componentes/Navbar/Navbar.tsx";
-import CalendarioReservas from "../componentes/CalendarioReservas/CalendarioReservas.tsx";
-import ReservarPista from "../componentes/ReservarPista/ReservarPista.tsx";
-import GuiaPistas from "../componentes/GuiaPistas/GuiaPistas.tsx";
+import AdminCalendario from "../componentes/AdminCalendario/AdminCalendario.tsx";
+import AdminPistas from "../componentes/AdminPista/AdminPista.tsx";
 import Footer from "../componentes/Footer/Footer.tsx";
 import { useState, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
@@ -72,9 +71,8 @@ export default function Pagina_Admin() {
   return (
     <>
       <Navbar />
-      <CalendarioReservas date={date} setDate={setDate} />
-      <ReservarPista date={date} />
-      <GuiaPistas />
+      <AdminCalendario date={date} setDate={setDate} />
+      <AdminPistas date={date} />
       <Footer />
     </>
   );

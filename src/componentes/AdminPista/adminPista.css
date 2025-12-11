@@ -1,0 +1,73 @@
+.admin_section_reservar_pista {
+  margin: 20px 30px;
+  font-family: 'Barlow', sans-serif;
+  display: flex;
+  justify-content: center;
+  text-shadow: 0 0 5px black;
+  font-size: 1.3rem;
+}
+
+.admin_div_calendario_pistas {
+  border: 1px solid white;
+  overflow: hidden;
+  width: 100%;
+  background: #003b5c;
+}
+
+.admin_div_calendario_body {
+  display: grid;
+  grid-template-columns: 80px repeat(6, 1fr);
+  grid-auto-rows: 50px;
+  overflow-y: auto;
+  position: relative;
+}
+
+.admin_div_reserva_bloque {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  margin: 2px;
+  color: white;
+  position: relative;
+  z-index: 10;
+  cursor: default;
+}
+
+.admin_div_reserva_bloque.libre {
+  background-color: #039c03;
+  color: white;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.admin_div_reserva_bloque.libre:hover {
+  background-color: #0e7f0e;
+}
+
+.admin_div_reserva_bloque.cerrado {
+  background-color: #666666;
+}
+
+.admin_div_reserva_bloque.ocupada {
+  background-color: #cb2c30; /* rojo del header */
+  color: white;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.admin_div_reserva_bloque.ocupada:hover {
+  background-color: #a1191e;
+}
+
+
+.admin_div_reserva_bloque.clase {
+  background-color: #2ca4ee;
+  color: white;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.admin_div_reserva_bloque.clase:hover {
+  background-color: #1d85c5;
+}
