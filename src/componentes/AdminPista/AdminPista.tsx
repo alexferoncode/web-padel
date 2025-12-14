@@ -48,6 +48,7 @@ function ReservarPista({ date }: { date: Date }) {
 
   // Overlay
   const [showOverlay, setShowOverlay] = useState(false);
+  const [showOverlayConfirmacion, setshowOverlayConfirmacion] = useState(false);
   const [bloqueSeleccionado, setBloqueSeleccionado] =
     useState<BloqueReserva | null>(null);
   const [reservaSeleccionadaId, setReservaSeleccionadaId] = useState<
@@ -57,6 +58,9 @@ function ReservarPista({ date }: { date: Date }) {
   const [cancelClaseOverlay, setCancelClaseOverlay] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
+  const [usuarioSeleccionado, setUsuarioSeleccionado] = useState<string | null>(
+    null
+  );
 
   const [perfiles, setPerfiles] = useState<
     {
@@ -137,15 +141,31 @@ function ReservarPista({ date }: { date: Date }) {
     const cargarPerfiles = async () => {
       const { data, error } = await supabase
         .from("profile")
-        .select("id, first_name, last_name, email, tlf");
+        .select("id, first_name, last_name, email, tlf")
+        .order("first_name", { ascending: true })
+        .order("last_name", { ascending: true });
+
       if (error) {
         console.error("Error cargando perfiles:", error);
         return;
       }
+
       setPerfiles(data || []);
     };
     cargarPerfiles();
   }, []);
+
+  // useEffect(() => {
+  //   // Generar 30 perfiles de ejemplo
+  //   const perfilesEjemplo = Array.from({ length: 30 }, (_, i) => ({
+  //     id: `user_${i + 1}`,
+  //     first_name: `Nombre${i + 1}`,
+  //     last_name: `Apellido${i + 1}`,
+  //     email: `usuario${i + 1}@ejemplo.com`,
+  //     tlf: `6000000${(i + 1).toString().padStart(2, "0")}`,
+  //   }));
+  //   setPerfiles(perfilesEjemplo);
+  // }, []);
 
   /* ----------------------------------------------------
       3) FUNCIONES DE POSICIÓN
@@ -232,6 +252,7 @@ function ReservarPista({ date }: { date: Date }) {
     setShowOverlay(true);
     setCancelOverlay(false);
     setCancelClaseOverlay(false);
+    setUsuarioSeleccionado(null);
     setErrorMsg("");
     setSuccessMsg("");
 
@@ -345,7 +366,7 @@ function ReservarPista({ date }: { date: Date }) {
   };
 
   /* ----------------------------------------------------
-      6.5) CONFIRMAR RESERVA (CONCURRENCIA-SAFE)
+      6.1) CONFIRMAR RESERVA (CONCURRENCIA-SAFE)
   -----------------------------------------------------*/
   const handleConfirmarReserva = async () => {
     if (!reservaSeleccionadaId) {
@@ -353,19 +374,18 @@ function ReservarPista({ date }: { date: Date }) {
       return;
     }
 
-    try {
-      const {
-        data: { user },
-        error: userError,
-      } = await supabase.auth.getUser();
-      if (userError || !user) {
-        // si no hay usuario, llevar a la página de login
-        return;
-      }
+    if (!usuarioSeleccionado) {
+      setErrorMsg("Debes seleccionar un usuario.");
+      return;
+    }
 
+    try {
       const { data, error } = await supabase
         .from("reservas")
-        .update({ estado: "ocupada", user_id: user.id })
+        .update({
+          estado: "ocupada",
+          user_id: usuarioSeleccionado, // 🔥 USUARIO ELEGIDO
+        })
         .eq("id", reservaSeleccionadaId)
         .eq("estado", "libre")
         .select("*");
@@ -411,6 +431,8 @@ function ReservarPista({ date }: { date: Date }) {
       setTimeout(() => {
         setShowOverlay(false);
         setSuccessMsg("");
+        setUsuarioSeleccionado(null);
+
         const cargarReservas = async () => {
           const año = date.getFullYear();
           const mes = (date.getMonth() + 1).toString().padStart(2, "0");
@@ -435,7 +457,7 @@ function ReservarPista({ date }: { date: Date }) {
   };
 
   /* ----------------------------------------------------
-      6.6) CANCELAR RESERVA
+      6.2) CANCELAR RESERVA
   -----------------------------------------------------*/
   const handleCancelarReserva = async () => {
     if (!reservaSeleccionadaId || !bloqueSeleccionado) {
@@ -498,6 +520,56 @@ function ReservarPista({ date }: { date: Date }) {
     } catch (err) {
       console.error("Error inesperado:", err);
       setErrorMsg("Error inesperado al cancelar.");
+    }
+  };
+
+  /* ----------------------------------------------------
+      6.3) CONFIRMAR RESERVA (CONCURRENCIA-SAFE)
+  -----------------------------------------------------*/
+  const handleEliminarBloque = async () => {
+    if (!reservaSeleccionadaId) {
+      setErrorMsg("No se pudo identificar la reserva.");
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from("reservas")
+        .delete()
+        .eq("id", reservaSeleccionadaId);
+
+      if (error) {
+        console.error("Error al eliminar el bloque:", error);
+        setErrorMsg("Error al confirmar la reserva. Inténtalo de nuevo.");
+        return;
+      }
+
+      setSuccessMsg("¡Bloque eliminado !");
+      setTimeout(() => {
+        setShowOverlay(false);
+        setSuccessMsg("");
+        setUsuarioSeleccionado(null);
+
+        const cargarReservas = async () => {
+          const año = date.getFullYear();
+          const mes = (date.getMonth() + 1).toString().padStart(2, "0");
+          const dia = date.getDate().toString().padStart(2, "0");
+          const fechaStr = `${año}-${mes}-${dia}`;
+
+          const { data, error } = await supabase
+            .from("reservas")
+            .select("*")
+            .gte("inicio", `${fechaStr}T00:00:00`)
+            .lt("inicio", `${fechaStr}T23:59:59`)
+            .order("inicio", { ascending: true });
+
+          if (!error) setReservasSupabase(data || []);
+        };
+        cargarReservas();
+      }, 1500);
+    } catch (error) {
+      console.error("Error inesperado:", error);
+      setErrorMsg("Error inesperado al eliminar el bloque.");
     }
   };
 
@@ -572,6 +644,26 @@ function ReservarPista({ date }: { date: Date }) {
                 {bloqueSeleccionado.inicio} - {bloqueSeleccionado.fin}
               </h2>
               <h2>Pista {bloqueSeleccionado.pista}</h2>
+              {/* SELECT DE USUARIO (solo en bloque libre) */}
+              {!cancelOverlay && !cancelClaseOverlay && (
+                <div className="admin_elegir_usuario">
+                  <select
+                    className="admin_elegir_usuario_select"
+                    value={usuarioSeleccionado || ""}
+                    onChange={(e) => setUsuarioSeleccionado(e.target.value)}
+                  >
+                    <option value="" disabled>
+                      Selecciona un usuario
+                    </option>
+
+                    {perfiles.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.first_name} {p.last_name} – {p.email}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
           ) : (
             <p>Error al cargar el bloque</p>
@@ -597,23 +689,124 @@ function ReservarPista({ date }: { date: Date }) {
 
             {/* 2️⃣ Cancelar RESERVA normal */}
             {!cancelClaseOverlay && cancelOverlay && (
-              <button className="reserva_boton" onClick={handleCancelarReserva}>
+              <button
+                className="reserva_boton"
+                onClick={() => setshowOverlayConfirmacion(true)}
+              >
                 Cancelar pista
               </button>
             )}
 
             {/* 3️⃣ Confirmar reserva (bloque libre) */}
             {!cancelClaseOverlay && !cancelOverlay && (
-              <button
-                className="reserva_boton"
-                onClick={handleConfirmarReserva}
-              >
-                Confirmar reserva
-              </button>
+              <>
+                <button
+                  className="reserva_boton"
+                  id="admin_reserva_boton_confirmar"
+                  onClick={handleConfirmarReserva}
+                  disabled={!usuarioSeleccionado}
+                >
+                  Confirmar reserva
+                </button>
+                <button
+                  className="reserva_boton"
+                  id="admin_reserva_boton_confirmar"
+                  onClick={handleEliminarBloque}
+                >
+                  Eliminar pista
+                </button>
+              </>
             )}
           </div>
         </div>
       </div>
+
+      {/* OVERLAY: CONFIRMAR CANCELACIÓN */}
+      {showOverlayConfirmacion && (
+        <div
+          className="reserva_overlay show"
+          onClick={() => setshowOverlayConfirmacion(false)}
+        >
+          <div
+            className="reservas_contenido"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="div_confirmar_reserva">
+              <h2>
+                ⚠️ <strong>Confirmar cancelación</strong> ⚠️
+              </h2>
+              <h2>¿Seguro que quieres cancelar esta pista?</h2>
+
+              {/* USUARIO */}
+              {bloqueSeleccionado?.user_id && (
+                <div>
+                  <h2>
+                    {
+                      perfiles.find((p) => p.id === bloqueSeleccionado.user_id)
+                        ?.first_name
+                    }{" "}
+                    {
+                      perfiles.find((p) => p.id === bloqueSeleccionado.user_id)
+                        ?.last_name
+                    }
+                  </h2>
+
+                  <h2>
+                    {
+                      perfiles.find((p) => p.id === bloqueSeleccionado.user_id)
+                        ?.email
+                    }
+                  </h2>
+                  <h2>
+                    tlf:{" "}
+                    {
+                      perfiles.find((p) => p.id === bloqueSeleccionado.user_id)
+                        ?.tlf
+                    }
+                  </h2>
+                </div>
+              )}
+
+              <h2>
+                {date
+                  .toLocaleDateString("es-ES", {
+                    weekday: "long",
+                    day: "2-digit",
+                    month: "long",
+                    year: "numeric",
+                  })
+                  .replace(/^./, (c) => c.toUpperCase())}
+              </h2>
+
+              <h2>
+                {bloqueSeleccionado?.inicio} - {bloqueSeleccionado?.fin}
+              </h2>
+
+              <h2>Pista {bloqueSeleccionado?.pista}</h2>
+            </div>
+
+            <div className="div_confirmar_reserva_botones">
+              <button
+                className="reserva_boton"
+                id="reserva_boton_cerrar"
+                onClick={() => setshowOverlayConfirmacion(false)}
+              >
+                Atrás
+              </button>
+
+              <button
+                className="reserva_boton reserva_boton_peligro"
+                onClick={() => {
+                  setshowOverlayConfirmacion(false);
+                  handleCancelarReserva();
+                }}
+              >
+                Sí, cancelar pista
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* CALENDARIO */}
       <section className="admin_section_reservar_pista">

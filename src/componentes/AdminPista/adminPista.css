@@ -71,3 +71,21 @@
 .admin_div_reserva_bloque.clase:hover {
   background-color: #1d85c5;
 }
+
+#admin_reserva_boton_confirmar:disabled{
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.admin_elegir_usuario{
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 30px;
+}
+
+.admin_elegir_usuario_select{
+  font-size: 22px;
+  width: 800px;
+  padding: 12px;
+}
