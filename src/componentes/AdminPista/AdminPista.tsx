@@ -54,6 +54,7 @@ function ReservarPista({ date }: { date: Date }) {
     number | null
   >(null);
   const [cancelOverlay, setCancelOverlay] = useState(false);
+  const [cancelClaseOverlay, setCancelClaseOverlay] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
 
@@ -84,19 +85,6 @@ function ReservarPista({ date }: { date: Date }) {
     };
     cargarPistas();
   }, []);
-
-  /* ----------------------------------------------------
-      0.5) OBTENER USUARIO LOGUEADO
-  -----------------------------------------------------*/
-  //   useEffect(() => {
-  //     const obtenerUsuario = async () => {
-  //       const {
-  //         data: { user },
-  //       } = await supabase.auth.getUser();
-  //       setUserId(user?.id || null);
-  //     };
-  //     obtenerUsuario();
-  //   }, []);
 
   /* ----------------------------------------------------
       1) GENERAR HORAS
@@ -243,6 +231,7 @@ function ReservarPista({ date }: { date: Date }) {
     setReservaSeleccionadaId(bloque.id || null);
     setShowOverlay(true);
     setCancelOverlay(false);
+    setCancelClaseOverlay(false);
     setErrorMsg("");
     setSuccessMsg("");
 
@@ -281,12 +270,52 @@ function ReservarPista({ date }: { date: Date }) {
     setReservaSeleccionadaId(bloque.id || null);
     setShowOverlay(true);
     setCancelOverlay(true);
+    setCancelClaseOverlay(false);
     setErrorMsg("");
     setSuccessMsg("");
 
     console.log("Bloque seleccionado (ocupada):", bloque);
     console.log("Usuario del bloque:", bloque.user_id);
 
+    if (bloque.user_id) {
+      // Buscar primero en perfiles ya cargados
+      let perfil = perfiles.find((p) => p.id === bloque.user_id);
+
+      if (!perfil) {
+        // Si no existe, pedirlo a Supabase
+        try {
+          const { data, error } = await supabase
+            .from("profile")
+            .select("id, first_name, last_name, email, tlf")
+            .eq("id", bloque.user_id)
+            .single();
+
+          if (error) {
+            console.error("No se pudo cargar el perfil del usuario:", error);
+          } else {
+            perfil = data;
+            console.log("Perfil cargado al vuelo:", perfil);
+          }
+        } catch (err) {
+          console.error("Error inesperado al cargar perfil:", err);
+        }
+      } else {
+        console.log("Perfil encontrado en memoria:", perfil);
+      }
+    }
+  };
+
+  const handleClickClase = async (bloque: BloqueReserva) => {
+    setBloqueSeleccionado(bloque);
+    setReservaSeleccionadaId(bloque.id || null);
+    setShowOverlay(true);
+    setCancelOverlay(false);
+    setCancelClaseOverlay(true);
+    setErrorMsg("");
+    setSuccessMsg("");
+
+    console.log("Bloque seleccionado (clase):", bloque);
+    console.log("Usuario del bloque:", bloque.user_id);
     if (bloque.user_id) {
       // Buscar primero en perfiles ya cargados
       let perfil = perfiles.find((p) => p.id === bloque.user_id);
@@ -409,62 +438,66 @@ function ReservarPista({ date }: { date: Date }) {
       6.6) CANCELAR RESERVA
   -----------------------------------------------------*/
   const handleCancelarReserva = async () => {
-    if (!reservaSeleccionadaId) {
+    if (!reservaSeleccionadaId || !bloqueSeleccionado) {
       setErrorMsg("No se pudo identificar la reserva.");
       return;
     }
 
     try {
-      const { data, error } = await supabase
-        .from("reservas")
-        .update({ estado: "libre", user_id: null })
-        .eq("id", reservaSeleccionadaId)
-        .select("*");
+      let response;
 
-      if (error) {
-        console.error("Error al cancelar:", error);
+      if (bloqueSeleccionado.estado === "clase") {
+        // 🔥 BORRAR la fila completa
+        response = await supabase
+          .from("reservas")
+          .delete()
+          .eq("id", reservaSeleccionadaId);
+      } else {
+        // 🔁 Reserva normal → volver a libre
+        response = await supabase
+          .from("reservas")
+          .update({ estado: "libre", user_id: null })
+          .eq("id", reservaSeleccionadaId);
+      }
 
-        // if
-        // (
-        //   error.message.includes(
-        //     "No se puede cancelar la reserva con menos de 24 horas de antelación"
-        //   )
-        // ) {
-        //   setErrorMsg(
-        //     "No se puede cancelar una reserva con menos de 24 horas de antelación."
-        //   );
-        // } else
-        {
-          setErrorMsg("Error al cancelar la reserva. Inténtalo de nuevo.");
-        }
-
+      if (response.error) {
+        console.error("Error al cancelar:", response.error);
+        setErrorMsg("Error al cancelar la reserva.");
         return;
       }
 
-      setSuccessMsg("¡Reserva cancelada!");
+      setSuccessMsg(
+        bloqueSeleccionado.estado === "clase"
+          ? "¡Clase eliminada!"
+          : "¡Reserva cancelada!"
+      );
+
       setTimeout(() => {
         setShowOverlay(false);
         setSuccessMsg("");
+
+        // recargar reservas
         const cargarReservas = async () => {
           const año = date.getFullYear();
           const mes = (date.getMonth() + 1).toString().padStart(2, "0");
           const dia = date.getDate().toString().padStart(2, "0");
           const fechaStr = `${año}-${mes}-${dia}`;
 
-          const { data, error } = await supabase
+          const { data } = await supabase
             .from("reservas")
             .select("*")
             .gte("inicio", `${fechaStr}T00:00:00`)
             .lt("inicio", `${fechaStr}T23:59:59`)
             .order("inicio", { ascending: true });
 
-          if (!error) setReservasSupabase(data || []);
+          setReservasSupabase(data || []);
         };
+
         cargarReservas();
       }, 1500);
-    } catch (error) {
-      console.error("Error inesperado:", error);
-      setErrorMsg("Error inesperado al cancelar la reserva.");
+    } catch (err) {
+      console.error("Error inesperado:", err);
+      setErrorMsg("Error inesperado al cancelar.");
     }
   };
 
@@ -489,6 +522,7 @@ function ReservarPista({ date }: { date: Date }) {
           {bloqueSeleccionado ? (
             <div className="div_confirmar_reserva">
               {cancelOverlay && <h2>¿Quieres cancelar esta pista?</h2>}
+              {cancelClaseOverlay && <h2>¿Quieres cancelar esta clase?</h2>}
               {bloqueSeleccionado.user_id && (
                 <div>
                   <h2>
@@ -501,19 +535,27 @@ function ReservarPista({ date }: { date: Date }) {
                         ?.last_name
                     }
                   </h2>
-                  <h2>
-                    {
-                      perfiles.find((p) => p.id === bloqueSeleccionado.user_id)
-                        ?.email
-                    }
-                  </h2>
-                  <h2>
-                    tlf:{" "}
-                    {
-                      perfiles.find((p) => p.id === bloqueSeleccionado.user_id)
-                        ?.tlf
-                    }
-                  </h2>
+
+                  {/* Solo mostrar email y tlf si NO es clase */}
+                  {bloqueSeleccionado.estado !== "clase" && (
+                    <>
+                      <h2>
+                        {
+                          perfiles.find(
+                            (p) => p.id === bloqueSeleccionado.user_id
+                          )?.email
+                        }
+                      </h2>
+                      <h2>
+                        tlf:{" "}
+                        {
+                          perfiles.find(
+                            (p) => p.id === bloqueSeleccionado.user_id
+                          )?.tlf
+                        }
+                      </h2>
+                    </>
+                  )}
                 </div>
               )}
               <h2>
@@ -545,11 +587,23 @@ function ReservarPista({ date }: { date: Date }) {
             >
               Atrás
             </button>
-            {cancelOverlay ? (
+
+            {/* 1️⃣ Cancelar CLASE */}
+            {cancelClaseOverlay && (
+              <button className="reserva_boton" onClick={handleCancelarReserva}>
+                Cancelar clase
+              </button>
+            )}
+
+            {/* 2️⃣ Cancelar RESERVA normal */}
+            {!cancelClaseOverlay && cancelOverlay && (
               <button className="reserva_boton" onClick={handleCancelarReserva}>
                 Cancelar pista
               </button>
-            ) : (
+            )}
+
+            {/* 3️⃣ Confirmar reserva (bloque libre) */}
+            {!cancelClaseOverlay && !cancelOverlay && (
               <button
                 className="reserva_boton"
                 onClick={handleConfirmarReserva}
@@ -607,6 +661,7 @@ function ReservarPista({ date }: { date: Date }) {
                       onClick={() => {
                         if (esLibre) handleClickLibre(bloque);
                         else if (esOcupada) handleClickOcupada(bloque);
+                        else if (esClase) handleClickClase(bloque);
                       }}
                       style={{
                         gridColumn: idx + 2,
