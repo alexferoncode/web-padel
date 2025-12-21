@@ -37,7 +37,7 @@ interface BloqueReserva {
   user_id?: string | null;
 }
 
-function ReservarPista({ date }: { date: Date }) {
+function AdminPista({ date }: { date: Date }) {
   const startHour = 8;
   const endHour = 23;
 
@@ -62,6 +62,26 @@ function ReservarPista({ date }: { date: Date }) {
     null
   );
 
+  // Overlay crear bloque pista
+  const [showOverlayCrearBloque, setShowOverlayCrearBloque] = useState(false);
+  const [pistaSeleccionada, setPistaSeleccionada] = useState<number | "">("");
+  const [franjaSeleccionada, setFranjaSeleccionada] = useState<string>("");
+  const [crearBloqueError, setCrearBloqueError] = useState("");
+  const [crearBloqueSuccess, setCrearBloqueSuccess] = useState("");
+
+  // Overlay crear clase
+  const [showOverlayCrearClase, setShowOverlayCrearClase] = useState(false);
+  const [pistaClaseSeleccionada, setPistaClaseSeleccionada] = useState<
+    number | ""
+  >("");
+  const [franjaClaseSeleccionada, setFranjaClaseSeleccionada] =
+    useState<string>("");
+  const [monitorSeleccionado, setMonitorSeleccionado] = useState<string | "">(
+    ""
+  );
+  const [crearClaseError, setCrearClaseError] = useState("");
+  const [crearClaseSuccess, setCrearClaseSuccess] = useState("");
+
   const [perfiles, setPerfiles] = useState<
     {
       id: string;
@@ -69,6 +89,7 @@ function ReservarPista({ date }: { date: Date }) {
       last_name: string;
       email: string;
       tlf: string;
+      monitor: boolean;
     }[]
   >([]);
 
@@ -98,6 +119,47 @@ function ReservarPista({ date }: { date: Date }) {
     horas.push(`${h.toString().padStart(2, "0")}:00`);
     if (h < endHour) horas.push(`${h.toString().padStart(2, "0")}:30`);
   }
+
+  const franjasHorarias: { inicio: string; fin: string }[] = [];
+  const franjasHorariasClase: { inicio: string; fin: string }[] = [];
+
+  function minutosAHora(minutos: number) {
+    const h = Math.floor(minutos / 60)
+      .toString()
+      .padStart(2, "0");
+    const m = (minutos % 60).toString().padStart(2, "0");
+    return `${h}:${m}`;
+  }
+
+  // -------------------- BLOQUES 90 MIN --------------------
+  const bloques90 = [
+    { inicio: 9 * 60, fin: 14 * 60 }, // mañana
+    { inicio: 16 * 60, fin: 23 * 60 }, // tarde
+  ];
+
+  bloques90.forEach(({ inicio, fin }) => {
+    for (let t = inicio; t + 90 <= fin; t += 30) {
+      franjasHorarias.push({
+        inicio: minutosAHora(t),
+        fin: minutosAHora(t + 90),
+      });
+    }
+  });
+
+  // -------------------- BLOQUES 60 MIN (clase) --------------------
+  const bloques60 = [
+    { inicio: 9 * 60, fin: 14 * 60 }, // mañana
+    { inicio: 16 * 60, fin: 23 * 60 }, // tarde
+  ];
+
+  bloques60.forEach(({ inicio, fin }) => {
+    for (let t = inicio; t + 60 <= fin; t += 30) {
+      franjasHorariasClase.push({
+        inicio: minutosAHora(t),
+        fin: minutosAHora(t + 60),
+      });
+    }
+  });
 
   /* ----------------------------------------------------
       2) CARGAR RESERVAS
@@ -141,7 +203,7 @@ function ReservarPista({ date }: { date: Date }) {
     const cargarPerfiles = async () => {
       const { data, error } = await supabase
         .from("profile")
-        .select("id, first_name, last_name, email, tlf")
+        .select("id, first_name, last_name, email, tlf, monitor")
         .order("first_name", { ascending: true })
         .order("last_name", { ascending: true });
 
@@ -149,11 +211,21 @@ function ReservarPista({ date }: { date: Date }) {
         console.error("Error cargando perfiles:", error);
         return;
       }
+      const perfilesMapeados = (data || []).map((p: any) => ({
+        id: p.id,
+        first_name: p.first_name,
+        last_name: p.last_name,
+        email: p.email,
+        tlf: p.tlf,
+        monitor: Boolean(p.monitor), // 🔹 OJO: obligatorio
+      }));
 
-      setPerfiles(data || []);
+      setPerfiles(perfilesMapeados);
     };
     cargarPerfiles();
   }, []);
+
+  const monitores = perfiles.filter((p) => p.monitor === true);
 
   // useEffect(() => {
   //   // Generar 30 perfiles de ejemplo
@@ -267,7 +339,7 @@ function ReservarPista({ date }: { date: Date }) {
         try {
           const { data, error } = await supabase
             .from("profile")
-            .select("id, first_name, last_name, email, tlf")
+            .select("id, first_name, last_name, email, tlf, monitor")
             .eq("id", bloque.user_id)
             .single();
 
@@ -307,7 +379,7 @@ function ReservarPista({ date }: { date: Date }) {
         try {
           const { data, error } = await supabase
             .from("profile")
-            .select("id, first_name, last_name, email, tlf")
+            .select("id, first_name, last_name, email, tlf, monitor")
             .eq("id", bloque.user_id)
             .single();
 
@@ -346,7 +418,7 @@ function ReservarPista({ date }: { date: Date }) {
         try {
           const { data, error } = await supabase
             .from("profile")
-            .select("id, first_name, last_name, email, tlf")
+            .select("id, first_name, last_name, email, tlf, monitor")
             .eq("id", bloque.user_id)
             .single();
 
@@ -362,6 +434,84 @@ function ReservarPista({ date }: { date: Date }) {
       } else {
         console.log("Perfil encontrado en memoria:", perfil);
       }
+    }
+  };
+
+  /* ----------------------------------------------------
+      6.0) CREAR BLOQUE
+  -----------------------------------------------------*/
+
+  const handleCrearBloquePista = async () => {
+    setCrearBloqueError("");
+    setCrearBloqueSuccess("");
+
+    if (!pistaSeleccionada || !franjaSeleccionada) {
+      setCrearBloqueError("Debes seleccionar pista y horario.");
+      return;
+    }
+
+    const [inicioHora, finHora] = franjaSeleccionada.split(" - ");
+
+    const fecha = date.toISOString().split("T")[0];
+
+    // 🔹 LOG PARA DEPURAR
+    console.log("Intentando crear bloque:", {
+      dia: fecha,
+      inicio: inicioHora,
+      fin: finHora,
+      pista: pistaClaseSeleccionada,
+      monitor: monitorSeleccionado,
+    });
+
+    try {
+      const { error } = await supabase.from("reservas").insert({
+        pista_id: pistaSeleccionada,
+        estado: "libre",
+        inicio: `${fecha}T${inicioHora}:00`,
+        fin: `${fecha}T${finHora}:00`,
+        user_id: null,
+      });
+
+      if (error) {
+        console.error(error);
+
+        if (
+          error.message.includes("solapa") ||
+          error.message.includes("overlap")
+        ) {
+          setCrearBloqueError("Ya hay una pista que se solapa en ese horario.");
+        } else {
+          setCrearBloqueError("No se pudo crear el bloque.");
+        }
+        return;
+      }
+
+      setCrearBloqueSuccess("¡Bloque creado correctamente!");
+
+      setTimeout(() => {
+        setShowOverlayCrearBloque(false);
+        setPistaSeleccionada("");
+        setFranjaSeleccionada("");
+        setCrearBloqueSuccess("");
+        setCrearBloqueError("");
+
+        // Recargar reservas
+        const año = date.getFullYear();
+        const mes = (date.getMonth() + 1).toString().padStart(2, "0");
+        const dia = date.getDate().toString().padStart(2, "0");
+        const fechaStr = `${año}-${mes}-${dia}`;
+
+        supabase
+          .from("reservas")
+          .select("*")
+          .gte("inicio", `${fechaStr}T00:00:00`)
+          .lt("inicio", `${fechaStr}T23:59:59`)
+          .order("inicio", { ascending: true })
+          .then(({ data }) => setReservasSupabase(data || []));
+      }, 1200);
+    } catch (err) {
+      console.error(err);
+      setCrearBloqueError("Error inesperado.");
     }
   };
 
@@ -384,7 +534,7 @@ function ReservarPista({ date }: { date: Date }) {
         .from("reservas")
         .update({
           estado: "ocupada",
-          user_id: usuarioSeleccionado, // 🔥 USUARIO ELEGIDO
+          user_id: usuarioSeleccionado,
         })
         .eq("id", reservaSeleccionadaId)
         .eq("estado", "libre")
@@ -524,7 +674,7 @@ function ReservarPista({ date }: { date: Date }) {
   };
 
   /* ----------------------------------------------------
-      6.3) CONFIRMAR RESERVA (CONCURRENCIA-SAFE)
+      6.3) ELIMINAR BLOQUE
   -----------------------------------------------------*/
   const handleEliminarBloque = async () => {
     if (!reservaSeleccionadaId) {
@@ -570,6 +720,80 @@ function ReservarPista({ date }: { date: Date }) {
     } catch (error) {
       console.error("Error inesperado:", error);
       setErrorMsg("Error inesperado al eliminar el bloque.");
+    }
+  };
+
+  /* ----------------------------------------------------
+      6.4) CREAR CLASE
+  -----------------------------------------------------*/
+  const handleCrearClase = async () => {
+    setCrearClaseError("");
+    setCrearClaseSuccess("");
+
+    if (
+      !pistaClaseSeleccionada ||
+      !franjaClaseSeleccionada ||
+      !monitorSeleccionado
+    ) {
+      setCrearClaseError("Debes seleccionar pista, horario y monitor.");
+      return;
+    }
+
+    const [inicioHora, finHora] = franjaClaseSeleccionada.split(" - ");
+    const fecha = date.toISOString().split("T")[0];
+
+    // 🔹 LOG PARA DEPURAR
+    console.log("Intentando crear clase:", {
+      dia: fecha,
+      inicio: inicioHora,
+      fin: finHora,
+      pista: pistaClaseSeleccionada,
+      monitor: monitorSeleccionado,
+    });
+
+    try {
+      const { error } = await supabase.from("reservas").insert({
+        pista_id: pistaClaseSeleccionada,
+        estado: "clase",
+        inicio: `${fecha}T${inicioHora}:00`,
+        fin: `${fecha}T${finHora}:00`,
+        user_id: monitorSeleccionado,
+      });
+
+      if (error) {
+        console.error(error);
+        setCrearClaseError(
+          error.message.includes(
+            "Ya existe otra reserva en esta pista que se solapa en el horario"
+          )
+            ? "Ya hay una reserva que se solapa en este horario."
+            : "No se pudo crear la clase."
+        );
+        return;
+      }
+
+      setCrearClaseSuccess("¡Clase creada correctamente!");
+      setTimeout(() => {
+        setShowOverlayCrearClase(false);
+        setPistaClaseSeleccionada("");
+        setFranjaClaseSeleccionada("");
+        setMonitorSeleccionado("");
+        setCrearClaseError("");
+        setCrearClaseSuccess("");
+
+        // recargar reservas
+        const fechaStr = fecha;
+        supabase
+          .from("reservas")
+          .select("*")
+          .gte("inicio", `${fechaStr}T00:00:00`)
+          .lt("inicio", `${fechaStr}T23:59:59`)
+          .order("inicio", { ascending: true })
+          .then(({ data }) => setReservasSupabase(data || []));
+      }, 1200);
+    } catch (err) {
+      console.error(err);
+      setCrearClaseError("Error inesperado.");
     }
   };
 
@@ -713,7 +937,7 @@ function ReservarPista({ date }: { date: Date }) {
                   id="admin_reserva_boton_confirmar"
                   onClick={handleEliminarBloque}
                 >
-                  Eliminar pista
+                  Eliminar bloque
                 </button>
               </>
             )}
@@ -808,6 +1032,178 @@ function ReservarPista({ date }: { date: Date }) {
         </div>
       )}
 
+      {/* OVERLAY CREAR BLOQUE */}
+      {showOverlayCrearBloque && (
+        <div
+          className="reserva_overlay show"
+          onClick={() => setShowOverlayCrearBloque(false)}
+        >
+          <div
+            className="reservas_contenido"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="div_confirmar_reserva">
+              <h2>Crear bloque pista libre</h2>
+
+              <h2>
+                {date
+                  .toLocaleDateString("es-ES", {
+                    weekday: "long",
+                    day: "2-digit",
+                    month: "long",
+                    year: "numeric",
+                  })
+                  .replace(/^./, (c) => c.toUpperCase())}
+              </h2>
+
+              {/* PISTA */}
+              <select
+                className="admin_elegir_usuario_select"
+                value={pistaSeleccionada}
+                onChange={(e) => setPistaSeleccionada(Number(e.target.value))}
+              >
+                <option value="">Selecciona pista</option>
+                {pistasDB.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.nombre.replace(/_/g, " ")}
+                  </option>
+                ))}
+              </select>
+
+              {/* FRANJA */}
+              <select
+                className="admin_elegir_usuario_select"
+                id="admin_elegir_usuario_select_horario"
+                value={franjaSeleccionada}
+                onChange={(e) => setFranjaSeleccionada(e.target.value)}
+              >
+                <option value="">Selecciona horario</option>
+                {franjasHorarias.map((f, i) => (
+                  <option key={i} value={`${f.inicio} - ${f.fin}`}>
+                    {f.inicio} - {f.fin}
+                  </option>
+                ))}
+              </select>
+
+              {crearBloqueError && (
+                <p className="reserva_error grande">{crearBloqueError}</p>
+              )}
+              {crearBloqueSuccess && (
+                <p className="reserva_success grande">{crearBloqueSuccess}</p>
+              )}
+            </div>
+
+            <div className="div_confirmar_reserva_botones">
+              <button
+                className="reserva_boton"
+                id="reserva_boton_cerrar"
+                onClick={() => setShowOverlayCrearBloque(false)}
+              >
+                Atrás
+              </button>
+
+              <button
+                className="reserva_boton"
+                onClick={handleCrearBloquePista}
+              >
+                Crear bloque
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* OVERLAY CREAR CLASE */}
+      {showOverlayCrearClase && (
+        <div
+          className="reserva_overlay show"
+          onClick={() => setShowOverlayCrearClase(false)}
+        >
+          <div
+            className="reservas_contenido"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="div_confirmar_reserva">
+              <h2>Reservar clase</h2>
+              <h2>
+                {date
+                  .toLocaleDateString("es-ES", {
+                    weekday: "long",
+                    day: "2-digit",
+                    month: "long",
+                    year: "numeric",
+                  })
+                  .replace(/^./, (c) => c.toUpperCase())}
+              </h2>
+
+              {/* PISTA */}
+              <select
+                className="admin_elegir_usuario_select"
+                value={pistaClaseSeleccionada}
+                onChange={(e) =>
+                  setPistaClaseSeleccionada(Number(e.target.value))
+                }
+              >
+                <option value="">Selecciona pista</option>
+                {pistasDB.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.nombre.replace(/_/g, " ")}
+                  </option>
+                ))}
+              </select>
+
+              {/* FRANJA */}
+              <select
+                className="admin_elegir_usuario_select"
+                value={franjaClaseSeleccionada}
+                onChange={(e) => setFranjaClaseSeleccionada(e.target.value)}
+              >
+                <option value="">Selecciona horario</option>
+                {franjasHorariasClase.map((f, i) => (
+                  <option key={i} value={`${f.inicio} - ${f.fin}`}>
+                    {f.inicio} - {f.fin}
+                  </option>
+                ))}
+              </select>
+
+              {/* MONITOR */}
+              <select
+                className="admin_elegir_usuario_select"
+                value={monitorSeleccionado}
+                onChange={(e) => setMonitorSeleccionado(e.target.value)}
+              >
+                <option value="">Selecciona monitor</option>
+                {monitores.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.first_name} {m.last_name}
+                  </option>
+                ))}
+              </select>
+
+              {crearClaseError && (
+                <p className="reserva_error grande">{crearClaseError}</p>
+              )}
+              {crearClaseSuccess && (
+                <p className="reserva_success grande">{crearClaseSuccess}</p>
+              )}
+            </div>
+
+            <div className="div_confirmar_reserva_botones">
+              <button
+                className="reserva_boton"
+                id="reserva_boton_cerrar"
+                onClick={() => setShowOverlayCrearClase(false)}
+              >
+                Atrás
+              </button>
+              <button className="reserva_boton" onClick={handleCrearClase}>
+                Reservar clase
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* CALENDARIO */}
       <section className="admin_section_reservar_pista">
         <div className="admin_div_calendario_pistas">
@@ -895,8 +1291,50 @@ function ReservarPista({ date }: { date: Date }) {
           </div>
         </div>
       </section>
+
+      {/* BOTONES FUNCIONES */}
+      <section className="admin_seccion_funciones">
+        <button
+          className="admin_seccion_funciones_boton"
+          onClick={() => {
+            setShowOverlayCrearBloque(true);
+            // setPistaSeleccionada("");
+            // setFranjaSeleccionada("");
+            setCrearBloqueError("");
+            setCrearBloqueSuccess("");
+          }}
+        >
+          CREAR BLOQUE PISTA
+        </button>
+
+        <button
+          className="admin_seccion_funciones_boton"
+          onClick={() => {
+            setShowOverlayCrearClase(true);
+            // setPistaClaseSeleccionada("");
+            // setFranjaClaseSeleccionada("");
+            // setMonitorSeleccionado("");
+            setCrearClaseError("");
+            setCrearClaseSuccess("");
+          }}
+        >
+          RESERVAR PISTA CLASE
+        </button>
+        <button className="admin_seccion_funciones_boton">
+          RESERVAR PISTA CLASE
+        </button>
+        <button className="admin_seccion_funciones_boton">
+          MODIFICAR HORAS PISTA
+        </button>
+        <button className="admin_seccion_funciones_boton">
+          BLOQUEAR FIN DE SEMANA TORNEO
+        </button>
+        <button className="admin_seccion_funciones_boton">
+          ASIGNAR PISTA FIJA
+        </button>
+      </section>
     </>
   );
 }
 
-export default ReservarPista;
+export default AdminPista;
