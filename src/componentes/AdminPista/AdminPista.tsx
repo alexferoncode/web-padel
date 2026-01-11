@@ -1076,7 +1076,6 @@ function AdminPista({ date }: { date: Date }) {
               {/* FRANJA */}
               <select
                 className="admin_elegir_usuario_select"
-                id="admin_elegir_usuario_select_horario"
                 value={franjaSeleccionada}
                 onChange={(e) => setFranjaSeleccionada(e.target.value)}
               >
@@ -1091,6 +1090,7 @@ function AdminPista({ date }: { date: Date }) {
               {/* PISTA */}
               <select
                 className="admin_elegir_usuario_select"
+                id="admin_elegir_usuario_select_ultimo"
                 value={pistaSeleccionada}
                 onChange={(e) => setPistaSeleccionada(Number(e.target.value))}
               >
@@ -1195,6 +1195,7 @@ function AdminPista({ date }: { date: Date }) {
               {/* MONITOR */}
               <select
                 className="admin_elegir_usuario_select"
+                id="admin_elegir_usuario_select_ultimo"
                 value={monitorSeleccionado}
                 onChange={(e) => setMonitorSeleccionado(e.target.value)}
               >
@@ -1345,6 +1346,9 @@ function AdminPista({ date }: { date: Date }) {
           }}
         >
           RESERVAR PISTA CLASE
+        </button>
+        <button className="admin_seccion_funciones_boton">
+          CREAR BLOQUE PISTA - RECURRENTE
         </button>
         <button className="admin_seccion_funciones_boton">
           MODIFICAR HORAS PISTA
