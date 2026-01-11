@@ -38,6 +38,7 @@ interface BloqueReserva {
 }
 
 function AdminPista({ date }: { date: Date }) {
+  const todayISO = new Date().toISOString().split("T")[0];
   const startHour = 8;
   const endHour = 23;
 
@@ -64,6 +65,8 @@ function AdminPista({ date }: { date: Date }) {
 
   // Overlay crear bloque pista
   const [showOverlayCrearBloque, setShowOverlayCrearBloque] = useState(false);
+  const [fechaBloqueSeleccionada, setFechaBloqueSeleccionada] =
+    useState<string>("");
   const [pistaSeleccionada, setPistaSeleccionada] = useState<number | "">("");
   const [franjaSeleccionada, setFranjaSeleccionada] = useState<string>("");
   const [crearBloqueError, setCrearBloqueError] = useState("");
@@ -71,6 +74,8 @@ function AdminPista({ date }: { date: Date }) {
 
   // Overlay crear clase
   const [showOverlayCrearClase, setShowOverlayCrearClase] = useState(false);
+  const [fechaClaseSeleccionada, setFechaClaseSeleccionada] =
+    useState<string>("");
   const [pistaClaseSeleccionada, setPistaClaseSeleccionada] = useState<
     number | ""
   >("");
@@ -444,15 +449,16 @@ function AdminPista({ date }: { date: Date }) {
   const handleCrearBloquePista = async () => {
     setCrearBloqueError("");
     setCrearBloqueSuccess("");
+    setFechaBloqueSeleccionada("");
 
-    if (!pistaSeleccionada || !franjaSeleccionada) {
-      setCrearBloqueError("Debes seleccionar pista y horario.");
+    if (!fechaBloqueSeleccionada || !pistaSeleccionada || !franjaSeleccionada) {
+      setCrearBloqueError("Debes seleccionar fecha, pista y horario.");
       return;
     }
 
     const [inicioHora, finHora] = franjaSeleccionada.split(" - ");
 
-    const fecha = date.toISOString().split("T")[0];
+    const fecha = fechaBloqueSeleccionada;
 
     // 🔹 LOG PARA DEPURAR
     console.log("Intentando crear bloque:", {
@@ -731,16 +737,17 @@ function AdminPista({ date }: { date: Date }) {
     setCrearClaseSuccess("");
 
     if (
+      !fechaClaseSeleccionada ||
       !pistaClaseSeleccionada ||
       !franjaClaseSeleccionada ||
       !monitorSeleccionado
     ) {
-      setCrearClaseError("Debes seleccionar pista, horario y monitor.");
+      setCrearClaseError("Debes seleccionar fecha, pista, horario y monitor.");
       return;
     }
 
     const [inicioHora, finHora] = franjaClaseSeleccionada.split(" - ");
-    const fecha = date.toISOString().split("T")[0];
+    const fecha = fechaClaseSeleccionada;
 
     // 🔹 LOG PARA DEPURAR
     console.log("Intentando crear clase:", {
@@ -775,6 +782,7 @@ function AdminPista({ date }: { date: Date }) {
       setCrearClaseSuccess("¡Clase creada correctamente!");
       setTimeout(() => {
         setShowOverlayCrearClase(false);
+        setFechaClaseSeleccionada("");
         setPistaClaseSeleccionada("");
         setFranjaClaseSeleccionada("");
         setMonitorSeleccionado("");
@@ -1045,7 +1053,7 @@ function AdminPista({ date }: { date: Date }) {
             <div className="div_confirmar_reserva">
               <h2>Crear bloque pista libre</h2>
 
-              <h2>
+              {/* <h2>
                 {date
                   .toLocaleDateString("es-ES", {
                     weekday: "long",
@@ -1054,21 +1062,16 @@ function AdminPista({ date }: { date: Date }) {
                     year: "numeric",
                   })
                   .replace(/^./, (c) => c.toUpperCase())}
-              </h2>
+              </h2> */}
 
-              {/* PISTA */}
-              <select
+              {/* FECHA */}
+              <input
+                type="date"
                 className="admin_elegir_usuario_select"
-                value={pistaSeleccionada}
-                onChange={(e) => setPistaSeleccionada(Number(e.target.value))}
-              >
-                <option value="">Selecciona pista</option>
-                {pistasDB.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.nombre.replace(/_/g, " ")}
-                  </option>
-                ))}
-              </select>
+                value={fechaBloqueSeleccionada}
+                min={todayISO}
+                onChange={(e) => setFechaBloqueSeleccionada(e.target.value)}
+              />
 
               {/* FRANJA */}
               <select
@@ -1081,6 +1084,20 @@ function AdminPista({ date }: { date: Date }) {
                 {franjasHorarias.map((f, i) => (
                   <option key={i} value={`${f.inicio} - ${f.fin}`}>
                     {f.inicio} - {f.fin}
+                  </option>
+                ))}
+              </select>
+
+              {/* PISTA */}
+              <select
+                className="admin_elegir_usuario_select"
+                value={pistaSeleccionada}
+                onChange={(e) => setPistaSeleccionada(Number(e.target.value))}
+              >
+                <option value="">Selecciona pista</option>
+                {pistasDB.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.nombre.replace(/_/g, " ")}
                   </option>
                 ))}
               </select>
@@ -1125,7 +1142,7 @@ function AdminPista({ date }: { date: Date }) {
           >
             <div className="div_confirmar_reserva">
               <h2>Reservar clase</h2>
-              <h2>
+              {/* <h2>
                 {date
                   .toLocaleDateString("es-ES", {
                     weekday: "long",
@@ -1134,7 +1151,30 @@ function AdminPista({ date }: { date: Date }) {
                     year: "numeric",
                   })
                   .replace(/^./, (c) => c.toUpperCase())}
-              </h2>
+              </h2> */}
+
+              {/* FECHA */}
+              <input
+                type="date"
+                className="admin_elegir_usuario_select"
+                value={fechaClaseSeleccionada}
+                min={todayISO}
+                onChange={(e) => setFechaClaseSeleccionada(e.target.value)}
+              />
+
+              {/* FRANJA */}
+              <select
+                className="admin_elegir_usuario_select"
+                value={franjaClaseSeleccionada}
+                onChange={(e) => setFranjaClaseSeleccionada(e.target.value)}
+              >
+                <option value="">Selecciona horario</option>
+                {franjasHorariasClase.map((f, i) => (
+                  <option key={i} value={`${f.inicio} - ${f.fin}`}>
+                    {f.inicio} - {f.fin}
+                  </option>
+                ))}
+              </select>
 
               {/* PISTA */}
               <select
@@ -1148,20 +1188,6 @@ function AdminPista({ date }: { date: Date }) {
                 {pistasDB.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.nombre.replace(/_/g, " ")}
-                  </option>
-                ))}
-              </select>
-
-              {/* FRANJA */}
-              <select
-                className="admin_elegir_usuario_select"
-                value={franjaClaseSeleccionada}
-                onChange={(e) => setFranjaClaseSeleccionada(e.target.value)}
-              >
-                <option value="">Selecciona horario</option>
-                {franjasHorariasClase.map((f, i) => (
-                  <option key={i} value={`${f.inicio} - ${f.fin}`}>
-                    {f.inicio} - {f.fin}
                   </option>
                 ))}
               </select>
@@ -1318,9 +1344,6 @@ function AdminPista({ date }: { date: Date }) {
             setCrearClaseSuccess("");
           }}
         >
-          RESERVAR PISTA CLASE
-        </button>
-        <button className="admin_seccion_funciones_boton">
           RESERVAR PISTA CLASE
         </button>
         <button className="admin_seccion_funciones_boton">
