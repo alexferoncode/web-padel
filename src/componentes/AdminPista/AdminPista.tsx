@@ -45,6 +45,14 @@ interface BloqueReserva {
   pagado_4?: boolean;
 }
 
+interface Pedido {
+  id: number;
+  reserva_id: number;
+  producto: "agua" | "bolas" | "overgrip";
+  cantidad: number;
+  pagado: boolean;
+}
+
 function AdminPista({ date }: { date: Date }) {
   const todayISO = new Date().toISOString().split("T")[0];
   const startHour = 8;
@@ -78,6 +86,10 @@ function AdminPista({ date }: { date: Date }) {
     false,
     false,
   ]);
+
+  // Pedidos
+  const [pedidos, setPedidos] = useState<Pedido[]>([]);
+  const [pedidosLoading, setPedidosLoading] = useState(false);
 
   // Overlay crear bloque pista
   const [showOverlayCrearBloque, setShowOverlayCrearBloque] = useState(false);
@@ -344,8 +356,8 @@ function AdminPista({ date }: { date: Date }) {
     setUsuarioSeleccionado(null);
     setErrorMsg("");
     setSuccessMsg("");
+    setPedidos([]);
 
-    // Inicializar checkboxes con los valores actuales de la reserva
     setPagados([
       bloque.pagado_1 ?? false,
       bloque.pagado_2 ?? false,
@@ -365,6 +377,18 @@ function AdminPista({ date }: { date: Date }) {
         console.error("Error inesperado al cargar perfil:", err);
       }
     }
+
+    // Cargar pedidos solo en reservas ocupadas
+    if (esCancelar && bloque.id) {
+      setPedidosLoading(true);
+      const { data, error } = await supabase
+        .from("pedidos")
+        .select("*")
+        .eq("reserva_id", bloque.id)
+        .order("created_at", { ascending: true });
+      if (!error) setPedidos(data || []);
+      setPedidosLoading(false);
+    }
   };
 
   const handleClickLibre = (bloque: BloqueReserva) =>
@@ -380,14 +404,12 @@ function AdminPista({ date }: { date: Date }) {
   const handleTogglePagado = async (index: 0 | 1 | 2 | 3, value: boolean) => {
     if (!reservaSeleccionadaId) return;
 
-    // Actualización optimista en UI
     setPagados((prev) => {
       const next = [...prev] as [boolean, boolean, boolean, boolean];
       next[index] = value;
       return next;
     });
 
-    // También actualizar en bloqueSeleccionado para que el overlay refleje el estado
     setBloqueSeleccionado((prev) =>
       prev ? { ...prev, [`pagado_${index + 1}`]: value } : prev,
     );
@@ -405,20 +427,60 @@ function AdminPista({ date }: { date: Date }) {
 
     if (error) {
       console.error("Error actualizando pagado:", error);
-      // Revertir si falla
       setPagados((prev) => {
         const next = [...prev] as [boolean, boolean, boolean, boolean];
         next[index] = !value;
         return next;
       });
     } else {
-      // Sincronizar en reservasSupabase para que el calendario refleje el cambio
       setReservasSupabase((prev) =>
         prev.map((r) =>
           r.id === reservaSeleccionadaId ? { ...r, [campo]: value } : r,
         ),
       );
     }
+  };
+
+  /* ----------------------------------------------------
+      6.0c) PEDIDOS
+  -----------------------------------------------------*/
+  const PRODUCTOS = [
+    { key: "agua", label: "💧 Agua" },
+    { key: "bolas", label: "🥎 Bolas" },
+    { key: "overgrip", label: "🎾 Overgrip" },
+  ] as const;
+
+  const handleAñadirProducto = async (
+    producto: "agua" | "bolas" | "overgrip",
+  ) => {
+    if (!reservaSeleccionadaId) return;
+
+    const { data, error } = await supabase
+      .from("pedidos")
+      .insert({
+        reserva_id: reservaSeleccionadaId,
+        producto,
+        cantidad: 1,
+        pagado: false,
+      })
+      .select()
+      .single();
+    if (!error && data) setPedidos((prev) => [...prev, data]);
+  };
+
+  const handleReducirProducto = async (pedido: Pedido) => {
+    setPedidos((prev) => prev.filter((p) => p.id !== pedido.id));
+    await supabase.from("pedidos").delete().eq("id", pedido.id);
+  };
+
+  const handleTogglePedidoPagado = async (pedido: Pedido, value: boolean) => {
+    setPedidos((prev) =>
+      prev.map((p) => (p.id === pedido.id ? { ...p, pagado: value } : p)),
+    );
+    await supabase
+      .from("pedidos")
+      .update({ pagado: value })
+      .eq("id", pedido.id);
   };
 
   /* ----------------------------------------------------
@@ -770,11 +832,6 @@ function AdminPista({ date }: { date: Date }) {
     return <div className="cargando">Cargando pistas...</div>;
   }
 
-  // Solo mostrar pagados en reservas ocupadas
-  const mostrarPagados =
-    bloqueSeleccionado?.estado === "ocupada" ||
-    bloqueSeleccionado?.estado === "libre";
-
   return (
     <>
       {/* OVERLAY PRINCIPAL */}
@@ -841,7 +898,7 @@ function AdminPista({ date }: { date: Date }) {
               </h2>
               <h2>Pista {bloqueSeleccionado.pista}</h2>
 
-              {/* ── SECCIÓN PAGADO (solo en ocupada) ── */}
+              {/* SECCIÓN PAGADO (solo en ocupada) */}
               {cancelOverlay && (
                 <div className="admin_pagado_section">
                   <p className="admin_pagado_titulo">Pagado</p>
@@ -870,6 +927,79 @@ function AdminPista({ date }: { date: Date }) {
                       </label>
                     ))}
                   </div>
+                </div>
+              )}
+
+              {/* SECCIÓN PRODUCTOS (solo en ocupada) */}
+              {cancelOverlay && (
+                <div className="admin_productos_section">
+                  <p className="admin_productos_titulo">Productos</p>
+
+                  <div className="admin_productos_botones">
+                    {PRODUCTOS.map(({ key, label }) => (
+                      <button
+                        key={key}
+                        className="admin_producto_add_btn"
+                        onClick={() => handleAñadirProducto(key)}
+                      >
+                        + {label}
+                      </button>
+                    ))}
+                  </div>
+
+                  {pedidosLoading ? (
+                    <p style={{ textAlign: "center", color: "white" }}>
+                      Cargando...
+                    </p>
+                  ) : pedidos.length === 0 ? (
+                    <p
+                      style={{
+                        textAlign: "center",
+                        color: "rgba(255,255,255,0.5)",
+                        fontSize: "18px",
+                      }}
+                    >
+                      Sin productos añadidos
+                    </p>
+                  ) : (
+                    <div className="admin_productos_lista">
+                      {pedidos.map((pedido) => (
+                        <div
+                          key={pedido.id}
+                          className={`admin_producto_fila ${pedido.pagado ? "pagado" : ""}`}
+                        >
+                          <span className="admin_producto_nombre">
+                            {
+                              PRODUCTOS.find((p) => p.key === pedido.producto)
+                                ?.label
+                            }
+                          </span>
+
+                          <label className="admin_producto_pagado_label">
+                            <input
+                              type="checkbox"
+                              className="admin_producto_pagado_checkbox"
+                              checked={pedido.pagado}
+                              onChange={(e) =>
+                                handleTogglePedidoPagado(
+                                  pedido,
+                                  e.target.checked,
+                                )
+                              }
+                            />
+                            <span>Pagado</span>
+                          </label>
+
+                          <button
+                            className="admin_producto_cantidad_btn"
+                            onClick={() => handleReducirProducto(pedido)}
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
 

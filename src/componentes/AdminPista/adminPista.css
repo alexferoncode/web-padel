@@ -175,3 +175,125 @@
   text-decoration: line-through;
   opacity: 0.75;
 }
+
+
+
+/* Sección productos */
+
+.admin_productos_section {
+  width: 100%;
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+.admin_productos_titulo {
+  font-size: 30px;
+  font-weight: 600;
+  text-align: center;
+  margin-bottom: 16px;
+  color: white;
+  text-shadow: 0 0 5px black;
+}
+
+.admin_productos_botones {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.admin_producto_add_btn {
+  background: #003b5c;
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  border-radius: 7px;
+  color: white;
+  font-family: 'Barlow', sans-serif;
+  font-size: 18px;
+  font-weight: 600;
+  padding: 8px 16px;
+  cursor: pointer;
+  text-shadow: 0 0 5px black;
+  transition: 0.2s;
+}
+
+.admin_producto_add_btn:hover {
+  background: #005a8e;
+  border-color: white;
+}
+
+.admin_productos_lista {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 0 20px;
+  margin-bottom: 10px;
+}
+
+.admin_producto_fila {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 22px;
+  font-weight: 600;
+  color: white;
+  text-shadow: 0 0 5px black;
+}
+
+.admin_producto_nombre {
+  flex: 1;
+}
+
+.admin_producto_cantidad_controles {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.admin_producto_cantidad_btn {
+  background: #cb2c30;
+  border: none;
+  border-radius: 5px;
+  color: white;
+  font-size: 20px;
+  font-weight: 700;
+  width: 30px;
+  height: 30px;
+  cursor: pointer;
+  line-height: 1;
+  transition: 0.2s;
+}
+
+.admin_producto_cantidad_btn:hover {
+  background: #a1191e;
+}
+
+.admin_producto_cantidad {
+  font-size: 22px;
+  min-width: 20px;
+  text-align: center;
+}
+
+.admin_producto_pagado_label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.admin_producto_pagado_checkbox {
+  width: 22px;
+  height: 22px;
+  cursor: pointer;
+  accent-color: #cb2c30;
+  flex-shrink: 0;
+}
+
+.admin_producto_fila.pagado .admin_producto_nombre,
+.admin_producto_fila.pagado .admin_producto_cantidad {
+  text-decoration: line-through;
+  opacity: 0.6;
+}
