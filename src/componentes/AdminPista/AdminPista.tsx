@@ -21,6 +21,10 @@ interface ReservaDB {
   inicio: string;
   fin: string;
   user_id?: string | null;
+  pagado_1: boolean;
+  pagado_2: boolean;
+  pagado_3: boolean;
+  pagado_4: boolean;
 }
 
 interface PistaDB {
@@ -35,6 +39,10 @@ interface BloqueReserva {
   inicio: string;
   fin: string;
   user_id?: string | null;
+  pagado_1?: boolean;
+  pagado_2?: boolean;
+  pagado_3?: boolean;
+  pagado_4?: boolean;
 }
 
 function AdminPista({ date }: { date: Date }) {
@@ -60,8 +68,16 @@ function AdminPista({ date }: { date: Date }) {
   const [errorMsg, setErrorMsg] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
   const [usuarioSeleccionado, setUsuarioSeleccionado] = useState<string | null>(
-    null
+    null,
   );
+
+  // Pagado checkboxes
+  const [pagados, setPagados] = useState<[boolean, boolean, boolean, boolean]>([
+    false,
+    false,
+    false,
+    false,
+  ]);
 
   // Overlay crear bloque pista
   const [showOverlayCrearBloque, setShowOverlayCrearBloque] = useState(false);
@@ -82,7 +98,7 @@ function AdminPista({ date }: { date: Date }) {
   const [franjaClaseSeleccionada, setFranjaClaseSeleccionada] =
     useState<string>("");
   const [monitorSeleccionado, setMonitorSeleccionado] = useState<string | "">(
-    ""
+    "",
   );
   const [crearClaseError, setCrearClaseError] = useState("");
   const [crearClaseSuccess, setCrearClaseSuccess] = useState("");
@@ -138,8 +154,8 @@ function AdminPista({ date }: { date: Date }) {
 
   // -------------------- BLOQUES 90 MIN --------------------
   const bloques90 = [
-    { inicio: 9 * 60, fin: 14 * 60 }, // mañana
-    { inicio: 16 * 60, fin: 23 * 60 }, // tarde
+    { inicio: 9 * 60, fin: 14 * 60 },
+    { inicio: 16 * 60, fin: 23 * 60 },
   ];
 
   bloques90.forEach(({ inicio, fin }) => {
@@ -153,8 +169,8 @@ function AdminPista({ date }: { date: Date }) {
 
   // -------------------- BLOQUES 60 MIN (clase) --------------------
   const bloques60 = [
-    { inicio: 9 * 60, fin: 14 * 60 }, // mañana
-    { inicio: 16 * 60, fin: 23 * 60 }, // tarde
+    { inicio: 9 * 60, fin: 14 * 60 },
+    { inicio: 16 * 60, fin: 23 * 60 },
   ];
 
   bloques60.forEach(({ inicio, fin }) => {
@@ -222,7 +238,7 @@ function AdminPista({ date }: { date: Date }) {
         last_name: p.last_name,
         email: p.email,
         tlf: p.tlf,
-        monitor: Boolean(p.monitor), // 🔹 OJO: obligatorio
+        monitor: Boolean(p.monitor),
       }));
 
       setPerfiles(perfilesMapeados);
@@ -231,18 +247,6 @@ function AdminPista({ date }: { date: Date }) {
   }, []);
 
   const monitores = perfiles.filter((p) => p.monitor === true);
-
-  // useEffect(() => {
-  //   // Generar 30 perfiles de ejemplo
-  //   const perfilesEjemplo = Array.from({ length: 30 }, (_, i) => ({
-  //     id: `user_${i + 1}`,
-  //     first_name: `Nombre${i + 1}`,
-  //     last_name: `Apellido${i + 1}`,
-  //     email: `usuario${i + 1}@ejemplo.com`,
-  //     tlf: `6000000${(i + 1).toString().padStart(2, "0")}`,
-  //   }));
-  //   setPerfiles(perfilesEjemplo);
-  // }, []);
 
   /* ----------------------------------------------------
       3) FUNCIONES DE POSICIÓN
@@ -269,6 +273,10 @@ function AdminPista({ date }: { date: Date }) {
       inicio: inicioDate.toTimeString().slice(0, 5),
       fin: finDate.toTimeString().slice(0, 5),
       user_id: r.user_id || null,
+      pagado_1: r.pagado_1 ?? false,
+      pagado_2: r.pagado_2 ?? false,
+      pagado_3: r.pagado_3 ?? false,
+      pagado_4: r.pagado_4 ?? false,
     };
   });
 
@@ -289,7 +297,7 @@ function AdminPista({ date }: { date: Date }) {
         (r) =>
           r.pista === pista &&
           r.inicio <= horario.inicio &&
-          r.fin >= horario.fin
+          r.fin >= horario.fin,
       );
       if (!yaExiste) {
         bloquesCerrados.push({
@@ -323,129 +331,99 @@ function AdminPista({ date }: { date: Date }) {
   /* ----------------------------------------------------
       6) LOGICA CLICK
   -----------------------------------------------------*/
-  const handleClickLibre = async (bloque: BloqueReserva) => {
+  const abrirOverlay = async (
+    bloque: BloqueReserva,
+    esCancelar: boolean,
+    esCancelarClase: boolean,
+  ) => {
     setBloqueSeleccionado(bloque);
     setReservaSeleccionadaId(bloque.id || null);
     setShowOverlay(true);
-    setCancelOverlay(false);
-    setCancelClaseOverlay(false);
+    setCancelOverlay(esCancelar);
+    setCancelClaseOverlay(esCancelarClase);
     setUsuarioSeleccionado(null);
     setErrorMsg("");
     setSuccessMsg("");
 
-    console.log("Bloque seleccionado (libre):", bloque);
-    console.log("Usuario del bloque:", bloque.user_id);
-    if (bloque.user_id) {
-      // Buscar primero en perfiles ya cargados
-      let perfil = perfiles.find((p) => p.id === bloque.user_id);
+    // Inicializar checkboxes con los valores actuales de la reserva
+    setPagados([
+      bloque.pagado_1 ?? false,
+      bloque.pagado_2 ?? false,
+      bloque.pagado_3 ?? false,
+      bloque.pagado_4 ?? false,
+    ]);
 
-      if (!perfil) {
-        // Si no existe, pedirlo a Supabase
-        try {
-          const { data, error } = await supabase
-            .from("profile")
-            .select("id, first_name, last_name, email, tlf, monitor")
-            .eq("id", bloque.user_id)
-            .single();
-
-          if (error) {
-            console.error("No se pudo cargar el perfil del usuario:", error);
-          } else {
-            perfil = data;
-            console.log("Perfil cargado al vuelo:", perfil);
-          }
-        } catch (err) {
-          console.error("Error inesperado al cargar perfil:", err);
-        }
-      } else {
-        console.log("Perfil encontrado en memoria:", perfil);
+    if (bloque.user_id && !perfiles.find((p) => p.id === bloque.user_id)) {
+      try {
+        const { data, error } = await supabase
+          .from("profile")
+          .select("id, first_name, last_name, email, tlf, monitor")
+          .eq("id", bloque.user_id)
+          .single();
+        if (!error && data) console.log("Perfil cargado al vuelo:", data);
+      } catch (err) {
+        console.error("Error inesperado al cargar perfil:", err);
       }
     }
   };
 
-  const handleClickOcupada = async (bloque: BloqueReserva) => {
-    setBloqueSeleccionado(bloque);
-    setReservaSeleccionadaId(bloque.id || null);
-    setShowOverlay(true);
-    setCancelOverlay(true);
-    setCancelClaseOverlay(false);
-    setErrorMsg("");
-    setSuccessMsg("");
+  const handleClickLibre = (bloque: BloqueReserva) =>
+    abrirOverlay(bloque, false, false);
+  const handleClickOcupada = (bloque: BloqueReserva) =>
+    abrirOverlay(bloque, true, false);
+  const handleClickClase = (bloque: BloqueReserva) =>
+    abrirOverlay(bloque, false, true);
 
-    console.log("Bloque seleccionado (ocupada):", bloque);
-    console.log("Usuario del bloque:", bloque.user_id);
+  /* ----------------------------------------------------
+      6.0) ACTUALIZAR PAGADO (individual, optimista)
+  -----------------------------------------------------*/
+  const handleTogglePagado = async (index: 0 | 1 | 2 | 3, value: boolean) => {
+    if (!reservaSeleccionadaId) return;
 
-    if (bloque.user_id) {
-      // Buscar primero en perfiles ya cargados
-      let perfil = perfiles.find((p) => p.id === bloque.user_id);
+    // Actualización optimista en UI
+    setPagados((prev) => {
+      const next = [...prev] as [boolean, boolean, boolean, boolean];
+      next[index] = value;
+      return next;
+    });
 
-      if (!perfil) {
-        // Si no existe, pedirlo a Supabase
-        try {
-          const { data, error } = await supabase
-            .from("profile")
-            .select("id, first_name, last_name, email, tlf, monitor")
-            .eq("id", bloque.user_id)
-            .single();
+    // También actualizar en bloqueSeleccionado para que el overlay refleje el estado
+    setBloqueSeleccionado((prev) =>
+      prev ? { ...prev, [`pagado_${index + 1}`]: value } : prev,
+    );
 
-          if (error) {
-            console.error("No se pudo cargar el perfil del usuario:", error);
-          } else {
-            perfil = data;
-            console.log("Perfil cargado al vuelo:", perfil);
-          }
-        } catch (err) {
-          console.error("Error inesperado al cargar perfil:", err);
-        }
-      } else {
-        console.log("Perfil encontrado en memoria:", perfil);
-      }
-    }
-  };
+    const campo = `pagado_${index + 1}` as
+      | "pagado_1"
+      | "pagado_2"
+      | "pagado_3"
+      | "pagado_4";
 
-  const handleClickClase = async (bloque: BloqueReserva) => {
-    setBloqueSeleccionado(bloque);
-    setReservaSeleccionadaId(bloque.id || null);
-    setShowOverlay(true);
-    setCancelOverlay(false);
-    setCancelClaseOverlay(true);
-    setErrorMsg("");
-    setSuccessMsg("");
+    const { error } = await supabase
+      .from("reservas")
+      .update({ [campo]: value })
+      .eq("id", reservaSeleccionadaId);
 
-    console.log("Bloque seleccionado (clase):", bloque);
-    console.log("Usuario del bloque:", bloque.user_id);
-    if (bloque.user_id) {
-      // Buscar primero en perfiles ya cargados
-      let perfil = perfiles.find((p) => p.id === bloque.user_id);
-
-      if (!perfil) {
-        // Si no existe, pedirlo a Supabase
-        try {
-          const { data, error } = await supabase
-            .from("profile")
-            .select("id, first_name, last_name, email, tlf, monitor")
-            .eq("id", bloque.user_id)
-            .single();
-
-          if (error) {
-            console.error("No se pudo cargar el perfil del usuario:", error);
-          } else {
-            perfil = data;
-            console.log("Perfil cargado al vuelo:", perfil);
-          }
-        } catch (err) {
-          console.error("Error inesperado al cargar perfil:", err);
-        }
-      } else {
-        console.log("Perfil encontrado en memoria:", perfil);
-      }
+    if (error) {
+      console.error("Error actualizando pagado:", error);
+      // Revertir si falla
+      setPagados((prev) => {
+        const next = [...prev] as [boolean, boolean, boolean, boolean];
+        next[index] = !value;
+        return next;
+      });
+    } else {
+      // Sincronizar en reservasSupabase para que el calendario refleje el cambio
+      setReservasSupabase((prev) =>
+        prev.map((r) =>
+          r.id === reservaSeleccionadaId ? { ...r, [campo]: value } : r,
+        ),
+      );
     }
   };
 
   /* ----------------------------------------------------
-      6.0) CREAR BLOQUE
+      6.0b) CREAR BLOQUE
   -----------------------------------------------------*/
-
   const handleCrearBloquePista = async () => {
     setCrearBloqueError("");
     setCrearBloqueSuccess("");
@@ -457,17 +435,7 @@ function AdminPista({ date }: { date: Date }) {
     }
 
     const [inicioHora, finHora] = franjaSeleccionada.split(" - ");
-
     const fecha = fechaBloqueSeleccionada;
-
-    // 🔹 LOG PARA DEPURAR
-    console.log("Intentando crear bloque:", {
-      dia: fecha,
-      inicio: inicioHora,
-      fin: finHora,
-      pista: pistaClaseSeleccionada,
-      monitor: monitorSeleccionado,
-    });
 
     try {
       const { error } = await supabase.from("reservas").insert({
@@ -480,7 +448,6 @@ function AdminPista({ date }: { date: Date }) {
 
       if (error) {
         console.error(error);
-
         if (
           error.message.includes("solapa") ||
           error.message.includes("overlap")
@@ -501,7 +468,6 @@ function AdminPista({ date }: { date: Date }) {
         setCrearBloqueSuccess("");
         setCrearBloqueError("");
 
-        // Recargar reservas
         const año = date.getFullYear();
         const mes = (date.getMonth() + 1).toString().padStart(2, "0");
         const dia = date.getDate().toString().padStart(2, "0");
@@ -522,7 +488,7 @@ function AdminPista({ date }: { date: Date }) {
   };
 
   /* ----------------------------------------------------
-      6.1) CONFIRMAR RESERVA (CONCURRENCIA-SAFE)
+      6.1) CONFIRMAR RESERVA
   -----------------------------------------------------*/
   const handleConfirmarReserva = async () => {
     if (!reservaSeleccionadaId) {
@@ -548,25 +514,23 @@ function AdminPista({ date }: { date: Date }) {
 
       if (error) {
         console.error("Error al reservar:", error);
-
-        // Detectar tipo de trigger
         if (
           error.message.includes(
-            "No se puede modificar una reserva con inicio en el pasado"
+            "No se puede modificar una reserva con inicio en el pasado",
           )
         ) {
           setErrorMsg("No se puede reservar una pista ya iniciada.");
         } else if (
           error.message.includes(
-            "El usuario ya tiene una reserva que solapa con este horario"
+            "El usuario ya tiene una reserva que solapa con este horario",
           )
         ) {
           setErrorMsg(
-            "El usuario ya tiene una reserva que solapa con este horario."
+            "El usuario ya tiene una reserva que solapa con este horario.",
           );
         } else if (
           error.message.includes(
-            "Ya existe otra reserva en esta pista que se solapa en el horario"
+            "Ya existe otra reserva en esta pista que se solapa en el horario",
           )
         ) {
           setErrorMsg("Ya existe otra reserva en esta pista en ese horario.");
@@ -578,7 +542,7 @@ function AdminPista({ date }: { date: Date }) {
 
       if (!data || data.length === 0) {
         setErrorMsg(
-          "Otro usuario ha reservado esta pista. Recarga la página para ver la información actualizada."
+          "Otro usuario ha reservado esta pista. Recarga la página para ver la información actualizada.",
         );
         return;
       }
@@ -625,16 +589,21 @@ function AdminPista({ date }: { date: Date }) {
       let response;
 
       if (bloqueSeleccionado.estado === "clase") {
-        // 🔥 BORRAR la fila completa
         response = await supabase
           .from("reservas")
           .delete()
           .eq("id", reservaSeleccionadaId);
       } else {
-        // 🔁 Reserva normal → volver a libre
         response = await supabase
           .from("reservas")
-          .update({ estado: "libre", user_id: null })
+          .update({
+            estado: "libre",
+            user_id: null,
+            pagado_1: false,
+            pagado_2: false,
+            pagado_3: false,
+            pagado_4: false,
+          })
           .eq("id", reservaSeleccionadaId);
       }
 
@@ -647,14 +616,13 @@ function AdminPista({ date }: { date: Date }) {
       setSuccessMsg(
         bloqueSeleccionado.estado === "clase"
           ? "¡Clase eliminada!"
-          : "¡Reserva cancelada!"
+          : "¡Reserva cancelada!",
       );
 
       setTimeout(() => {
         setShowOverlay(false);
         setSuccessMsg("");
 
-        // recargar reservas
         const cargarReservas = async () => {
           const año = date.getFullYear();
           const mes = (date.getMonth() + 1).toString().padStart(2, "0");
@@ -689,7 +657,7 @@ function AdminPista({ date }: { date: Date }) {
     }
 
     try {
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from("reservas")
         .delete()
         .eq("id", reservaSeleccionadaId);
@@ -700,7 +668,7 @@ function AdminPista({ date }: { date: Date }) {
         return;
       }
 
-      setSuccessMsg("¡Bloque eliminado !");
+      setSuccessMsg("¡Bloque eliminado!");
       setTimeout(() => {
         setShowOverlay(false);
         setSuccessMsg("");
@@ -749,15 +717,6 @@ function AdminPista({ date }: { date: Date }) {
     const [inicioHora, finHora] = franjaClaseSeleccionada.split(" - ");
     const fecha = fechaClaseSeleccionada;
 
-    // 🔹 LOG PARA DEPURAR
-    console.log("Intentando crear clase:", {
-      dia: fecha,
-      inicio: inicioHora,
-      fin: finHora,
-      pista: pistaClaseSeleccionada,
-      monitor: monitorSeleccionado,
-    });
-
     try {
       const { error } = await supabase.from("reservas").insert({
         pista_id: pistaClaseSeleccionada,
@@ -771,10 +730,10 @@ function AdminPista({ date }: { date: Date }) {
         console.error(error);
         setCrearClaseError(
           error.message.includes(
-            "Ya existe otra reserva en esta pista que se solapa en el horario"
+            "Ya existe otra reserva en esta pista que se solapa en el horario",
           )
             ? "Ya hay una reserva que se solapa en este horario."
-            : "No se pudo crear la clase."
+            : "No se pudo crear la clase.",
         );
         return;
       }
@@ -789,7 +748,6 @@ function AdminPista({ date }: { date: Date }) {
         setCrearClaseError("");
         setCrearClaseSuccess("");
 
-        // recargar reservas
         const fechaStr = fecha;
         supabase
           .from("reservas")
@@ -812,21 +770,27 @@ function AdminPista({ date }: { date: Date }) {
     return <div className="cargando">Cargando pistas...</div>;
   }
 
+  // Solo mostrar pagados en reservas ocupadas
+  const mostrarPagados =
+    bloqueSeleccionado?.estado === "ocupada" ||
+    bloqueSeleccionado?.estado === "libre";
+
   return (
     <>
-      {/* OVERLAY */}
+      {/* OVERLAY PRINCIPAL */}
       <div
         onClick={() => setShowOverlay(false)}
         className={`reserva_overlay ${showOverlay ? "show" : ""}`}
       >
         <div
           className="reservas_contenido"
-          onClick={(e) => e.stopPropagation()} // 🔹 evitar cierre si se hace clic dentro
+          onClick={(e) => e.stopPropagation()}
         >
           {bloqueSeleccionado ? (
             <div className="div_confirmar_reserva">
               {cancelOverlay && <h2>¿Quieres cancelar esta pista?</h2>}
               {cancelClaseOverlay && <h2>¿Quieres cancelar esta clase?</h2>}
+
               {bloqueSeleccionado.user_id && (
                 <div>
                   <h2>
@@ -840,13 +804,12 @@ function AdminPista({ date }: { date: Date }) {
                     }
                   </h2>
 
-                  {/* Solo mostrar email y tlf si NO es clase */}
                   {bloqueSeleccionado.estado !== "clase" && (
                     <>
                       <h2>
                         {
                           perfiles.find(
-                            (p) => p.id === bloqueSeleccionado.user_id
+                            (p) => p.id === bloqueSeleccionado.user_id,
                           )?.email
                         }
                       </h2>
@@ -854,7 +817,7 @@ function AdminPista({ date }: { date: Date }) {
                         tlf:{" "}
                         {
                           perfiles.find(
-                            (p) => p.id === bloqueSeleccionado.user_id
+                            (p) => p.id === bloqueSeleccionado.user_id,
                           )?.tlf
                         }
                       </h2>
@@ -862,6 +825,7 @@ function AdminPista({ date }: { date: Date }) {
                   )}
                 </div>
               )}
+
               <h2>
                 {date
                   .toLocaleDateString("es-ES", {
@@ -876,6 +840,39 @@ function AdminPista({ date }: { date: Date }) {
                 {bloqueSeleccionado.inicio} - {bloqueSeleccionado.fin}
               </h2>
               <h2>Pista {bloqueSeleccionado.pista}</h2>
+
+              {/* ── SECCIÓN PAGADO (solo en ocupada) ── */}
+              {cancelOverlay && (
+                <div className="admin_pagado_section">
+                  <p className="admin_pagado_titulo">Pagado</p>
+                  <div className="admin_pagado_checkboxes">
+                    {(
+                      [
+                        "Jugador 1",
+                        "Jugador 2",
+                        "Jugador 3",
+                        "Jugador 4",
+                      ] as const
+                    ).map((label, i) => (
+                      <label key={i} className="admin_pagado_label">
+                        <input
+                          type="checkbox"
+                          className="admin_pagado_checkbox"
+                          checked={pagados[i as 0 | 1 | 2 | 3]}
+                          onChange={(e) =>
+                            handleTogglePagado(
+                              i as 0 | 1 | 2 | 3,
+                              e.target.checked,
+                            )
+                          }
+                        />
+                        <span>{label}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* SELECT DE USUARIO (solo en bloque libre) */}
               {!cancelOverlay && !cancelClaseOverlay && (
                 <div className="admin_elegir_usuario">
@@ -887,7 +884,6 @@ function AdminPista({ date }: { date: Date }) {
                     <option value="" disabled>
                       Selecciona un usuario
                     </option>
-
                     {perfiles.map((p) => (
                       <option key={p.id} value={p.id}>
                         {p.first_name} {p.last_name} – {p.email}
@@ -900,6 +896,7 @@ function AdminPista({ date }: { date: Date }) {
           ) : (
             <p>Error al cargar el bloque</p>
           )}
+
           {errorMsg && <p className="reserva_error grande">{errorMsg}</p>}
           {successMsg && <p className="reserva_success grande">{successMsg}</p>}
 
@@ -912,14 +909,14 @@ function AdminPista({ date }: { date: Date }) {
               Atrás
             </button>
 
-            {/* 1️⃣ Cancelar CLASE */}
+            {/* Cancelar CLASE */}
             {cancelClaseOverlay && (
               <button className="reserva_boton" onClick={handleCancelarReserva}>
                 Cancelar clase
               </button>
             )}
 
-            {/* 2️⃣ Cancelar RESERVA normal */}
+            {/* Cancelar RESERVA normal */}
             {!cancelClaseOverlay && cancelOverlay && (
               <button
                 className="reserva_boton"
@@ -929,7 +926,7 @@ function AdminPista({ date }: { date: Date }) {
               </button>
             )}
 
-            {/* 3️⃣ Confirmar reserva (bloque libre) */}
+            {/* Confirmar reserva (bloque libre) */}
             {!cancelClaseOverlay && !cancelOverlay && (
               <>
                 <button
@@ -969,7 +966,6 @@ function AdminPista({ date }: { date: Date }) {
               </h2>
               <h2>¿Seguro que quieres cancelar esta pista?</h2>
 
-              {/* USUARIO */}
               {bloqueSeleccionado?.user_id && (
                 <div>
                   <h2>
@@ -982,7 +978,6 @@ function AdminPista({ date }: { date: Date }) {
                         ?.last_name
                     }
                   </h2>
-
                   <h2>
                     {
                       perfiles.find((p) => p.id === bloqueSeleccionado.user_id)
@@ -1009,11 +1004,9 @@ function AdminPista({ date }: { date: Date }) {
                   })
                   .replace(/^./, (c) => c.toUpperCase())}
               </h2>
-
               <h2>
                 {bloqueSeleccionado?.inicio} - {bloqueSeleccionado?.fin}
               </h2>
-
               <h2>Pista {bloqueSeleccionado?.pista}</h2>
             </div>
 
@@ -1025,7 +1018,6 @@ function AdminPista({ date }: { date: Date }) {
               >
                 Atrás
               </button>
-
               <button
                 className="reserva_boton reserva_boton_peligro"
                 onClick={() => {
@@ -1053,18 +1045,6 @@ function AdminPista({ date }: { date: Date }) {
             <div className="div_confirmar_reserva">
               <h2>Crear bloque pista libre</h2>
 
-              {/* <h2>
-                {date
-                  .toLocaleDateString("es-ES", {
-                    weekday: "long",
-                    day: "2-digit",
-                    month: "long",
-                    year: "numeric",
-                  })
-                  .replace(/^./, (c) => c.toUpperCase())}
-              </h2> */}
-
-              {/* FECHA */}
               <input
                 type="date"
                 className="admin_elegir_usuario_select"
@@ -1073,7 +1053,6 @@ function AdminPista({ date }: { date: Date }) {
                 onChange={(e) => setFechaBloqueSeleccionada(e.target.value)}
               />
 
-              {/* FRANJA */}
               <select
                 className="admin_elegir_usuario_select"
                 value={franjaSeleccionada}
@@ -1087,7 +1066,6 @@ function AdminPista({ date }: { date: Date }) {
                 ))}
               </select>
 
-              {/* PISTA */}
               <select
                 className="admin_elegir_usuario_select"
                 id="admin_elegir_usuario_select_ultimo"
@@ -1118,7 +1096,6 @@ function AdminPista({ date }: { date: Date }) {
               >
                 Atrás
               </button>
-
               <button
                 className="reserva_boton"
                 onClick={handleCrearBloquePista}
@@ -1142,18 +1119,7 @@ function AdminPista({ date }: { date: Date }) {
           >
             <div className="div_confirmar_reserva">
               <h2>Reservar clase</h2>
-              {/* <h2>
-                {date
-                  .toLocaleDateString("es-ES", {
-                    weekday: "long",
-                    day: "2-digit",
-                    month: "long",
-                    year: "numeric",
-                  })
-                  .replace(/^./, (c) => c.toUpperCase())}
-              </h2> */}
 
-              {/* FECHA */}
               <input
                 type="date"
                 className="admin_elegir_usuario_select"
@@ -1162,7 +1128,6 @@ function AdminPista({ date }: { date: Date }) {
                 onChange={(e) => setFechaClaseSeleccionada(e.target.value)}
               />
 
-              {/* FRANJA */}
               <select
                 className="admin_elegir_usuario_select"
                 value={franjaClaseSeleccionada}
@@ -1176,7 +1141,6 @@ function AdminPista({ date }: { date: Date }) {
                 ))}
               </select>
 
-              {/* PISTA */}
               <select
                 className="admin_elegir_usuario_select"
                 value={pistaClaseSeleccionada}
@@ -1192,7 +1156,6 @@ function AdminPista({ date }: { date: Date }) {
                 ))}
               </select>
 
-              {/* MONITOR */}
               <select
                 className="admin_elegir_usuario_select"
                 id="admin_elegir_usuario_select_ultimo"
@@ -1247,14 +1210,12 @@ function AdminPista({ date }: { date: Date }) {
 
           {/* BODY */}
           <div className="admin_div_calendario_body">
-            {/* HORAS */}
             {horas.map((h) => (
               <div key={h} className="div_hora_celda" data-hora={h}>
                 {h}
               </div>
             ))}
 
-            {/* BLOQUES RESERVADOS */}
             {pistas.map((p, idx) =>
               todasLasReservas
                 .filter((r) => r.pista === p)
@@ -1263,16 +1224,18 @@ function AdminPista({ date }: { date: Date }) {
                   const esLibre = bloque.estado === "libre";
                   const esOcupada = bloque.estado === "ocupada";
                   const esClase = bloque.estado === "clase";
-                  const esTorneo = bloque.estado === "torneo";
-                  const esFija = bloque.estado === "fija";
-                  const esEvento = bloque.estado === "evento";
 
-                  let claseBloque = bloque.estado;
+                  const todoPagado =
+                    bloque.estado === "ocupada" &&
+                    bloque.pagado_1 &&
+                    bloque.pagado_2 &&
+                    bloque.pagado_3 &&
+                    bloque.pagado_4;
 
                   return (
                     <div
                       key={`${p}-${bloque.inicio}-${i}`}
-                      className={`admin_div_reserva_bloque ${claseBloque}`}
+                      className={`admin_div_reserva_bloque ${bloque.estado}${todoPagado ? " todo_pagado" : ""}`}
                       data-libres={esLibre ? "true" : "false"}
                       onClick={() => {
                         if (esLibre) handleClickLibre(bloque);
@@ -1281,17 +1244,12 @@ function AdminPista({ date }: { date: Date }) {
                       }}
                       style={{
                         gridColumn: idx + 2,
-                        gridRow: `${calcularFila(
-                          bloque.inicio
-                        )} / span ${filas}`,
+                        gridRow: `${calcularFila(bloque.inicio)} / span ${filas}`,
                       }}
                     >
                       {(esLibre || esOcupada || esClase) && (
                         <>
-                          {/* versión escritorio */}
                           <span className="texto_reserva texto_reserva_pc">{`${bloque.inicio} - ${bloque.fin}`}</span>
-
-                          {/* versión móvil */}
                           <span className="texto_reserva texto_reserva_movil">
                             {bloque.inicio}
                           </span>
@@ -1299,10 +1257,9 @@ function AdminPista({ date }: { date: Date }) {
                       )}
                     </div>
                   );
-                })
+                }),
             )}
 
-            {/* CELDAS VACÍAS */}
             {pistas.map((p, idx) =>
               horas.map((h) => {
                 if (estaCeldaOcupada(p, h)) return null;
@@ -1313,7 +1270,7 @@ function AdminPista({ date }: { date: Date }) {
                     style={{ gridColumn: idx + 2, gridRow: calcularFila(h) }}
                   />
                 );
-              })
+              }),
             )}
           </div>
         </div>
@@ -1325,22 +1282,16 @@ function AdminPista({ date }: { date: Date }) {
           className="admin_seccion_funciones_boton"
           onClick={() => {
             setShowOverlayCrearBloque(true);
-            // setPistaSeleccionada("");
-            // setFranjaSeleccionada("");
             setCrearBloqueError("");
             setCrearBloqueSuccess("");
           }}
         >
           CREAR BLOQUE PISTA
         </button>
-
         <button
           className="admin_seccion_funciones_boton"
           onClick={() => {
             setShowOverlayCrearClase(true);
-            // setPistaClaseSeleccionada("");
-            // setFranjaClaseSeleccionada("");
-            // setMonitorSeleccionado("");
             setCrearClaseError("");
             setCrearClaseSuccess("");
           }}

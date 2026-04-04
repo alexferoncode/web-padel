@@ -123,3 +123,55 @@
   margin-bottom: 30px;
 }
 
+
+
+/* CSS para botones de pista pagada */
+
+.admin_pagado_section {
+  width: 100%;
+  text-align: center;
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+.admin_pagado_titulo {
+  font-size: 30px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  color: white;
+  text-shadow: 0 0 5px black;
+}
+
+.admin_pagado_checkboxes {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: center;
+  padding: 0 20px;
+  margin-bottom: 20px;
+}
+
+.admin_pagado_label {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  cursor: pointer;
+  font-size: 22px;
+  font-weight: 600;
+  color: white;
+  text-shadow: 0 0 5px black;
+}
+
+.admin_pagado_checkbox {
+  width: 22px;
+  height: 22px;
+  cursor: pointer;
+  accent-color: #cb2c30;
+  flex-shrink: 0;
+}
+
+.admin_div_reserva_bloque.ocupada.todo_pagado .texto_reserva {
+  text-decoration: line-through;
+  opacity: 0.75;
+}

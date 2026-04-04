@@ -27,42 +27,42 @@ function Navbar() {
 
   const handleMenuClickAbrir = () => {
     const navbarVertical = document.querySelector(
-      ".vertical_navbar"
+      ".vertical_navbar",
     ) as HTMLElement;
     navbarVertical.style.display = "flex";
   };
 
   const handleMenuClickCerrar = () => {
     const navbarVertical = document.querySelector(
-      ".vertical_navbar"
+      ".vertical_navbar",
     ) as HTMLElement;
     navbarVertical.style.display = "none";
   };
 
   const handleReservasAbrir = () => {
     const navbarVertical = document.querySelector(
-      ".lista_reservas_overlay"
+      ".lista_reservas_overlay",
     ) as HTMLElement;
     navbarVertical.style.display = "flex";
   };
 
   const handleReservasCerrar = () => {
     const navbarVertical = document.querySelector(
-      ".lista_reservas_overlay"
+      ".lista_reservas_overlay",
     ) as HTMLElement;
     navbarVertical.style.display = "none";
   };
 
   const handleCerrarSesionAbrir = () => {
     const navbarVertical = document.querySelector(
-      ".cerrar_sesion_aviso"
+      ".cerrar_sesion_aviso",
     ) as HTMLElement;
     navbarVertical.style.display = "flex";
   };
 
   const handleCerrarSesionCerrar = () => {
     const navbarVertical = document.querySelector(
-      ".cerrar_sesion_aviso"
+      ".cerrar_sesion_aviso",
     ) as HTMLElement;
     navbarVertical.style.display = "none";
   };
@@ -142,7 +142,7 @@ function Navbar() {
             </span>
           </li>
 
-          <li className="horizontal_li hideOnMobile">
+          {/* <li className="horizontal_li hideOnMobile">
             <span
               className={`horizontal_href ${
                 isActive("/contacto") ? "active_nav" : ""
@@ -151,7 +151,7 @@ function Navbar() {
             >
               CONTACTO
             </span>
-          </li>
+          </li> */}
 
           <li className="horizontal_li hideOnMobile">
             {!authUser ? (
@@ -257,7 +257,7 @@ function Navbar() {
             </span>
           </li>
 
-          <li className="vertical_li">
+          {/* <li className="vertical_li">
             <span
               className={`vertical_href ${
                 isActive("/contacto") ? "active_nav" : ""
@@ -269,7 +269,7 @@ function Navbar() {
             >
               CONTACTO
             </span>
-          </li>
+          </li> */}
 
           <li className="vertical_li">
             {!authUser ? (
