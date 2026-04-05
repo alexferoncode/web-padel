@@ -145,6 +145,20 @@ function AdminPista({ date }: { date: Date }) {
   const [torneoSuccess, setTorneoSuccess] = useState("");
   const [torneoLoading, setTorneoLoading] = useState(false);
 
+  // Overlay pista fija
+  const [showOverlayPistaFija, setShowOverlayPistaFija] = useState(false);
+  const [fijaFechaInicio, setFijaFechaInicio] = useState("");
+  const [fijaFechaFin, setFijaFechaFin] = useState("");
+  const [fijaPista, setFijaPista] = useState<number | "">("");
+  const [fijaFranja, setFijaFranja] = useState("");
+  const [fijaUsuario, setFijaUsuario] = useState<string | null>(null);
+  const [fijaBusqueda, setFijaBusqueda] = useState("");
+  const [fijaError, setFijaError] = useState("");
+  const [fijaSuccess, setFijaSuccess] = useState("");
+  const [fijaAvisos, setFijaAvisos] = useState<string[]>([]);
+  const [fijaLoading, setFijaLoading] = useState(false);
+  const [fijaDiaSemana, setFijaDiaSemana] = useState<number | "">("");
+
   /* ----------------------------------------------------
       0) CARGAR PISTAS
   -----------------------------------------------------*/
@@ -1071,6 +1085,139 @@ function AdminPista({ date }: { date: Date }) {
   };
 
   /* ----------------------------------------------------
+    6.6) ASIGNAR PISTA FIJA
+-----------------------------------------------------*/
+  const handleAsignarPistaFija = async () => {
+    setFijaError("");
+    setFijaSuccess("");
+    setFijaAvisos([]);
+
+    if (
+      !fijaFechaInicio ||
+      !fijaFechaFin ||
+      !fijaPista ||
+      !fijaFranja ||
+      !fijaUsuario ||
+      fijaDiaSemana === ""
+    ) {
+      setFijaError("Debes completar todos los campos.");
+      return;
+    }
+
+    if (fijaFechaFin < fijaFechaInicio) {
+      setFijaError("La fecha de fin debe ser posterior a la de inicio.");
+      return;
+    }
+
+    const [inicioHora, finHora] = fijaFranja.split(" - ");
+
+    setFijaLoading(true);
+
+    // Generar todas las fechas del día de la semana elegido entre inicio y fin
+    const fechaLimite = new Date(`${fijaFechaFin}T12:00:00`);
+
+    const fechas: string[] = [];
+    const cursor = new Date(`${fijaFechaInicio}T12:00:00`);
+    while (cursor <= fechaLimite) {
+      if (cursor.getDay() === fijaDiaSemana) {
+        fechas.push(cursor.toISOString().split("T")[0]);
+      }
+      cursor.setDate(cursor.getDate() + 1);
+    }
+
+    if (fechas.length === 0) {
+      setFijaError("No hay fechas válidas en el rango seleccionado.");
+      setFijaLoading(false);
+      return;
+    }
+
+    // Buscar reservas existentes en esas fechas/pista/franja
+    const avisos: string[] = [];
+    const reservasAOcupar: number[] = [];
+
+    for (const fecha of fechas) {
+      const { data, error } = await supabase
+        .from("reservas")
+        .select("id, estado, inicio, user_id, invitado_nombre")
+        .eq("pista_id", fijaPista)
+        .eq("inicio", `${fecha}T${inicioHora}:00`);
+
+      if (error) {
+        setFijaError("Error al comprobar reservas.");
+        setFijaLoading(false);
+        return;
+      }
+
+      const reserva = data?.[0];
+      const fechaFormateada = new Date(`${fecha}T12:00:00`).toLocaleDateString(
+        "es-ES",
+        { weekday: "long", day: "2-digit", month: "long" },
+      );
+
+      if (!reserva) {
+        avisos.push(
+          `${fechaFormateada} ${inicioHora} — sin bloque en base de datos`,
+        );
+      } else if (reserva.estado === "libre") {
+        reservasAOcupar.push(reserva.id);
+      } else if (reserva.estado === "clase") {
+        avisos.push(`${fechaFormateada} ${inicioHora} — hay una clase`);
+      } else if (reserva.estado === "ocupada") {
+        const nombre =
+          reserva.invitado_nombre ||
+          perfiles.find((p) => p.id === reserva.user_id)?.first_name +
+            " " +
+            perfiles.find((p) => p.id === reserva.user_id)?.last_name ||
+          "otro usuario";
+        avisos.push(`${fechaFormateada} ${inicioHora} — ocupada por ${nombre}`);
+      } else {
+        avisos.push(
+          `${fechaFormateada} ${inicioHora} — estado: ${reserva.estado}`,
+        );
+      }
+    }
+
+    // Actualizar las que están libres
+    if (reservasAOcupar.length > 0) {
+      const { error } = await supabase
+        .from("reservas")
+        .update({
+          estado: "ocupada",
+          user_id: fijaUsuario,
+          invitado_nombre: null,
+          invitado_tlf: null,
+        })
+        .in("id", reservasAOcupar);
+
+      if (error) {
+        setFijaError("Error al asignar las reservas.");
+        setFijaLoading(false);
+        return;
+      }
+    }
+
+    setFijaAvisos(avisos);
+    setFijaSuccess(
+      `✅ ${reservasAOcupar.length} reserva${reservasAOcupar.length !== 1 ? "s" : ""} asignada${reservasAOcupar.length !== 1 ? "s" : ""} correctamente.` +
+        (avisos.length > 0 ? ` ${avisos.length} con aviso.` : ""),
+    );
+    setFijaLoading(false);
+
+    // Recargar calendario
+    const año = date.getFullYear();
+    const mes = (date.getMonth() + 1).toString().padStart(2, "0");
+    const dia = date.getDate().toString().padStart(2, "0");
+    const fechaStr = `${año}-${mes}-${dia}`;
+    supabase
+      .from("reservas")
+      .select("*")
+      .gte("inicio", `${fechaStr}T00:00:00`)
+      .lt("inicio", `${fechaStr}T23:59:59`)
+      .order("inicio", { ascending: true })
+      .then(({ data }) => setReservasSupabase(data || []));
+  };
+
+  /* ----------------------------------------------------
       7) RENDER
   -----------------------------------------------------*/
   if (pistasDB.length === 0) {
@@ -1746,6 +1893,190 @@ function AdminPista({ date }: { date: Date }) {
         </div>
       )}
 
+      {/* OVERLAY PISTA FIJA */}
+      {showOverlayPistaFija && (
+        <div
+          className="reserva_overlay show"
+          onClick={() => setShowOverlayPistaFija(false)}
+        >
+          <div
+            className="reservas_contenido"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="div_confirmar_reserva">
+              <h2>Asignar pista fija</h2>
+
+              {/* BUSCADOR USUARIO */}
+              <div className="admin_elegir_usuario">
+                <div className="admin_buscador_usuario">
+                  <input
+                    type="text"
+                    className="admin_elegir_usuario_select"
+                    placeholder="Buscar usuario por nombre..."
+                    value={
+                      fijaUsuario
+                        ? (() => {
+                            const p = perfiles.find(
+                              (p) => p.id === fijaUsuario,
+                            );
+                            return p
+                              ? `${p.first_name} ${p.last_name} – ${p.email}`
+                              : fijaBusqueda;
+                          })()
+                        : fijaBusqueda
+                    }
+                    onChange={(e) => {
+                      setFijaBusqueda(e.target.value);
+                      setFijaUsuario(null);
+                    }}
+                  />
+                  {!fijaUsuario && fijaBusqueda.length > 0 && (
+                    <div className="admin_buscador_lista">
+                      {perfiles
+                        .filter((p) =>
+                          `${p.first_name} ${p.last_name}`
+                            .toLowerCase()
+                            .includes(fijaBusqueda.toLowerCase()),
+                        )
+                        .slice(0, 8)
+                        .map((p) => (
+                          <div
+                            key={p.id}
+                            className="admin_buscador_opcion"
+                            onClick={() => {
+                              setFijaUsuario(p.id);
+                              setFijaBusqueda("");
+                            }}
+                          >
+                            {p.first_name} {p.last_name} – {p.email}
+                          </div>
+                        ))}
+                      {perfiles.filter((p) =>
+                        `${p.first_name} ${p.last_name}`
+                          .toLowerCase()
+                          .includes(fijaBusqueda.toLowerCase()),
+                      ).length === 0 && (
+                        <div className="admin_buscador_opcion admin_buscador_vacio">
+                          Sin resultados
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* PISTA */}
+              <select
+                className="admin_elegir_usuario_select"
+                value={fijaPista}
+                onChange={(e) => setFijaPista(Number(e.target.value))}
+              >
+                <option value="">Selecciona pista</option>
+                {pistasDB.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.nombre.replace(/_/g, " ")}
+                  </option>
+                ))}
+              </select>
+
+              {/* FRANJA */}
+              <select
+                className="admin_elegir_usuario_select"
+                value={fijaFranja}
+                onChange={(e) => setFijaFranja(e.target.value)}
+              >
+                <option value="">Selecciona horario</option>
+                {franjasHorarias.map((f, i) => (
+                  <option key={i} value={`${f.inicio} - ${f.fin}`}>
+                    {f.inicio} - {f.fin}
+                  </option>
+                ))}
+              </select>
+
+              {/* DÍA DE LA SEMANA */}
+              <select
+                className="admin_elegir_usuario_select"
+                value={fijaDiaSemana}
+                onChange={(e) => setFijaDiaSemana(Number(e.target.value))}
+              >
+                <option value="">Selecciona día de la semana</option>
+                <option value={1}>Lunes</option>
+                <option value={2}>Martes</option>
+                <option value={3}>Miércoles</option>
+                <option value={4}>Jueves</option>
+                <option value={5}>Viernes</option>
+                <option value={6}>Sábado</option>
+                <option value={0}>Domingo</option>
+              </select>
+
+              {/* FECHAS */}
+              <div className="admin_torneo_form">
+                <label className="admin_torneo_label">Fecha inicio</label>
+                <input
+                  type="date"
+                  className="admin_elegir_usuario_select"
+                  value={fijaFechaInicio}
+                  onChange={(e) => {
+                    setFijaFechaInicio(e.target.value);
+                    setFijaFechaFin("");
+                  }}
+                />
+                <label className="admin_torneo_label">Fecha fin</label>
+                <input
+                  type="date"
+                  className="admin_elegir_usuario_select"
+                  value={fijaFechaFin}
+                  min={fijaFechaInicio}
+                  onChange={(e) => setFijaFechaFin(e.target.value)}
+                />
+              </div>
+
+              {/* AVISOS */}
+              {fijaAvisos.length > 0 && (
+                <div className="admin_fija_avisos">
+                  <p className="admin_fija_avisos_titulo">⚠️ Avisos</p>
+                  {fijaAvisos.map((aviso, i) => (
+                    <p key={i} className="admin_fija_aviso_item">
+                      {aviso}
+                    </p>
+                  ))}
+                </div>
+              )}
+
+              {fijaError && <p className="reserva_error grande">{fijaError}</p>}
+              {fijaSuccess && (
+                <p className="reserva_success grande">{fijaSuccess}</p>
+              )}
+            </div>
+
+            <div className="div_confirmar_reserva_botones">
+              <button
+                className="reserva_boton"
+                id="reserva_boton_cerrar"
+                onClick={() => setShowOverlayPistaFija(false)}
+              >
+                Atrás
+              </button>
+              <button
+                className="reserva_boton"
+                onClick={handleAsignarPistaFija}
+                disabled={
+                  fijaLoading ||
+                  !fijaUsuario ||
+                  !fijaPista ||
+                  !fijaFranja ||
+                  !fijaFechaInicio ||
+                  !fijaFechaFin ||
+                  fijaDiaSemana === ""
+                }
+              >
+                {fijaLoading ? "Procesando..." : "Asignar pista fija"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* CALENDARIO */}
       <section className="admin_section_reservar_pista">
         <div className="admin_div_calendario_pistas">
@@ -1874,7 +2205,22 @@ function AdminPista({ date }: { date: Date }) {
         >
           BLOQUEAR FIN DE SEMANA TORNEO
         </button>
-        <button className="admin_seccion_funciones_boton">
+        <button
+          className="admin_seccion_funciones_boton"
+          onClick={() => {
+            setFijaError("");
+            setFijaSuccess("");
+            setFijaAvisos([]);
+            setFijaFechaInicio("");
+            setFijaFechaFin("");
+            setFijaPista("");
+            setFijaFranja("");
+            setFijaUsuario(null);
+            setFijaBusqueda("");
+            setShowOverlayPistaFija(true);
+            setFijaDiaSemana("");
+          }}
+        >
           ASIGNAR PISTA FIJA
         </button>
       </section>

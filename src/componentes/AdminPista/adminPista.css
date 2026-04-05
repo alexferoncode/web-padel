@@ -446,6 +446,39 @@
 }
 
 
+/* Pista fija — avisos */
+
+.admin_fija_avisos {
+  width: 100%;
+  background: rgba(212, 160, 23, 0.15);
+  border: 1px solid #d4a017;
+  border-radius: 7px;
+  padding: 14px 18px;
+  margin-top: 8px;
+}
+
+.admin_fija_avisos_titulo {
+  font-size: 20px;
+  font-weight: 700;
+  color: #d4a017;
+  margin-bottom: 10px;
+  text-shadow: 0 0 5px black;
+}
+
+.admin_fija_aviso_item {
+  font-size: 17px;
+  font-weight: 600;
+  color: white;
+  text-shadow: 0 0 5px black;
+  padding: 4px 0;
+  border-bottom: 1px solid rgba(212, 160, 23, 0.2);
+}
+
+.admin_fija_aviso_item:last-child {
+  border-bottom: none;
+}
+
+
 /* ── RESPONSIVE ── */
 
 @media (max-width: 850px) {
