@@ -170,6 +170,19 @@ function AdminPista({ date }: { date: Date }) {
   const [recSuccess, setRecSuccess] = useState("");
   const [recLoading, setRecLoading] = useState(false);
 
+  // Overlay eliminar bloque recurrente
+  const [showOverlayEliminarRec, setShowOverlayEliminarRec] = useState(false);
+  const [elimRecPistas, setElimRecPistas] = useState<number[]>([]);
+  const [elimRecDias, setElimRecDias] = useState<number[]>([]);
+  const [elimRecFechaInicio, setElimRecFechaInicio] = useState("");
+  const [elimRecFechaFin, setElimRecFechaFin] = useState("");
+  const [elimRecFranjas, setElimRecFranjas] = useState<string[]>(
+    Array(9).fill(""),
+  );
+  const [elimRecError, setElimRecError] = useState("");
+  const [elimRecSuccess, setElimRecSuccess] = useState("");
+  const [elimRecLoading, setElimRecLoading] = useState(false);
+
   /* ----------------------------------------------------
       0) CARGAR PISTAS
   -----------------------------------------------------*/
@@ -1421,6 +1434,108 @@ function AdminPista({ date }: { date: Date }) {
   };
 
   /* ----------------------------------------------------
+    6.8) ELIMINAR BLOQUE RECURRENTE
+-----------------------------------------------------*/
+  const handleEliminarBloqueRecurrente = async () => {
+    setElimRecError("");
+    setElimRecSuccess("");
+
+    if (elimRecPistas.length === 0) {
+      setElimRecError("Debes seleccionar al menos una pista.");
+      return;
+    }
+    if (elimRecDias.length === 0) {
+      setElimRecError("Debes seleccionar al menos un día de la semana.");
+      return;
+    }
+    if (!elimRecFechaInicio || !elimRecFechaFin) {
+      setElimRecError("Debes seleccionar fecha de inicio y fin.");
+      return;
+    }
+    if (elimRecFechaFin < elimRecFechaInicio) {
+      setElimRecError("La fecha de fin debe ser posterior a la de inicio.");
+      return;
+    }
+
+    const franjasSeleccionadas = elimRecFranjas.filter((f) => f !== "");
+    if (franjasSeleccionadas.length === 0) {
+      setElimRecError("Debes seleccionar al menos una franja horaria.");
+      return;
+    }
+
+    setElimRecLoading(true);
+
+    // Generar fechas que coincidan con los días seleccionados
+    const fin = new Date(`${elimRecFechaFin}T12:00:00`);
+    const fechas: string[] = [];
+    const cursor = new Date(`${elimRecFechaInicio}T12:00:00`);
+    while (cursor <= fin) {
+      if (elimRecDias.includes(cursor.getDay())) {
+        fechas.push(cursor.toISOString().split("T")[0]);
+      }
+      cursor.setDate(cursor.getDate() + 1);
+    }
+
+    if (fechas.length === 0) {
+      setElimRecError(
+        "No hay fechas válidas con los días seleccionados en ese rango.",
+      );
+      setElimRecLoading(false);
+      return;
+    }
+
+    // Construir los timestamps exactos a eliminar
+    const iniciosAEliminar: string[] = [];
+    for (const fecha of fechas) {
+      for (const franja of franjasSeleccionadas) {
+        const [inicioHora] = franja.split(" - ");
+        iniciosAEliminar.push(`${fecha}T${inicioHora}:00`);
+      }
+    }
+
+    // Eliminar en lotes de 100 (el filtro .in() tiene límites)
+    let totalEliminadas = 0;
+    const LOTE = 100;
+
+    for (const pistaId of elimRecPistas) {
+      for (let i = 0; i < iniciosAEliminar.length; i += LOTE) {
+        const lote = iniciosAEliminar.slice(i, i + LOTE);
+        const { error, count } = await supabase
+          .from("reservas")
+          .delete({ count: "exact" })
+          .eq("pista_id", pistaId)
+          .eq("estado", "libre")
+          .in("inicio", lote);
+
+        if (error) {
+          setElimRecError(`Error al eliminar bloques: ${error.message}`);
+          setElimRecLoading(false);
+          return;
+        }
+        totalEliminadas += count ?? 0;
+      }
+    }
+
+    setElimRecSuccess(
+      `✅ ${totalEliminadas} bloque${totalEliminadas !== 1 ? "s" : ""} eliminado${totalEliminadas !== 1 ? "s" : ""} correctamente.`,
+    );
+    setElimRecLoading(false);
+
+    // Recargar calendario del día visible
+    const año = date.getFullYear();
+    const mes = (date.getMonth() + 1).toString().padStart(2, "0");
+    const dia = date.getDate().toString().padStart(2, "0");
+    const fechaStr = `${año}-${mes}-${dia}`;
+    supabase
+      .from("reservas")
+      .select("*")
+      .gte("inicio", `${fechaStr}T00:00:00`)
+      .lt("inicio", `${fechaStr}T23:59:59`)
+      .order("inicio", { ascending: true })
+      .then(({ data }) => setReservasSupabase(data || []));
+  };
+
+  /* ----------------------------------------------------
       7) RENDER
   -----------------------------------------------------*/
   if (pistasDB.length === 0) {
@@ -2421,6 +2536,148 @@ function AdminPista({ date }: { date: Date }) {
         </div>
       )}
 
+      {/* OVERLAY ELIMINAR BLOQUE RECURRENTE */}
+      {showOverlayEliminarRec && (
+        <div
+          className="reserva_overlay show"
+          onClick={() => setShowOverlayEliminarRec(false)}
+        >
+          <div
+            className="reservas_contenido"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="div_confirmar_reserva">
+              <h2>Eliminar bloque pista — Recurrente</h2>
+
+              {/* PISTAS */}
+              <div className="admin_cal_seccion">
+                <p className="admin_cal_titulo">Pistas</p>
+                <div className="admin_cal_checkboxes">
+                  {pistasDB.map((p) => (
+                    <label key={p.id} className="admin_cal_check_label">
+                      <input
+                        type="checkbox"
+                        className="admin_pagado_checkbox"
+                        checked={elimRecPistas.includes(p.id)}
+                        onChange={(e) => {
+                          setElimRecPistas((prev) =>
+                            e.target.checked
+                              ? [...prev, p.id]
+                              : prev.filter((id) => id !== p.id),
+                          );
+                        }}
+                      />
+                      <span>{p.nombre.replace(/_/g, " ")}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* DÍAS DE LA SEMANA */}
+              <div className="admin_cal_seccion">
+                <p className="admin_cal_titulo">Días de la semana</p>
+                <div className="admin_cal_checkboxes">
+                  {[
+                    { label: "Lunes", value: 1 },
+                    { label: "Martes", value: 2 },
+                    { label: "Miércoles", value: 3 },
+                    { label: "Jueves", value: 4 },
+                    { label: "Viernes", value: 5 },
+                    { label: "Sábado", value: 6 },
+                    { label: "Domingo", value: 0 },
+                  ].map((d) => (
+                    <label key={d.value} className="admin_cal_check_label">
+                      <input
+                        type="checkbox"
+                        className="admin_pagado_checkbox"
+                        checked={elimRecDias.includes(d.value)}
+                        onChange={(e) => {
+                          setElimRecDias((prev) =>
+                            e.target.checked
+                              ? [...prev, d.value]
+                              : prev.filter((v) => v !== d.value),
+                          );
+                        }}
+                      />
+                      <span>{d.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* FECHAS */}
+              <div className="admin_torneo_form">
+                <label className="admin_torneo_label">Fecha inicio</label>
+                <input
+                  type="date"
+                  className="admin_elegir_usuario_select"
+                  value={elimRecFechaInicio}
+                  onChange={(e) => setElimRecFechaInicio(e.target.value)}
+                />
+                <label className="admin_torneo_label">Fecha fin</label>
+                <input
+                  type="date"
+                  className="admin_elegir_usuario_select"
+                  value={elimRecFechaFin}
+                  min={elimRecFechaInicio}
+                  onChange={(e) => setElimRecFechaFin(e.target.value)}
+                />
+              </div>
+
+              {/* FRANJAS */}
+              <div className="admin_cal_seccion">
+                <p className="admin_cal_titulo">Franjas horarias a eliminar</p>
+                <div className="admin_cal_franjas">
+                  {elimRecFranjas.map((franja, i) => (
+                    <select
+                      key={i}
+                      className="admin_cal_franja_select"
+                      value={franja}
+                      onChange={(e) => {
+                        const nuevas = [...elimRecFranjas];
+                        nuevas[i] = e.target.value;
+                        setElimRecFranjas(nuevas);
+                      }}
+                    >
+                      <option value="">— vacía —</option>
+                      {franjasHorarias.map((f, j) => (
+                        <option key={j} value={`${f.inicio} - ${f.fin}`}>
+                          {f.inicio} - {f.fin}
+                        </option>
+                      ))}
+                    </select>
+                  ))}
+                </div>
+              </div>
+
+              {elimRecError && (
+                <p className="reserva_error grande">{elimRecError}</p>
+              )}
+              {elimRecSuccess && (
+                <p className="reserva_success grande">{elimRecSuccess}</p>
+              )}
+            </div>
+
+            <div className="div_confirmar_reserva_botones">
+              <button
+                className="reserva_boton"
+                id="reserva_boton_cerrar"
+                onClick={() => setShowOverlayEliminarRec(false)}
+              >
+                Atrás
+              </button>
+              <button
+                className="reserva_boton"
+                onClick={handleEliminarBloqueRecurrente}
+                disabled={elimRecLoading}
+              >
+                {elimRecLoading ? "Eliminando..." : "Eliminar bloques"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* CALENDARIO */}
       <section className="admin_section_reservar_pista">
         <div className="admin_div_calendario_pistas">
@@ -2544,8 +2801,20 @@ function AdminPista({ date }: { date: Date }) {
         >
           CREAR BLOQUE PISTA - RECURRENTE
         </button>
-        <button className="admin_seccion_funciones_boton">
-          MODIFICAR HORAS PISTA
+        <button
+          className="admin_seccion_funciones_boton"
+          onClick={() => {
+            setElimRecPistas([]);
+            setElimRecDias([]);
+            setElimRecFechaInicio("");
+            setElimRecFechaFin("");
+            setElimRecFranjas(Array(9).fill(""));
+            setElimRecError("");
+            setElimRecSuccess("");
+            setShowOverlayEliminarRec(true);
+          }}
+        >
+          ELIMINAR BLOQUE PISTA - RECURRENTE
         </button>
         <button
           className="admin_seccion_funciones_boton"
