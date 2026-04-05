@@ -159,6 +159,17 @@ function AdminPista({ date }: { date: Date }) {
   const [fijaLoading, setFijaLoading] = useState(false);
   const [fijaDiaSemana, setFijaDiaSemana] = useState<number | "">("");
 
+  // Overlay crear bloque recurrente
+  const [showOverlayRecurrente, setShowOverlayRecurrente] = useState(false);
+  const [recPistas, setRecPistas] = useState<number[]>([]);
+  const [recDias, setRecDias] = useState<number[]>([]);
+  const [recFechaInicio, setRecFechaInicio] = useState("");
+  const [recFechaFin, setRecFechaFin] = useState("");
+  const [recFranjas, setRecFranjas] = useState<string[]>(Array(9).fill(""));
+  const [recError, setRecError] = useState("");
+  const [recSuccess, setRecSuccess] = useState("");
+  const [recLoading, setRecLoading] = useState(false);
+
   /* ----------------------------------------------------
       0) CARGAR PISTAS
   -----------------------------------------------------*/
@@ -1218,6 +1229,198 @@ function AdminPista({ date }: { date: Date }) {
   };
 
   /* ----------------------------------------------------
+    6.7) CREAR BLOQUE RECURRENTE
+-----------------------------------------------------*/
+  const handleCrearBloqueRecurrente = async () => {
+    setRecError("");
+    setRecSuccess("");
+
+    if (recPistas.length === 0) {
+      setRecError("Debes seleccionar al menos una pista.");
+      return;
+    }
+    if (recDias.length === 0) {
+      setRecError("Debes seleccionar al menos un día de la semana.");
+      return;
+    }
+    if (!recFechaInicio || !recFechaFin) {
+      setRecError("Debes seleccionar fecha de inicio y fin.");
+      return;
+    }
+    if (recFechaFin < recFechaInicio) {
+      setRecError("La fecha de fin debe ser posterior a la de inicio.");
+      return;
+    }
+
+    const inicio = new Date(`${recFechaInicio}T12:00:00`);
+    const fin = new Date(`${recFechaFin}T12:00:00`);
+    const diffMeses =
+      (fin.getFullYear() - inicio.getFullYear()) * 12 +
+      (fin.getMonth() - inicio.getMonth());
+    if (diffMeses > 12) {
+      setRecError("El rango máximo es de 12 meses.");
+      return;
+    }
+
+    const franjasSeleccionadas = recFranjas.filter((f) => f !== "");
+    if (franjasSeleccionadas.length === 0) {
+      setRecError("Debes seleccionar al menos una franja horaria.");
+      return;
+    }
+
+    // Comprobar solapamientos entre franjas seleccionadas
+    const franjasParseadas = franjasSeleccionadas.map((f) => {
+      const [ini, finH] = f.split(" - ");
+      const [ih, im] = ini.split(":").map(Number);
+      const [fh, fm] = finH.split(":").map(Number);
+      return { ini: ih * 60 + im, fin: fh * 60 + fm, label: f };
+    });
+
+    for (let i = 0; i < franjasParseadas.length; i++) {
+      for (let j = i + 1; j < franjasParseadas.length; j++) {
+        const a = franjasParseadas[i];
+        const b = franjasParseadas[j];
+        if (a.ini < b.fin && b.ini < a.fin) {
+          setRecError(
+            `Las franjas "${a.label}" y "${b.label}" se solapan. Corrígelas antes de continuar.`,
+          );
+          return;
+        }
+      }
+    }
+
+    setRecLoading(true);
+
+    // Generar fechas que coincidan con los días seleccionados
+    const fechas: string[] = [];
+    const cursor = new Date(`${recFechaInicio}T12:00:00`);
+    while (cursor <= fin) {
+      if (recDias.includes(cursor.getDay())) {
+        fechas.push(cursor.toISOString().split("T")[0]);
+      }
+      cursor.setDate(cursor.getDate() + 1);
+    }
+
+    if (fechas.length === 0) {
+      setRecError(
+        "No hay fechas válidas con los días seleccionados en ese rango.",
+      );
+      setRecLoading(false);
+      return;
+    }
+
+    // Buscar reservas existentes para detectar solapamientos
+    const { data: reservasExistentes, error: errorConsulta } = await supabase
+      .from("reservas")
+      .select("pista_id, inicio, fin")
+      .in("pista_id", recPistas)
+      .gte("inicio", `${recFechaInicio}T00:00:00`)
+      .lte("inicio", `${recFechaFin}T23:59:59`);
+
+    if (errorConsulta) {
+      setRecError("Error al consultar reservas existentes.");
+      setRecLoading(false);
+      return;
+    }
+
+    // Set de ocupados para lookup rápido: "pistaId|fecha|horaInicio"
+    const ocupados = new Set<string>();
+    for (const r of reservasExistentes || []) {
+      const fechaR = new Date(r.inicio).toISOString().split("T")[0];
+      const horaR = new Date(r.inicio).toTimeString().slice(0, 5);
+      ocupados.add(`${r.pista_id}|${fechaR}|${horaR}`);
+    }
+
+    // Generar inserts evitando solapamientos
+    const inserts: {
+      pista_id: number;
+      estado: string;
+      inicio: string;
+      fin: string;
+      user_id: null;
+    }[] = [];
+
+    for (const fecha of fechas) {
+      for (const pistaId of recPistas) {
+        const reservasEstaPista = (reservasExistentes || []).filter((r) => {
+          const fechaR = new Date(r.inicio).toISOString().split("T")[0];
+          return r.pista_id === pistaId && fechaR === fecha;
+        });
+
+        for (const franja of franjasSeleccionadas) {
+          const [inicioHora, finHora] = franja.split(" - ");
+          const [ih, im] = inicioHora.split(":").map(Number);
+          const [fh, fm] = finHora.split(":").map(Number);
+          const franjaIni = ih * 60 + im;
+          const franjaFin = fh * 60 + fm;
+
+          const solapa = reservasEstaPista.some((r) => {
+            const horaInicioR = new Date(r.inicio).toTimeString().slice(0, 5);
+            const horaFinR = new Date(r.fin).toTimeString().slice(0, 5);
+            const [rih, rim] = horaInicioR.split(":").map(Number);
+            const [rfh, rfm] = horaFinR.split(":").map(Number);
+            const resIni = rih * 60 + rim;
+            const resFin = rfh * 60 + rfm;
+            return franjaIni < resFin && resIni < franjaFin;
+          });
+
+          if (!solapa) {
+            inserts.push({
+              pista_id: pistaId,
+              estado: "libre",
+              inicio: `${fecha}T${inicioHora}:00`,
+              fin: `${fecha}T${finHora}:00`,
+              user_id: null,
+            });
+          }
+        }
+      }
+    }
+
+    if (inserts.length === 0) {
+      setRecError(
+        "No hay bloques nuevos que crear. Todos los horarios ya están ocupados.",
+      );
+      setRecLoading(false);
+      return;
+    }
+
+    // Insertar en lotes de 500
+    const LOTE = 500;
+    for (let i = 0; i < inserts.length; i += LOTE) {
+      const lote = inserts.slice(i, i + LOTE);
+      const { error: errorInsert } = await supabase
+        .from("reservas")
+        .insert(lote);
+      if (errorInsert) {
+        setRecError(
+          `Error al insertar bloques (lote ${Math.floor(i / LOTE) + 1}).`,
+        );
+        setRecLoading(false);
+        return;
+      }
+    }
+
+    setRecSuccess(
+      `✅ ${inserts.length} bloque${inserts.length !== 1 ? "s" : ""} creado${inserts.length !== 1 ? "s" : ""} correctamente.`,
+    );
+    setRecLoading(false);
+
+    // Recargar calendario del día visible
+    const año = date.getFullYear();
+    const mes = (date.getMonth() + 1).toString().padStart(2, "0");
+    const dia = date.getDate().toString().padStart(2, "0");
+    const fechaStr = `${año}-${mes}-${dia}`;
+    supabase
+      .from("reservas")
+      .select("*")
+      .gte("inicio", `${fechaStr}T00:00:00`)
+      .lt("inicio", `${fechaStr}T23:59:59`)
+      .order("inicio", { ascending: true })
+      .then(({ data }) => setReservasSupabase(data || []));
+  };
+
+  /* ----------------------------------------------------
       7) RENDER
   -----------------------------------------------------*/
   if (pistasDB.length === 0) {
@@ -2077,6 +2280,147 @@ function AdminPista({ date }: { date: Date }) {
         </div>
       )}
 
+      {/* OVERLAY CREAR BLOQUE RECURRENTE */}
+      {showOverlayRecurrente && (
+        <div
+          className="reserva_overlay show"
+          onClick={() => setShowOverlayRecurrente(false)}
+        >
+          <div
+            className="reservas_contenido"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="div_confirmar_reserva">
+              <h2>Crear bloque pista — Recurrente</h2>
+
+              {/* PISTAS */}
+              <div className="admin_cal_seccion">
+                <p className="admin_cal_titulo">Pistas</p>
+                <div className="admin_cal_checkboxes">
+                  {pistasDB.map((p) => (
+                    <label key={p.id} className="admin_cal_check_label">
+                      <input
+                        type="checkbox"
+                        className="admin_pagado_checkbox"
+                        checked={recPistas.includes(p.id)}
+                        onChange={(e) => {
+                          setRecPistas((prev) =>
+                            e.target.checked
+                              ? [...prev, p.id]
+                              : prev.filter((id) => id !== p.id),
+                          );
+                        }}
+                      />
+                      <span>{p.nombre.replace(/_/g, " ")}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* DÍAS DE LA SEMANA */}
+              <div className="admin_cal_seccion">
+                <p className="admin_cal_titulo">Días de la semana</p>
+                <div className="admin_cal_checkboxes">
+                  {[
+                    { label: "Lunes", value: 1 },
+                    { label: "Martes", value: 2 },
+                    { label: "Miércoles", value: 3 },
+                    { label: "Jueves", value: 4 },
+                    { label: "Viernes", value: 5 },
+                    { label: "Sábado", value: 6 },
+                    { label: "Domingo", value: 0 },
+                  ].map((d) => (
+                    <label key={d.value} className="admin_cal_check_label">
+                      <input
+                        type="checkbox"
+                        className="admin_pagado_checkbox"
+                        checked={recDias.includes(d.value)}
+                        onChange={(e) => {
+                          setRecDias((prev) =>
+                            e.target.checked
+                              ? [...prev, d.value]
+                              : prev.filter((v) => v !== d.value),
+                          );
+                        }}
+                      />
+                      <span>{d.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* FECHAS */}
+              <div className="admin_torneo_form">
+                <label className="admin_torneo_label">Fecha inicio</label>
+                <input
+                  type="date"
+                  className="admin_elegir_usuario_select"
+                  value={recFechaInicio}
+                  onChange={(e) => setRecFechaInicio(e.target.value)}
+                />
+                <label className="admin_torneo_label">Fecha fin</label>
+                <input
+                  type="date"
+                  className="admin_elegir_usuario_select"
+                  value={recFechaFin}
+                  min={recFechaInicio}
+                  onChange={(e) => setRecFechaFin(e.target.value)}
+                />
+              </div>
+
+              {/* FRANJAS */}
+              <div className="admin_cal_seccion">
+                <p className="admin_cal_titulo">Franjas horarias</p>
+                <div className="admin_cal_franjas">
+                  {" "}
+                  {recFranjas.map((franja, i) => (
+                    <select
+                      key={i}
+                      className="admin_cal_franja_select"
+                      value={franja}
+                      onChange={(e) => {
+                        const nuevas = [...recFranjas];
+                        nuevas[i] = e.target.value;
+                        setRecFranjas(nuevas);
+                      }}
+                    >
+                      <option value="">— vacía —</option>
+                      {franjasHorarias.map((f, j) => (
+                        <option key={j} value={`${f.inicio} - ${f.fin}`}>
+                          {f.inicio} - {f.fin}
+                        </option>
+                      ))}
+                    </select>
+                  ))}
+                </div>{" "}
+              </div>
+
+              {recError && <p className="reserva_error grande">{recError}</p>}
+              {recSuccess && (
+                <p className="reserva_success grande">{recSuccess}</p>
+              )}
+            </div>
+
+            <div className="div_confirmar_reserva_botones">
+              <button
+                className="reserva_boton"
+                id="reserva_boton_cerrar"
+                onClick={() => setShowOverlayRecurrente(false)}
+              >
+                Atrás
+              </button>
+              <button
+                className="reserva_boton"
+                onClick={handleCrearBloqueRecurrente}
+                disabled={recLoading}
+              >
+                {recLoading ? "Generando..." : "Crear bloques"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* CALENDARIO */}
       <section className="admin_section_reservar_pista">
         <div className="admin_div_calendario_pistas">
@@ -2185,7 +2529,19 @@ function AdminPista({ date }: { date: Date }) {
         >
           RESERVAR PISTA CLASE
         </button>
-        <button className="admin_seccion_funciones_boton">
+        <button
+          className="admin_seccion_funciones_boton"
+          onClick={() => {
+            setRecPistas([]);
+            setRecDias([]);
+            setRecFechaInicio("");
+            setRecFechaFin("");
+            setRecFranjas(Array(9).fill(""));
+            setRecError("");
+            setRecSuccess("");
+            setShowOverlayRecurrente(true);
+          }}
+        >
           CREAR BLOQUE PISTA - RECURRENTE
         </button>
         <button className="admin_seccion_funciones_boton">

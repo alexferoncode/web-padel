@@ -479,6 +479,70 @@
 }
 
 
+/* Crear bloque recurrente */
+
+.admin_cal_seccion {
+  width: 100%;
+  margin-top: 8px;
+}
+
+.admin_torneo_form{
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+}
+
+.admin_cal_titulo {
+  font-size: 22px;
+  font-weight: 600;
+  color: white;
+  text-shadow: 0 0 5px black;
+  margin-bottom: 12px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.4);
+  text-align: center;
+}
+
+.admin_cal_checkboxes {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px 24px;
+}
+
+.admin_cal_check_label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 20px;
+  font-weight: 600;
+  color: white;
+  text-shadow: 0 0 5px black;
+  cursor: pointer;
+  width: 140px;
+}
+
+.admin_cal_franjas {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  /* margin-top: 4px; */
+}
+
+.admin_cal_franja_select {
+  width: 800px;
+  font-size: 18px;
+  padding: 15px;
+  box-sizing: border-box;
+}
+
+.admin_cal_franjas .admin_cal_franja_select {
+  margin: 0;
+}
+
+
 /* ── RESPONSIVE ── */
 
 @media (max-width: 850px) {
@@ -560,6 +624,19 @@
   .admin_torneo_input_hora {
     width: 100%;
     box-sizing: border-box;
+  }
+
+  .admin_cal_franjas {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .admin_cal_franja_select {
+    width: 90vw;
+  }
+
+  .admin_cal_check_label {
+    font-size: 17px;
   }
 
 }
