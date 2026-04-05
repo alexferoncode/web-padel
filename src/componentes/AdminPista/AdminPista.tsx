@@ -183,6 +183,38 @@ function AdminPista({ date }: { date: Date }) {
   const [elimRecSuccess, setElimRecSuccess] = useState("");
   const [elimRecLoading, setElimRecLoading] = useState(false);
 
+  // Overlay crear clase recurrente
+  const [showOverlayCrearClaseRec, setShowOverlayCrearClaseRec] =
+    useState(false);
+  const [claseRecPista, setClaseRecPista] = useState<number | "">("");
+  const [claseRecDias, setClaseRecDias] = useState<number[]>([]);
+  const [claseRecFechaInicio, setClaseRecFechaInicio] = useState("");
+  const [claseRecFechaFin, setClaseRecFechaFin] = useState("");
+  const [claseRecFranjas, setClaseRecFranjas] = useState<string[]>(
+    Array(9).fill(""),
+  );
+  const [claseRecMonitor, setClaseRecMonitor] = useState<string | "">("");
+  const [claseRecError, setClaseRecError] = useState("");
+  const [claseRecSuccess, setClaseRecSuccess] = useState("");
+  const [claseRecLoading, setClaseRecLoading] = useState(false);
+
+  // Overlay eliminar clase recurrente
+  const [showOverlayEliminarClaseRec, setShowOverlayEliminarClaseRec] =
+    useState(false);
+  const [elimClaseRecPista, setElimClaseRecPista] = useState<number | "">("");
+  const [elimClaseRecDias, setElimClaseRecDias] = useState<number[]>([]);
+  const [elimClaseRecFechaInicio, setElimClaseRecFechaInicio] = useState("");
+  const [elimClaseRecFechaFin, setElimClaseRecFechaFin] = useState("");
+  const [elimClaseRecFranjas, setElimClaseRecFranjas] = useState<string[]>(
+    Array(9).fill(""),
+  );
+  const [elimClaseRecError, setElimClaseRecError] = useState("");
+  const [elimClaseRecSuccess, setElimClaseRecSuccess] = useState("");
+  const [elimClaseRecLoading, setElimClaseRecLoading] = useState(false);
+  const [elimClaseRecMonitor, setElimClaseRecMonitor] = useState<string | "">(
+    "",
+  );
+
   /* ----------------------------------------------------
       0) CARGAR PISTAS
   -----------------------------------------------------*/
@@ -439,7 +471,19 @@ function AdminPista({ date }: { date: Date }) {
           .select("id, first_name, last_name, email, tlf, monitor")
           .eq("id", bloque.user_id)
           .single();
-        if (!error && data) console.log("Perfil cargado al vuelo:", data);
+        if (!error && data) {
+          setPerfiles((prev) => [
+            ...prev,
+            {
+              id: data.id,
+              first_name: data.first_name,
+              last_name: data.last_name,
+              email: data.email,
+              tlf: data.tlf,
+              monitor: Boolean(data.monitor),
+            },
+          ]);
+        }
       } catch (err) {
         console.error("Error inesperado al cargar perfil:", err);
       }
@@ -1536,6 +1580,285 @@ function AdminPista({ date }: { date: Date }) {
   };
 
   /* ----------------------------------------------------
+    6.9) CREAR CLASE RECURRENTE
+-----------------------------------------------------*/
+  const handleCrearClaseRecurrente = async () => {
+    setClaseRecError("");
+    setClaseRecSuccess("");
+
+    if (!claseRecPista) {
+      setClaseRecError("Debes seleccionar una pista.");
+      return;
+    }
+    if (claseRecDias.length === 0) {
+      setClaseRecError("Debes seleccionar al menos un día de la semana.");
+      return;
+    }
+    if (!claseRecFechaInicio || !claseRecFechaFin) {
+      setClaseRecError("Debes seleccionar fecha de inicio y fin.");
+      return;
+    }
+    if (claseRecFechaFin < claseRecFechaInicio) {
+      setClaseRecError("La fecha de fin debe ser posterior a la de inicio.");
+      return;
+    }
+    if (!claseRecMonitor) {
+      setClaseRecError("Debes seleccionar un monitor.");
+      return;
+    }
+
+    const franjasSeleccionadas = claseRecFranjas.filter((f) => f !== "");
+    if (franjasSeleccionadas.length === 0) {
+      setClaseRecError("Debes seleccionar al menos una franja horaria.");
+      return;
+    }
+
+    // Comprobar solapamientos entre franjas seleccionadas
+    const franjasParseadas = franjasSeleccionadas.map((f) => {
+      const [ini, finH] = f.split(" - ");
+      const [ih, im] = ini.split(":").map(Number);
+      const [fh, fm] = finH.split(":").map(Number);
+      return { ini: ih * 60 + im, fin: fh * 60 + fm, label: f };
+    });
+
+    for (let i = 0; i < franjasParseadas.length; i++) {
+      for (let j = i + 1; j < franjasParseadas.length; j++) {
+        const a = franjasParseadas[i];
+        const b = franjasParseadas[j];
+        if (a.ini < b.fin && b.ini < a.fin) {
+          setClaseRecError(
+            `Las franjas "${a.label}" y "${b.label}" se solapan. Corrígelas antes de continuar.`,
+          );
+          return;
+        }
+      }
+    }
+
+    setClaseRecLoading(true);
+
+    // Generar fechas que coincidan con los días seleccionados
+    const fin = new Date(`${claseRecFechaFin}T12:00:00`);
+    const fechas: string[] = [];
+    const cursor = new Date(`${claseRecFechaInicio}T12:00:00`);
+    while (cursor <= fin) {
+      if (claseRecDias.includes(cursor.getDay())) {
+        fechas.push(cursor.toISOString().split("T")[0]);
+      }
+      cursor.setDate(cursor.getDate() + 1);
+    }
+
+    if (fechas.length === 0) {
+      setClaseRecError(
+        "No hay fechas válidas con los días seleccionados en ese rango.",
+      );
+      setClaseRecLoading(false);
+      return;
+    }
+
+    // Buscar reservas existentes para detectar solapamientos
+    const { data: reservasExistentes, error: errorConsulta } = await supabase
+      .from("reservas")
+      .select("pista_id, inicio, fin")
+      .eq("pista_id", claseRecPista)
+      .gte("inicio", `${claseRecFechaInicio}T00:00:00`)
+      .lte("inicio", `${claseRecFechaFin}T23:59:59`);
+
+    if (errorConsulta) {
+      setClaseRecError("Error al consultar reservas existentes.");
+      setClaseRecLoading(false);
+      return;
+    }
+
+    // Generar inserts evitando solapamientos
+    const inserts: {
+      pista_id: number;
+      estado: string;
+      inicio: string;
+      fin: string;
+      user_id: string;
+    }[] = [];
+
+    for (const fecha of fechas) {
+      const reservasEstaFecha = (reservasExistentes || []).filter((r) => {
+        const fechaR = new Date(r.inicio).toISOString().split("T")[0];
+        return fechaR === fecha;
+      });
+
+      for (const franja of franjasSeleccionadas) {
+        const [inicioHora, finHora] = franja.split(" - ");
+        const [ih, im] = inicioHora.split(":").map(Number);
+        const [fh, fm] = finHora.split(":").map(Number);
+        const franjaIni = ih * 60 + im;
+        const franjaFin = fh * 60 + fm;
+
+        const solapa = reservasEstaFecha.some((r) => {
+          const horaInicioR = new Date(r.inicio).toTimeString().slice(0, 5);
+          const horaFinR = new Date(r.fin).toTimeString().slice(0, 5);
+          const [rih, rim] = horaInicioR.split(":").map(Number);
+          const [rfh, rfm] = horaFinR.split(":").map(Number);
+          const resIni = rih * 60 + rim;
+          const resFin = rfh * 60 + rfm;
+          return franjaIni < resFin && resIni < franjaFin;
+        });
+
+        if (!solapa) {
+          inserts.push({
+            pista_id: claseRecPista as number,
+            estado: "clase",
+            inicio: `${fecha}T${inicioHora}:00`,
+            fin: `${fecha}T${finHora}:00`,
+            user_id: claseRecMonitor as string,
+          });
+        }
+      }
+    }
+
+    if (inserts.length === 0) {
+      setClaseRecError(
+        "No hay clases nuevas que crear. Todos los horarios ya están ocupados.",
+      );
+      setClaseRecLoading(false);
+      return;
+    }
+
+    const LOTE = 500;
+    for (let i = 0; i < inserts.length; i += LOTE) {
+      const lote = inserts.slice(i, i + LOTE);
+      const { error: errorInsert } = await supabase
+        .from("reservas")
+        .insert(lote);
+      if (errorInsert) {
+        setClaseRecError(`Error al insertar clases: ${errorInsert.message}`);
+        setClaseRecLoading(false);
+        return;
+      }
+    }
+
+    setClaseRecSuccess(
+      `✅ ${inserts.length} clase${inserts.length !== 1 ? "s" : ""} creada${inserts.length !== 1 ? "s" : ""} correctamente.`,
+    );
+    setClaseRecLoading(false);
+
+    const año = date.getFullYear();
+    const mes = (date.getMonth() + 1).toString().padStart(2, "0");
+    const dia = date.getDate().toString().padStart(2, "0");
+    const fechaStr = `${año}-${mes}-${dia}`;
+    supabase
+      .from("reservas")
+      .select("*")
+      .gte("inicio", `${fechaStr}T00:00:00`)
+      .lt("inicio", `${fechaStr}T23:59:59`)
+      .order("inicio", { ascending: true })
+      .then(({ data }) => setReservasSupabase(data || []));
+  };
+
+  /* ----------------------------------------------------
+    6.10) ELIMINAR CLASE RECURRENTE
+-----------------------------------------------------*/
+  const handleEliminarClaseRecurrente = async () => {
+    setElimClaseRecError("");
+    setElimClaseRecSuccess("");
+
+    if (!elimClaseRecPista) {
+      setElimClaseRecError("Debes seleccionar una pista.");
+      return;
+    }
+    if (elimClaseRecDias.length === 0) {
+      setElimClaseRecError("Debes seleccionar al menos un día de la semana.");
+      return;
+    }
+    if (!elimClaseRecFechaInicio || !elimClaseRecFechaFin) {
+      setElimClaseRecError("Debes seleccionar fecha de inicio y fin.");
+      return;
+    }
+    if (elimClaseRecFechaFin < elimClaseRecFechaInicio) {
+      setElimClaseRecError(
+        "La fecha de fin debe ser posterior a la de inicio.",
+      );
+      return;
+    }
+
+    const franjasSeleccionadas = elimClaseRecFranjas.filter((f) => f !== "");
+    if (franjasSeleccionadas.length === 0) {
+      setElimClaseRecError("Debes seleccionar al menos una franja horaria.");
+      return;
+    }
+    if (!elimClaseRecMonitor) {
+      setElimClaseRecError("Debes seleccionar un monitor.");
+      return;
+    }
+
+    setElimClaseRecLoading(true);
+
+    // Generar fechas que coincidan con los días seleccionados
+    const fin = new Date(`${elimClaseRecFechaFin}T12:00:00`);
+    const fechas: string[] = [];
+    const cursor = new Date(`${elimClaseRecFechaInicio}T12:00:00`);
+    while (cursor <= fin) {
+      if (elimClaseRecDias.includes(cursor.getDay())) {
+        fechas.push(cursor.toISOString().split("T")[0]);
+      }
+      cursor.setDate(cursor.getDate() + 1);
+    }
+
+    if (fechas.length === 0) {
+      setElimClaseRecError(
+        "No hay fechas válidas con los días seleccionados en ese rango.",
+      );
+      setElimClaseRecLoading(false);
+      return;
+    }
+
+    // Construir los timestamps exactos a eliminar
+    const iniciosAEliminar: string[] = [];
+    for (const fecha of fechas) {
+      for (const franja of franjasSeleccionadas) {
+        const [inicioHora] = franja.split(" - ");
+        iniciosAEliminar.push(`${fecha}T${inicioHora}:00`);
+      }
+    }
+
+    // Eliminar en lotes de 100
+    let totalEliminadas = 0;
+    const LOTE = 100;
+
+    for (let i = 0; i < iniciosAEliminar.length; i += LOTE) {
+      const lote = iniciosAEliminar.slice(i, i + LOTE);
+      const { error, count } = await supabase
+        .from("reservas")
+        .delete({ count: "exact" })
+        .eq("pista_id", elimClaseRecPista)
+        .eq("estado", "clase")
+        .eq("user_id", elimClaseRecMonitor)
+        .in("inicio", lote);
+
+      if (error) {
+        setElimClaseRecError(`Error al eliminar clases: ${error.message}`);
+        setElimClaseRecLoading(false);
+        return;
+      }
+      totalEliminadas += count ?? 0;
+    }
+
+    setElimClaseRecSuccess(
+      `✅ ${totalEliminadas} clase${totalEliminadas !== 1 ? "s" : ""} eliminada${totalEliminadas !== 1 ? "s" : ""} correctamente.`,
+    );
+    setElimClaseRecLoading(false);
+
+    const año = date.getFullYear();
+    const mes = (date.getMonth() + 1).toString().padStart(2, "0");
+    const dia = date.getDate().toString().padStart(2, "0");
+    const fechaStr = `${año}-${mes}-${dia}`;
+    supabase
+      .from("reservas")
+      .select("*")
+      .gte("inicio", `${fechaStr}T00:00:00`)
+      .lt("inicio", `${fechaStr}T23:59:59`)
+      .order("inicio", { ascending: true })
+      .then(({ data }) => setReservasSupabase(data || []));
+  };
+
+  /* ----------------------------------------------------
       7) RENDER
   -----------------------------------------------------*/
   if (pistasDB.length === 0) {
@@ -1560,19 +1883,34 @@ function AdminPista({ date }: { date: Date }) {
 
               {bloqueSeleccionado.user_id && (
                 <div>
-                  <h2>
-                    {
-                      perfiles.find((p) => p.id === bloqueSeleccionado.user_id)
-                        ?.first_name
-                    }{" "}
-                    {
-                      perfiles.find((p) => p.id === bloqueSeleccionado.user_id)
-                        ?.last_name
-                    }
-                  </h2>
-
-                  {bloqueSeleccionado.estado !== "clase" && (
+                  {bloqueSeleccionado.estado === "clase" ? (
+                    <h2>
+                      Monitor:{" "}
+                      {
+                        perfiles.find(
+                          (p) => p.id === bloqueSeleccionado.user_id,
+                        )?.first_name
+                      }{" "}
+                      {
+                        perfiles.find(
+                          (p) => p.id === bloqueSeleccionado.user_id,
+                        )?.last_name
+                      }
+                    </h2>
+                  ) : (
                     <>
+                      <h2>
+                        {
+                          perfiles.find(
+                            (p) => p.id === bloqueSeleccionado.user_id,
+                          )?.first_name
+                        }{" "}
+                        {
+                          perfiles.find(
+                            (p) => p.id === bloqueSeleccionado.user_id,
+                          )?.last_name
+                        }
+                      </h2>
                       <h2>
                         {
                           perfiles.find(
@@ -2678,6 +3016,312 @@ function AdminPista({ date }: { date: Date }) {
         </div>
       )}
 
+      {/* OVERLAY CREAR CLASE RECURRENTE */}
+      {showOverlayCrearClaseRec && (
+        <div
+          className="reserva_overlay show"
+          onClick={() => setShowOverlayCrearClaseRec(false)}
+        >
+          <div
+            className="reservas_contenido"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="div_confirmar_reserva">
+              <h2>Reservar clase — Recurrente</h2>
+
+              {/* PISTA */}
+              <div className="admin_cal_seccion">
+                <p className="admin_cal_titulo">Pista</p>
+                <select
+                  className="admin_elegir_usuario_select"
+                  value={claseRecPista}
+                  onChange={(e) => setClaseRecPista(Number(e.target.value))}
+                >
+                  <option value="">Selecciona pista</option>
+                  {pistasDB.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.nombre.replace(/_/g, " ")}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* MONITOR */}
+              <div className="admin_cal_seccion">
+                <p className="admin_cal_titulo">Monitor</p>
+                <select
+                  className="admin_elegir_usuario_select"
+                  value={claseRecMonitor}
+                  onChange={(e) => setClaseRecMonitor(e.target.value)}
+                >
+                  <option value="">Selecciona monitor</option>
+                  {monitores.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.first_name} {m.last_name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* DÍAS DE LA SEMANA */}
+              <div className="admin_cal_seccion">
+                <p className="admin_cal_titulo">Días de la semana</p>
+                <div className="admin_cal_checkboxes">
+                  {[
+                    { label: "Lunes", value: 1 },
+                    { label: "Martes", value: 2 },
+                    { label: "Miércoles", value: 3 },
+                    { label: "Jueves", value: 4 },
+                    { label: "Viernes", value: 5 },
+                    { label: "Sábado", value: 6 },
+                    { label: "Domingo", value: 0 },
+                  ].map((d) => (
+                    <label key={d.value} className="admin_cal_check_label">
+                      <input
+                        type="checkbox"
+                        className="admin_pagado_checkbox"
+                        checked={claseRecDias.includes(d.value)}
+                        onChange={(e) => {
+                          setClaseRecDias((prev) =>
+                            e.target.checked
+                              ? [...prev, d.value]
+                              : prev.filter((v) => v !== d.value),
+                          );
+                        }}
+                      />
+                      <span>{d.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* FECHAS */}
+              <div className="admin_torneo_form">
+                <label className="admin_torneo_label">Fecha inicio</label>
+                <input
+                  type="date"
+                  className="admin_elegir_usuario_select"
+                  value={claseRecFechaInicio}
+                  onChange={(e) => setClaseRecFechaInicio(e.target.value)}
+                />
+                <label className="admin_torneo_label">Fecha fin</label>
+                <input
+                  type="date"
+                  className="admin_elegir_usuario_select"
+                  value={claseRecFechaFin}
+                  min={claseRecFechaInicio}
+                  onChange={(e) => setClaseRecFechaFin(e.target.value)}
+                />
+              </div>
+
+              {/* FRANJAS */}
+              <div className="admin_cal_seccion">
+                <p className="admin_cal_titulo">Franjas horarias (1h)</p>
+                <div className="admin_cal_franjas">
+                  {claseRecFranjas.map((franja, i) => (
+                    <select
+                      key={i}
+                      className="admin_cal_franja_select"
+                      value={franja}
+                      onChange={(e) => {
+                        const nuevas = [...claseRecFranjas];
+                        nuevas[i] = e.target.value;
+                        setClaseRecFranjas(nuevas);
+                      }}
+                    >
+                      <option value="">— vacía —</option>
+                      {franjasHorariasClase.map((f, j) => (
+                        <option key={j} value={`${f.inicio} - ${f.fin}`}>
+                          {f.inicio} - {f.fin}
+                        </option>
+                      ))}
+                    </select>
+                  ))}
+                </div>
+              </div>
+
+              {claseRecError && (
+                <p className="reserva_error grande">{claseRecError}</p>
+              )}
+              {claseRecSuccess && (
+                <p className="reserva_success grande">{claseRecSuccess}</p>
+              )}
+            </div>
+
+            <div className="div_confirmar_reserva_botones">
+              <button
+                className="reserva_boton"
+                id="reserva_boton_cerrar"
+                onClick={() => setShowOverlayCrearClaseRec(false)}
+              >
+                Atrás
+              </button>
+              <button
+                className="reserva_boton"
+                onClick={handleCrearClaseRecurrente}
+                disabled={claseRecLoading}
+              >
+                {claseRecLoading ? "Generando..." : "Crear clases"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* OVERLAY ELIMINAR CLASE RECURRENTE */}
+      {showOverlayEliminarClaseRec && (
+        <div
+          className="reserva_overlay show"
+          onClick={() => setShowOverlayEliminarClaseRec(false)}
+        >
+          <div
+            className="reservas_contenido"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="div_confirmar_reserva">
+              <h2>Eliminar clase — Recurrente</h2>
+
+              {/* PISTA */}
+              <div className="admin_cal_seccion">
+                <p className="admin_cal_titulo">Pista</p>
+                <select
+                  className="admin_elegir_usuario_select"
+                  value={elimClaseRecPista}
+                  onChange={(e) => setElimClaseRecPista(Number(e.target.value))}
+                >
+                  <option value="">Selecciona pista</option>
+                  {pistasDB.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.nombre.replace(/_/g, " ")}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* MONITOR */}
+              <div className="admin_cal_seccion">
+                <p className="admin_cal_titulo">Monitor</p>
+                <select
+                  className="admin_elegir_usuario_select"
+                  value={elimClaseRecMonitor}
+                  onChange={(e) => setElimClaseRecMonitor(e.target.value)}
+                >
+                  <option value="">Selecciona monitor</option>
+                  {monitores.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.first_name} {m.last_name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* DÍAS DE LA SEMANA */}
+              <div className="admin_cal_seccion">
+                <p className="admin_cal_titulo">Días de la semana</p>
+                <div className="admin_cal_checkboxes">
+                  {[
+                    { label: "Lunes", value: 1 },
+                    { label: "Martes", value: 2 },
+                    { label: "Miércoles", value: 3 },
+                    { label: "Jueves", value: 4 },
+                    { label: "Viernes", value: 5 },
+                    { label: "Sábado", value: 6 },
+                    { label: "Domingo", value: 0 },
+                  ].map((d) => (
+                    <label key={d.value} className="admin_cal_check_label">
+                      <input
+                        type="checkbox"
+                        className="admin_pagado_checkbox"
+                        checked={elimClaseRecDias.includes(d.value)}
+                        onChange={(e) => {
+                          setElimClaseRecDias((prev) =>
+                            e.target.checked
+                              ? [...prev, d.value]
+                              : prev.filter((v) => v !== d.value),
+                          );
+                        }}
+                      />
+                      <span>{d.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* FECHAS */}
+              <div className="admin_torneo_form">
+                <label className="admin_torneo_label">Fecha inicio</label>
+                <input
+                  type="date"
+                  className="admin_elegir_usuario_select"
+                  value={elimClaseRecFechaInicio}
+                  onChange={(e) => setElimClaseRecFechaInicio(e.target.value)}
+                />
+                <label className="admin_torneo_label">Fecha fin</label>
+                <input
+                  type="date"
+                  className="admin_elegir_usuario_select"
+                  value={elimClaseRecFechaFin}
+                  min={elimClaseRecFechaInicio}
+                  onChange={(e) => setElimClaseRecFechaFin(e.target.value)}
+                />
+              </div>
+
+              {/* FRANJAS */}
+              <div className="admin_cal_seccion">
+                <p className="admin_cal_titulo">
+                  Franjas horarias a eliminar (1h)
+                </p>
+                <div className="admin_cal_franjas">
+                  {elimClaseRecFranjas.map((franja, i) => (
+                    <select
+                      key={i}
+                      className="admin_cal_franja_select"
+                      value={franja}
+                      onChange={(e) => {
+                        const nuevas = [...elimClaseRecFranjas];
+                        nuevas[i] = e.target.value;
+                        setElimClaseRecFranjas(nuevas);
+                      }}
+                    >
+                      <option value="">— vacía —</option>
+                      {franjasHorariasClase.map((f, j) => (
+                        <option key={j} value={`${f.inicio} - ${f.fin}`}>
+                          {f.inicio} - {f.fin}
+                        </option>
+                      ))}
+                    </select>
+                  ))}
+                </div>
+              </div>
+
+              {elimClaseRecError && (
+                <p className="reserva_error grande">{elimClaseRecError}</p>
+              )}
+              {elimClaseRecSuccess && (
+                <p className="reserva_success grande">{elimClaseRecSuccess}</p>
+              )}
+            </div>
+
+            <div className="div_confirmar_reserva_botones">
+              <button
+                className="reserva_boton"
+                id="reserva_boton_cerrar"
+                onClick={() => setShowOverlayEliminarClaseRec(false)}
+              >
+                Atrás
+              </button>
+              <button
+                className="reserva_boton"
+                onClick={handleEliminarClaseRecurrente}
+                disabled={elimClaseRecLoading}
+              >
+                {elimClaseRecLoading ? "Eliminando..." : "Eliminar clases"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* CALENDARIO */}
       <section className="admin_section_reservar_pista">
         <div className="admin_div_calendario_pistas">
@@ -2774,18 +3418,8 @@ function AdminPista({ date }: { date: Date }) {
             setCrearBloqueSuccess("");
           }}
         >
-          CREAR BLOQUE PISTA
-        </button>
-        <button
-          className="admin_seccion_funciones_boton"
-          onClick={() => {
-            setShowOverlayCrearClase(true);
-            setCrearClaseError("");
-            setCrearClaseSuccess("");
-          }}
-        >
-          RESERVAR PISTA CLASE
-        </button>
+          CREAR PISTA LIBRE
+        </button>{" "}
         <button
           className="admin_seccion_funciones_boton"
           onClick={() => {
@@ -2799,8 +3433,8 @@ function AdminPista({ date }: { date: Date }) {
             setShowOverlayRecurrente(true);
           }}
         >
-          CREAR BLOQUE PISTA - RECURRENTE
-        </button>
+          CREAR PISTA LIBRE - RECURRENTE
+        </button>{" "}
         <button
           className="admin_seccion_funciones_boton"
           onClick={() => {
@@ -2814,7 +3448,39 @@ function AdminPista({ date }: { date: Date }) {
             setShowOverlayEliminarRec(true);
           }}
         >
-          ELIMINAR BLOQUE PISTA - RECURRENTE
+          ELIMINAR PISTA LIBRE - RECURRENTE
+        </button>
+        <button
+          className="admin_seccion_funciones_boton"
+          onClick={() => {
+            setClaseRecPista("");
+            setClaseRecDias([]);
+            setClaseRecFechaInicio("");
+            setClaseRecFechaFin("");
+            setClaseRecFranjas(Array(9).fill(""));
+            setClaseRecMonitor("");
+            setClaseRecError("");
+            setClaseRecSuccess("");
+            setShowOverlayCrearClaseRec(true);
+          }}
+        >
+          RESERVAR PISTA CLASE - RECURRENTE
+        </button>
+        <button
+          className="admin_seccion_funciones_boton"
+          onClick={() => {
+            setElimClaseRecPista("");
+            setElimClaseRecMonitor("");
+            setElimClaseRecDias([]);
+            setElimClaseRecFechaInicio("");
+            setElimClaseRecFechaFin("");
+            setElimClaseRecFranjas(Array(9).fill(""));
+            setElimClaseRecError("");
+            setElimClaseRecSuccess("");
+            setShowOverlayEliminarClaseRec(true);
+          }}
+        >
+          ELIMINAR PISTA CLASE - RECURRENTE
         </button>
         <button
           className="admin_seccion_funciones_boton"
