@@ -134,6 +134,17 @@ function AdminPista({ date }: { date: Date }) {
     }[]
   >([]);
 
+  // Overlay reservar torneo
+
+  const [showOverlayTorneo, setShowOverlayTorneo] = useState(false);
+  const [torneoFechaInicio, setTorneoFechaInicio] = useState("");
+  const [torneoHoraInicio, setTorneoHoraInicio] = useState("");
+  const [torneoFechaFin, setTorneoFechaFin] = useState("");
+  const [torneoHoraFin, setTorneoHoraFin] = useState("");
+  const [torneoError, setTorneoError] = useState("");
+  const [torneoSuccess, setTorneoSuccess] = useState("");
+  const [torneoLoading, setTorneoLoading] = useState(false);
+
   /* ----------------------------------------------------
       0) CARGAR PISTAS
   -----------------------------------------------------*/
@@ -861,6 +872,205 @@ function AdminPista({ date }: { date: Date }) {
   };
 
   /* ----------------------------------------------------
+    6.5) BLOQUEAR TORNEO
+-----------------------------------------------------*/
+  const handleBloquearTorneo = async () => {
+    setTorneoError("");
+    setTorneoSuccess("");
+
+    if (
+      !torneoFechaInicio ||
+      !torneoHoraInicio ||
+      !torneoFechaFin ||
+      !torneoHoraFin
+    ) {
+      setTorneoError("Debes seleccionar fecha y hora de inicio y fin.");
+      return;
+    }
+
+    const horaInicioMin =
+      parseInt(torneoHoraInicio.split(":")[0]) * 60 +
+      parseInt(torneoHoraInicio.split(":")[1]);
+    const horaFinMin =
+      parseInt(torneoHoraFin.split(":")[0]) * 60 +
+      parseInt(torneoHoraFin.split(":")[1]);
+
+    // Validar que fin > inicio
+    if (
+      torneoFechaFin < torneoFechaInicio ||
+      (torneoFechaFin === torneoFechaInicio && horaFinMin <= horaInicioMin)
+    ) {
+      setTorneoError("La fecha de fin debe ser posterior a la de inicio.");
+      return;
+    }
+
+    setTorneoLoading(true);
+
+    // 1) Calcular todos los bloques que hay que reservar
+    type Bloque = { fecha: string; horaInicio: string; horaFin: string };
+    const bloques: Bloque[] = [];
+
+    const franjas = [
+      { inicioMin: 9 * 60, finMin: 14 * 60 },
+      { inicioMin: 16 * 60, finMin: 23 * 60 },
+    ];
+
+    const pad = (n: number) => n.toString().padStart(2, "0");
+    const toHora = (min: number) =>
+      `${pad(Math.floor(min / 60))}:${pad(min % 60)}`;
+
+    // Generar lista de fechas usando mediodía para evitar problemas de DST
+    const fechas: string[] = [];
+    const cursor = new Date(`${torneoFechaInicio}T12:00:00`);
+    const cursorFin = new Date(`${torneoFechaFin}T12:00:00`);
+    while (cursor <= cursorFin) {
+      fechas.push(cursor.toISOString().split("T")[0]);
+      cursor.setDate(cursor.getDate() + 1);
+    }
+
+    for (const fecha of fechas) {
+      const esPrimerDia = fecha === torneoFechaInicio;
+      const esUltimoDia = fecha === torneoFechaFin;
+
+      for (const franja of franjas) {
+        const bloqueInicioMin = Math.max(
+          franja.inicioMin,
+          esPrimerDia ? horaInicioMin : 0,
+        );
+        const bloqueFinMin = Math.min(
+          franja.finMin,
+          esUltimoDia ? horaFinMin : 24 * 60,
+        );
+
+        if (bloqueFinMin > bloqueInicioMin) {
+          bloques.push({
+            fecha,
+            horaInicio: toHora(bloqueInicioMin),
+            horaFin: toHora(bloqueFinMin),
+          });
+        }
+      }
+    }
+
+    if (bloques.length === 0) {
+      setTorneoError(
+        "El rango seleccionado no coincide con ninguna franja horaria válida (09:00–14:00 o 16:00–23:00).",
+      );
+      setTorneoLoading(false);
+      return;
+    }
+
+    console.log("=== DEPURACIÓN TORNEO ===");
+    console.log("Bloques calculados:", bloques);
+
+    // 2) Comprobar si hay reservas NO libres en ese rango
+    const rangoInicioStr = `${bloques[0].fecha}T${bloques[0].horaInicio}:00`;
+    const rangoFinStr = `${bloques[bloques.length - 1].fecha}T${bloques[bloques.length - 1].horaFin}:00`;
+
+    console.log("Rango query inicio:", rangoInicioStr);
+    console.log("Rango query fin:", rangoFinStr);
+
+    const { data: reservasConflicto, error: errorConflicto } = await supabase
+      .from("reservas")
+      .select("id, estado, inicio, fin, pista_id")
+      .gte("inicio", rangoInicioStr)
+      .lte("inicio", rangoFinStr)
+      .neq("estado", "libre")
+      .neq("estado", "cerrado");
+
+    console.log("Reservas conflicto encontradas:", reservasConflicto);
+    console.log("Error query:", errorConflicto);
+
+    if (errorConflicto) {
+      setTorneoError("Error al comprobar reservas existentes.");
+      setTorneoLoading(false);
+      return;
+    }
+
+    if (reservasConflicto && reservasConflicto.length > 0) {
+      const detalle = reservasConflicto
+        .map((r) => {
+          const h = new Date(r.inicio).toLocaleString("es-ES", {
+            weekday: "short",
+            day: "2-digit",
+            month: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit",
+          });
+          return `Pista ${r.pista_id} – ${r.estado} – ${h}`;
+        })
+        .join("\n");
+      setTorneoError(
+        `Hay reservas activas que impiden el bloqueo:\n${detalle}`,
+      );
+      setTorneoLoading(false);
+      return;
+    }
+
+    // 3) Borrar todas las reservas "libre" en el rango para todas las pistas
+    const { error: errorBorrar } = await supabase
+      .from("reservas")
+      .delete()
+      .gte("inicio", rangoInicioStr)
+      .lte("inicio", rangoFinStr)
+      .eq("estado", "libre");
+
+    if (errorBorrar) {
+      setTorneoError("Error al liberar las pistas.");
+      setTorneoLoading(false);
+      return;
+    }
+
+    // 4) Insertar bloques de torneo para cada pista
+    const inserts = pistas.flatMap((pistaId) =>
+      bloques.map((b) => ({
+        pista_id: pistaId,
+        estado: "torneo",
+        inicio: `${b.fecha}T${b.horaInicio}:00`,
+        fin: `${b.fecha}T${b.horaFin}:00`,
+        user_id: null,
+      })),
+    );
+
+    const { error: errorInsertar } = await supabase
+      .from("reservas")
+      .insert(inserts);
+
+    if (errorInsertar) {
+      setTorneoError("Error al crear los bloques de torneo.");
+      setTorneoLoading(false);
+      return;
+    }
+
+    setTorneoSuccess(
+      `¡Torneo bloqueado correctamente! ${inserts.length} bloques creados.`,
+    );
+    setTorneoLoading(false);
+
+    // Recargar reservas del día visible
+    setTimeout(() => {
+      setShowOverlayTorneo(false);
+      setTorneoFechaInicio("");
+      setTorneoHoraInicio("");
+      setTorneoFechaFin("");
+      setTorneoHoraFin("");
+      setTorneoSuccess("");
+
+      const año = date.getFullYear();
+      const mes = (date.getMonth() + 1).toString().padStart(2, "0");
+      const dia = date.getDate().toString().padStart(2, "0");
+      const fechaStr = `${año}-${mes}-${dia}`;
+      supabase
+        .from("reservas")
+        .select("*")
+        .gte("inicio", `${fechaStr}T00:00:00`)
+        .lt("inicio", `${fechaStr}T23:59:59`)
+        .order("inicio", { ascending: true })
+        .then(({ data }) => setReservasSupabase(data || []));
+    }, 2000);
+  };
+
+  /* ----------------------------------------------------
       7) RENDER
   -----------------------------------------------------*/
   if (pistasDB.length === 0) {
@@ -1456,6 +1666,86 @@ function AdminPista({ date }: { date: Date }) {
         </div>
       )}
 
+      {/* OVERLAY TORNEO */}
+      {showOverlayTorneo && (
+        <div
+          className="reserva_overlay show"
+          onClick={() => setShowOverlayTorneo(false)}
+        >
+          <div
+            className="reservas_contenido"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="div_confirmar_reserva">
+              <h2>Bloquear fin de semana — Torneo</h2>
+
+              <div className="admin_torneo_form">
+                <label className="admin_torneo_label">Inicio del torneo</label>
+                <div className="admin_torneo_fila">
+                  <input
+                    type="date"
+                    className="admin_elegir_usuario_select admin_torneo_input_fecha"
+                    value={torneoFechaInicio}
+                    onChange={(e) => setTorneoFechaInicio(e.target.value)}
+                  />
+                  <input
+                    type="time"
+                    className="admin_elegir_usuario_select admin_torneo_input_hora"
+                    value={torneoHoraInicio}
+                    onChange={(e) => setTorneoHoraInicio(e.target.value)}
+                  />
+                </div>
+
+                <label className="admin_torneo_label">Fin del torneo</label>
+                <div className="admin_torneo_fila">
+                  <input
+                    type="date"
+                    className="admin_elegir_usuario_select admin_torneo_input_fecha"
+                    value={torneoFechaFin}
+                    onChange={(e) => setTorneoFechaFin(e.target.value)}
+                  />
+                  <input
+                    type="time"
+                    className="admin_elegir_usuario_select admin_torneo_input_hora"
+                    value={torneoHoraFin}
+                    onChange={(e) => setTorneoHoraFin(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              {torneoError && (
+                <p
+                  className="reserva_error grande"
+                  style={{ whiteSpace: "pre-line" }}
+                >
+                  {torneoError}
+                </p>
+              )}
+              {torneoSuccess && (
+                <p className="reserva_success grande">{torneoSuccess}</p>
+              )}
+            </div>
+
+            <div className="div_confirmar_reserva_botones">
+              <button
+                className="reserva_boton"
+                id="reserva_boton_cerrar"
+                onClick={() => setShowOverlayTorneo(false)}
+              >
+                Atrás
+              </button>
+              <button
+                className="reserva_boton"
+                onClick={handleBloquearTorneo}
+                disabled={torneoLoading}
+              >
+                {torneoLoading ? "Procesando..." : "Bloquear torneo"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* CALENDARIO */}
       <section className="admin_section_reservar_pista">
         <div className="admin_div_calendario_pistas">
@@ -1486,6 +1776,7 @@ function AdminPista({ date }: { date: Date }) {
                   const esLibre = bloque.estado === "libre";
                   const esOcupada = bloque.estado === "ocupada";
                   const esClase = bloque.estado === "clase";
+                  const esTorneo = bloque.estado === "torneo";
 
                   const todoPagado =
                     bloque.estado === "ocupada" &&
@@ -1516,6 +1807,9 @@ function AdminPista({ date }: { date: Date }) {
                             {bloque.inicio}
                           </span>
                         </>
+                      )}
+                      {esTorneo && (
+                        <span className="texto_reserva">Torneo</span>
                       )}
                     </div>
                   );
@@ -1566,7 +1860,18 @@ function AdminPista({ date }: { date: Date }) {
         <button className="admin_seccion_funciones_boton">
           MODIFICAR HORAS PISTA
         </button>
-        <button className="admin_seccion_funciones_boton">
+        <button
+          className="admin_seccion_funciones_boton"
+          onClick={() => {
+            setTorneoError("");
+            setTorneoSuccess("");
+            setTorneoFechaInicio("");
+            setTorneoHoraInicio("");
+            setTorneoFechaFin("");
+            setTorneoHoraFin("");
+            setShowOverlayTorneo(true);
+          }}
+        >
           BLOQUEAR FIN DE SEMANA TORNEO
         </button>
         <button className="admin_seccion_funciones_boton">

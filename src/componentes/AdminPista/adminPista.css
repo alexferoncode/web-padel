@@ -398,6 +398,54 @@
   margin-top: 0 !important;
 }
 
+/* Torneo */
+
+.admin_torneo_form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.admin_torneo_label {
+  font-size: 18px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.7);
+  text-shadow: 0 0 5px black;
+  margin-top: 8px;
+}
+
+.admin_torneo_info {
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.5);
+  text-align: center;
+  line-height: 1.5;
+  margin-top: 8px;
+}
+
+.admin_torneo_fila {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+}
+
+.admin_torneo_input_fecha {
+  flex: 2;
+  width: auto;
+}
+
+.admin_torneo_input_hora {
+  flex: 1;
+  width: auto;
+}
+
+.admin_div_reserva_bloque.torneo {
+  background-color: #d4a017;
+  color: white;
+  cursor: default;
+}
+
+
 /* ── RESPONSIVE ── */
 
 @media (max-width: 850px) {
@@ -469,6 +517,18 @@
     flex-direction: column;
     align-items: center;
   }
+
+  .admin_torneo_fila {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .admin_torneo_input_fecha,
+  .admin_torneo_input_hora {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
 }
 
 @media (max-width: 500px) {

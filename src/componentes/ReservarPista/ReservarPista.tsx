@@ -4,7 +4,15 @@ import { useEffect, useState } from "react";
 import { supabase } from "../../../supabaseClient";
 import { useNavigate } from "react-router-dom";
 
-type EstadoReserva = "libre" | "ocupada" | "clase" | "cerrado" | "propia";
+type EstadoReserva =
+  | "libre"
+  | "ocupada"
+  | "clase"
+  | "cerrado"
+  | "propia"
+  | "torneo"
+  | "fija"
+  | "evento";
 
 interface ReservaDB {
   id: number;
@@ -471,8 +479,11 @@ function ReservarPista({ date }: { date: Date }) {
                   const esLibre = bloque.estado === "libre";
                   const esPropia =
                     bloque.estado === "ocupada" && bloque.user_id === userId;
-                  let claseBloque = bloque.estado;
-                  if (esPropia) claseBloque = "propia";
+                  const claseBloque = esLibre
+                    ? "libre"
+                    : esPropia
+                      ? "propia"
+                      : "ocupada";
 
                   return (
                     <div
@@ -485,17 +496,12 @@ function ReservarPista({ date }: { date: Date }) {
                       }}
                       style={{
                         gridColumn: idx + 2,
-                        gridRow: `${calcularFila(
-                          bloque.inicio,
-                        )} / span ${filas}`,
+                        gridRow: `${calcularFila(bloque.inicio)} / span ${filas}`,
                       }}
                     >
                       {(esLibre || esPropia) && (
                         <>
-                          {/* versión escritorio */}
                           <span className="texto_reserva texto_reserva_pc">{`${bloque.inicio} - ${bloque.fin}`}</span>
-
-                          {/* versión móvil */}
                           <span className="texto_reserva texto_reserva_movil">
                             {bloque.inicio}
                           </span>
