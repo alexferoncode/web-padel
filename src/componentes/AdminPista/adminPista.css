@@ -112,14 +112,20 @@
 }
 
 .admin_seccion_funciones_boton {
-  background: transparent;;
+  background: transparent;
   border-radius: 7px;
   width: 500px;
   height: 70px;
-  font-size: 24px;
+  font-size: 22px;
   border: 2px solid #cb2c30;
   color: white;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  font-family: 'Barlow', sans-serif;
+  font-weight: 600;
 }
 
 .admin_seccion_funciones_boton:hover {
@@ -127,8 +133,19 @@
   box-shadow: 0 0 5px #ff4b4f;
 }
 
-#admin_elegir_usuario_select_ultimo {
-  margin-bottom: 30px;
+.admin_boton_icono_left {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 1.2em;
+  flex-shrink: 0;
+}
+
+.admin_icono_x {
+  color: #cb2c30;
+  font-weight: 900;
+  font-size: 0.9em;
+  line-height: 1;
 }
 
 /* CSS para pista pagada */
@@ -576,7 +593,7 @@
 
   .admin_seccion_funciones_boton {
     width: 90vw;
-    font-size: 18px;
+    font-size: 15px;
     height: 60px;
   }
 

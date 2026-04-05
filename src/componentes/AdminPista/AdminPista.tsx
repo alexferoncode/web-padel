@@ -3418,8 +3418,12 @@ function AdminPista({ date }: { date: Date }) {
             setCrearBloqueSuccess("");
           }}
         >
+          <span className="admin_boton_icono_left">
+            <span className="admin_colores_leyenda_span admin_disponible" />
+          </span>
           CREAR PISTA LIBRE
-        </button>{" "}
+        </button>
+
         <button
           className="admin_seccion_funciones_boton"
           onClick={() => {
@@ -3433,8 +3437,12 @@ function AdminPista({ date }: { date: Date }) {
             setShowOverlayRecurrente(true);
           }}
         >
+          <span className="admin_boton_icono_left">
+            <span className="admin_colores_leyenda_span admin_disponible" /> 🔁
+          </span>
           CREAR PISTA LIBRE - RECURRENTE
-        </button>{" "}
+        </button>
+
         <button
           className="admin_seccion_funciones_boton"
           onClick={() => {
@@ -3448,8 +3456,13 @@ function AdminPista({ date }: { date: Date }) {
             setShowOverlayEliminarRec(true);
           }}
         >
+          <span className="admin_boton_icono_left">
+            <span className="admin_colores_leyenda_span admin_disponible" /> 🔁{" "}
+            <span className="admin_icono_x">✕</span>
+          </span>
           ELIMINAR PISTA LIBRE - RECURRENTE
         </button>
+
         <button
           className="admin_seccion_funciones_boton"
           onClick={() => {
@@ -3464,8 +3477,12 @@ function AdminPista({ date }: { date: Date }) {
             setShowOverlayCrearClaseRec(true);
           }}
         >
+          <span className="admin_boton_icono_left">
+            <span className="admin_colores_leyenda_span admin_clase" />
+          </span>
           RESERVAR PISTA CLASE - RECURRENTE
         </button>
+
         <button
           className="admin_seccion_funciones_boton"
           onClick={() => {
@@ -3480,8 +3497,13 @@ function AdminPista({ date }: { date: Date }) {
             setShowOverlayEliminarClaseRec(true);
           }}
         >
+          <span className="admin_boton_icono_left">
+            <span className="admin_colores_leyenda_span admin_clase" />{" "}
+            <span className="admin_icono_x">✕</span>
+          </span>
           ELIMINAR PISTA CLASE - RECURRENTE
         </button>
+
         <button
           className="admin_seccion_funciones_boton"
           onClick={() => {
@@ -3494,8 +3516,12 @@ function AdminPista({ date }: { date: Date }) {
             setShowOverlayTorneo(true);
           }}
         >
+          <span className="admin_boton_icono_left">
+            <span className="admin_colores_leyenda_span admin_torneo" />
+          </span>
           BLOQUEAR FIN DE SEMANA TORNEO
         </button>
+
         <button
           className="admin_seccion_funciones_boton"
           onClick={() => {
@@ -3512,6 +3538,10 @@ function AdminPista({ date }: { date: Date }) {
             setFijaDiaSemana("");
           }}
         >
+          <span className="admin_boton_icono_left">
+            <span className="admin_colores_leyenda_span admin_ocupada" />{" "}
+            🔁{" "}
+          </span>
           ASIGNAR PISTA FIJA
         </button>
       </section>
