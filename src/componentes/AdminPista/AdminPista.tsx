@@ -25,6 +25,8 @@ interface ReservaDB {
   pagado_2: boolean;
   pagado_3: boolean;
   pagado_4: boolean;
+  invitado_nombre?: string | null;
+  invitado_tlf?: string | null;
 }
 
 interface PistaDB {
@@ -43,6 +45,8 @@ interface BloqueReserva {
   pagado_2?: boolean;
   pagado_3?: boolean;
   pagado_4?: boolean;
+  invitado_nombre?: string | null;
+  invitado_tlf?: string | null;
 }
 
 interface Pedido {
@@ -75,6 +79,10 @@ function AdminPista({ date }: { date: Date }) {
   const [cancelClaseOverlay, setCancelClaseOverlay] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
+  const [busquedaUsuario, setBusquedaUsuario] = useState("");
+  const [modoInvitado, setModoInvitado] = useState(false);
+  const [invitadoNombre, setInvitadoNombre] = useState("");
+  const [invitadoTlf, setInvitadoTlf] = useState("");
   const [usuarioSeleccionado, setUsuarioSeleccionado] = useState<string | null>(
     null,
   );
@@ -289,6 +297,8 @@ function AdminPista({ date }: { date: Date }) {
       pagado_2: r.pagado_2 ?? false,
       pagado_3: r.pagado_3 ?? false,
       pagado_4: r.pagado_4 ?? false,
+      invitado_nombre: r.invitado_nombre || null,
+      invitado_tlf: r.invitado_tlf || null,
     };
   });
 
@@ -351,8 +361,16 @@ function AdminPista({ date }: { date: Date }) {
     setBloqueSeleccionado(bloque);
     setReservaSeleccionadaId(bloque.id || null);
     setShowOverlay(true);
+    setTimeout(() => {
+      const contenido = document.querySelector(".reservas_contenido");
+      if (contenido) contenido.scrollTop = 0;
+    }, 0);
     setCancelOverlay(esCancelar);
     setCancelClaseOverlay(esCancelarClase);
+    setBusquedaUsuario("");
+    setModoInvitado(false);
+    setInvitadoNombre("");
+    setInvitadoTlf("");
     setUsuarioSeleccionado(null);
     setErrorMsg("");
     setSuccessMsg("");
@@ -558,18 +576,34 @@ function AdminPista({ date }: { date: Date }) {
       return;
     }
 
-    if (!usuarioSeleccionado) {
+    if (!modoInvitado && !usuarioSeleccionado) {
       setErrorMsg("Debes seleccionar un usuario.");
       return;
     }
 
+    if (modoInvitado && !invitadoNombre.trim()) {
+      setErrorMsg("Debes introducir el nombre del invitado.");
+      return;
+    }
+
     try {
+      const updatePayload = modoInvitado
+        ? {
+            estado: "ocupada",
+            user_id: null,
+            invitado_nombre: invitadoNombre.trim(),
+            invitado_tlf: invitadoTlf.trim() || null,
+          }
+        : {
+            estado: "ocupada",
+            user_id: usuarioSeleccionado,
+            invitado_nombre: null,
+            invitado_tlf: null,
+          };
+
       const { data, error } = await supabase
         .from("reservas")
-        .update({
-          estado: "ocupada",
-          user_id: usuarioSeleccionado,
-        })
+        .update(updatePayload)
         .eq("id", reservaSeleccionadaId)
         .eq("estado", "libre")
         .select("*");
@@ -614,20 +648,21 @@ function AdminPista({ date }: { date: Date }) {
         setShowOverlay(false);
         setSuccessMsg("");
         setUsuarioSeleccionado(null);
+        setInvitadoNombre("");
+        setInvitadoTlf("");
+        setModoInvitado(false);
 
         const cargarReservas = async () => {
           const año = date.getFullYear();
           const mes = (date.getMonth() + 1).toString().padStart(2, "0");
           const dia = date.getDate().toString().padStart(2, "0");
           const fechaStr = `${año}-${mes}-${dia}`;
-
           const { data, error } = await supabase
             .from("reservas")
             .select("*")
             .gte("inicio", `${fechaStr}T00:00:00`)
             .lt("inicio", `${fechaStr}T23:59:59`)
             .order("inicio", { ascending: true });
-
           if (!error) setReservasSupabase(data || []);
         };
         cargarReservas();
@@ -845,7 +880,7 @@ function AdminPista({ date }: { date: Date }) {
         >
           {bloqueSeleccionado ? (
             <div className="div_confirmar_reserva">
-              {cancelOverlay && <h2>¿Quieres cancelar esta pista?</h2>}
+              {/* cancelOverlay && <h2>¿Quieres cancelar esta pista?</h2> */}
               {cancelClaseOverlay && <h2>¿Quieres cancelar esta clase?</h2>}
 
               {bloqueSeleccionado.user_id && (
@@ -882,21 +917,31 @@ function AdminPista({ date }: { date: Date }) {
                   )}
                 </div>
               )}
-
-              <h2>
-                {date
-                  .toLocaleDateString("es-ES", {
-                    weekday: "long",
-                    day: "2-digit",
-                    month: "long",
-                    year: "numeric",
-                  })
-                  .replace(/^./, (c) => c.toUpperCase())}
-              </h2>
-              <h2>
-                {bloqueSeleccionado.inicio} - {bloqueSeleccionado.fin}
-              </h2>
-              <h2>Pista {bloqueSeleccionado.pista}</h2>
+              {!bloqueSeleccionado.user_id &&
+                bloqueSeleccionado.invitado_nombre && (
+                  <div>
+                    <h2>👤 {bloqueSeleccionado.invitado_nombre}</h2>
+                    {bloqueSeleccionado.invitado_tlf && (
+                      <h2>tlf: {bloqueSeleccionado.invitado_tlf}</h2>
+                    )}
+                  </div>
+                )}
+              <div className="admin_div_info_reserva">
+                <h2>
+                  {date
+                    .toLocaleDateString("es-ES", {
+                      weekday: "long",
+                      day: "2-digit",
+                      month: "long",
+                      year: "numeric",
+                    })
+                    .replace(/^./, (c) => c.toUpperCase())}
+                </h2>
+                <h2>
+                  {bloqueSeleccionado.inicio} - {bloqueSeleccionado.fin}
+                </h2>
+                <h2>Pista {bloqueSeleccionado.pista}</h2>
+              </div>
 
               {/* SECCIÓN PAGADO (solo en ocupada) */}
               {cancelOverlay && (
@@ -1006,20 +1051,103 @@ function AdminPista({ date }: { date: Date }) {
               {/* SELECT DE USUARIO (solo en bloque libre) */}
               {!cancelOverlay && !cancelClaseOverlay && (
                 <div className="admin_elegir_usuario">
-                  <select
-                    className="admin_elegir_usuario_select"
-                    value={usuarioSeleccionado || ""}
-                    onChange={(e) => setUsuarioSeleccionado(e.target.value)}
-                  >
-                    <option value="" disabled>
-                      Selecciona un usuario
-                    </option>
-                    {perfiles.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.first_name} {p.last_name} – {p.email}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="admin_modo_toggle">
+                    <button
+                      className={`admin_modo_btn ${!modoInvitado ? "activo" : ""}`}
+                      onClick={() => {
+                        setModoInvitado(false);
+                        setInvitadoNombre("");
+                        setInvitadoTlf("");
+                      }}
+                    >
+                      Usuario registrado
+                    </button>
+                    <button
+                      className={`admin_modo_btn ${modoInvitado ? "activo" : ""}`}
+                      onClick={() => {
+                        setModoInvitado(true);
+                        setUsuarioSeleccionado(null);
+                        setBusquedaUsuario("");
+                      }}
+                    >
+                      Invitado
+                    </button>
+                  </div>
+
+                  {!modoInvitado ? (
+                    <div className="admin_buscador_usuario">
+                      <input
+                        type="text"
+                        className="admin_elegir_usuario_select"
+                        placeholder="Buscar usuario por nombre..."
+                        value={
+                          usuarioSeleccionado
+                            ? (() => {
+                                const p = perfiles.find(
+                                  (p) => p.id === usuarioSeleccionado,
+                                );
+                                return p
+                                  ? `${p.first_name} ${p.last_name} – ${p.email}`
+                                  : busquedaUsuario;
+                              })()
+                            : busquedaUsuario
+                        }
+                        onChange={(e) => {
+                          setBusquedaUsuario(e.target.value);
+                          setUsuarioSeleccionado(null);
+                        }}
+                      />
+                      {!usuarioSeleccionado && busquedaUsuario.length > 0 && (
+                        <div className="admin_buscador_lista">
+                          {perfiles
+                            .filter((p) =>
+                              `${p.first_name} ${p.last_name}`
+                                .toLowerCase()
+                                .includes(busquedaUsuario.toLowerCase()),
+                            )
+                            .slice(0, 8)
+                            .map((p) => (
+                              <div
+                                key={p.id}
+                                className="admin_buscador_opcion"
+                                onClick={() => {
+                                  setUsuarioSeleccionado(p.id);
+                                  setBusquedaUsuario("");
+                                }}
+                              >
+                                {p.first_name} {p.last_name} – {p.email}
+                              </div>
+                            ))}
+                          {perfiles.filter((p) =>
+                            `${p.first_name} ${p.last_name}`
+                              .toLowerCase()
+                              .includes(busquedaUsuario.toLowerCase()),
+                          ).length === 0 && (
+                            <div className="admin_buscador_opcion admin_buscador_vacio">
+                              Sin resultados
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="admin_invitado_form">
+                      <input
+                        type="text"
+                        className="admin_elegir_usuario_select"
+                        placeholder="Nombre del invitado *"
+                        value={invitadoNombre}
+                        onChange={(e) => setInvitadoNombre(e.target.value)}
+                      />
+                      <input
+                        type="tel"
+                        className="admin_elegir_usuario_select admin_invitado_tlf"
+                        placeholder="Teléfono (opcional)"
+                        value={invitadoTlf}
+                        onChange={(e) => setInvitadoTlf(e.target.value)}
+                      />
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -1063,7 +1191,9 @@ function AdminPista({ date }: { date: Date }) {
                   className="reserva_boton"
                   id="admin_reserva_boton_confirmar"
                   onClick={handleConfirmarReserva}
-                  disabled={!usuarioSeleccionado}
+                  disabled={
+                    modoInvitado ? !invitadoNombre.trim() : !usuarioSeleccionado
+                  }
                 >
                   Confirmar reserva
                 </button>
@@ -1124,20 +1254,22 @@ function AdminPista({ date }: { date: Date }) {
                 </div>
               )}
 
-              <h2>
-                {date
-                  .toLocaleDateString("es-ES", {
-                    weekday: "long",
-                    day: "2-digit",
-                    month: "long",
-                    year: "numeric",
-                  })
-                  .replace(/^./, (c) => c.toUpperCase())}
-              </h2>
-              <h2>
-                {bloqueSeleccionado?.inicio} - {bloqueSeleccionado?.fin}
-              </h2>
-              <h2>Pista {bloqueSeleccionado?.pista}</h2>
+              <div className="admin_div_info_reserva">
+                <h2>
+                  {date
+                    .toLocaleDateString("es-ES", {
+                      weekday: "long",
+                      day: "2-digit",
+                      month: "long",
+                      year: "numeric",
+                    })
+                    .replace(/^./, (c) => c.toUpperCase())}
+                </h2>
+                <h2>
+                  {bloqueSeleccionado?.inicio} - {bloqueSeleccionado?.fin}
+                </h2>
+                <h2>Pista {bloqueSeleccionado?.pista}</h2>
+              </div>
             </div>
 
             <div className="div_confirmar_reserva_botones">

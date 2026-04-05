@@ -2,8 +2,9 @@
     display: flex;
     align-items: center;
     gap: 50px;
-    padding: 150px 20px 40px 20px;
+    padding: 130px 20px 40px 20px;
     justify-content: center;
+
 }
 
 .reservas_info_section{
@@ -178,6 +179,11 @@
 
 /* --- MÓVIL (<900px) --- */
 @media(max-width: 900px){
+    .admin_reservas_section{
+        flex-direction: column;
+        gap: 30px;
+    }
+
     .reservas_section{
         gap:30px;
     }

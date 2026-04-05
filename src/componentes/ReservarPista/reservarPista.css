@@ -119,7 +119,7 @@
   z-index: 9999;
   display: none;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-start;
   align-items: center;
   color: white;
 }
@@ -190,6 +190,7 @@
 }
 
 .div_confirmar_reserva {
+  margin-top: 30px;
   display: flex;
   flex-direction: column;
   gap: 30px;
@@ -218,6 +219,12 @@
 
   .div_calendario_header {
     font-size: 1rem;
+  }
+
+  .div_confirmar_reserva_botones {
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
   }
 
   .div_hora_celda {

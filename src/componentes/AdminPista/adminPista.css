@@ -50,7 +50,7 @@
 }
 
 .admin_div_reserva_bloque.ocupada {
-  background-color: #cb2c30; /* rojo del header */
+  background-color: #cb2c30;
   color: white;
   cursor: pointer;
   transition: 0.3s;
@@ -59,7 +59,6 @@
 .admin_div_reserva_bloque.ocupada:hover {
   background-color: #a1191e;
 }
-
 
 .admin_div_reserva_bloque.clase {
   background-color: #2ca4ee;
@@ -72,28 +71,39 @@
   background-color: #1d85c5;
 }
 
-#admin_reserva_boton_confirmar:disabled{
+#admin_reserva_boton_confirmar:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
-.admin_elegir_usuario{
+.admin_elegir_usuario {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   margin-bottom: 30px;
+  width: 800px;
 }
 
-.admin_elegir_usuario_select{
+.admin_elegir_usuario_select {
   font-size: 22px;
   width: 800px;
   padding: 12px;
 }
 
+.admin_div_info_reserva {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.admin_div_info_reserva h2 {
+  margin: 0;
+}
 
 /* Funciones */
 
-.admin_seccion_funciones{
+.admin_seccion_funciones {
   margin: 80px 20px;
   display: flex;
   flex-direction: column;
@@ -101,7 +111,7 @@
   gap: 30px;
 }
 
-.admin_seccion_funciones_boton{
+.admin_seccion_funciones_boton {
   background: #cb2c30;
   border-radius: 7px;
   width: 450px;
@@ -112,20 +122,16 @@
   cursor: pointer;
 }
 
-.admin_seccion_funciones_boton:hover{
-    background: #a1191e;
-    transition: 0.3s;
-    box-shadow: 0 0 5px #ff4b4f;
-    transition: none;
+.admin_seccion_funciones_boton:hover {
+  background: #a1191e;
+  box-shadow: 0 0 5px #ff4b4f;
 }
 
-#admin_elegir_usuario_select_ultimo{
+#admin_elegir_usuario_select_ultimo {
   margin-bottom: 30px;
 }
 
-
-
-/* CSS para botones de pista pagada */
+/* CSS para pista pagada */
 
 .admin_pagado_section {
   width: 100%;
@@ -161,6 +167,7 @@
   font-weight: 600;
   color: white;
   text-shadow: 0 0 5px black;
+  width: 140px;
 }
 
 .admin_pagado_checkbox {
@@ -175,8 +182,6 @@
   text-decoration: line-through;
   opacity: 0.75;
 }
-
-
 
 /* Sección productos */
 
@@ -245,12 +250,6 @@
   flex: 1;
 }
 
-.admin_producto_cantidad_controles {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
 .admin_producto_cantidad_btn {
   background: #cb2c30;
   border: none;
@@ -267,12 +266,6 @@
 
 .admin_producto_cantidad_btn:hover {
   background: #a1191e;
-}
-
-.admin_producto_cantidad {
-  font-size: 22px;
-  min-width: 20px;
-  text-align: center;
 }
 
 .admin_producto_pagado_label {
@@ -292,8 +285,224 @@
   flex-shrink: 0;
 }
 
-.admin_producto_fila.pagado .admin_producto_nombre,
-.admin_producto_fila.pagado .admin_producto_cantidad {
+.admin_producto_fila.pagado .admin_producto_nombre {
   text-decoration: line-through;
   opacity: 0.6;
+}
+
+/* Permite hacer scroll en el overlay */
+
+.reservas_contenido {
+  max-height: 90vh;
+  max-height: 90dvh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 20px 30px;
+  width: 100%;
+  box-sizing: border-box;
+  justify-content: flex-start;
+}
+
+/* Buscador usuarios en overlay */
+
+.admin_buscador_usuario {
+  position: relative;
+  width: 100%;
+}
+
+.admin_buscador_lista {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: 100%;
+  background: #002a42;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-top: none;
+  border-radius: 0 0 7px 7px;
+  z-index: 100;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.admin_buscador_opcion {
+  padding: 12px 16px;
+  font-size: 18px;
+  font-weight: 600;
+  color: white;
+  cursor: pointer;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  text-shadow: 0 0 5px black;
+}
+
+.admin_buscador_opcion:hover {
+  background: #005a8e;
+}
+
+.admin_buscador_vacio {
+  color: rgba(255, 255, 255, 0.4);
+  cursor: default;
+}
+
+.admin_buscador_vacio:hover {
+  background: transparent;
+}
+
+/* Toggle registrado / invitado */
+
+.admin_modo_toggle {
+  display: flex;
+  width: 100%;
+  margin-bottom: 16px;
+  border-radius: 7px;
+  overflow: hidden;
+  border: 2px solid #cb2c30;
+}
+
+.admin_modo_btn {
+  flex: 1;
+  padding: 12px;
+  font-family: 'Barlow', sans-serif;
+  font-size: 18px;
+  font-weight: 600;
+  color: white;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-shadow: 0 0 5px black;
+  transition: background 0.2s;
+}
+
+.admin_modo_btn.activo {
+  background: #cb2c30;
+}
+
+.admin_modo_btn:not(.activo):hover {
+  background: rgba(203, 44, 48, 0.3);
+}
+
+/* Formulario invitado */
+
+.admin_invitado_form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+
+.admin_invitado_form .admin_elegir_usuario_select {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.admin_invitado_tlf {
+  margin-top: 0 !important;
+}
+
+/* ── RESPONSIVE ── */
+
+@media (max-width: 850px) {
+  .admin_section_reservar_pista {
+    margin: 0 20px 20px 20px;
+  }
+
+  .admin_div_calendario_pistas {
+    width: 100%;
+  }
+
+  .admin_elegir_usuario {
+    width: 90vw;
+  }
+
+  .admin_elegir_usuario_select {
+    font-size: 16px;
+    width: 90vw;
+    padding: 10px;
+    box-sizing: border-box;
+  }
+
+  .admin_invitado_form .admin_elegir_usuario_select {
+    width: 100%;
+  }
+
+  .admin_seccion_funciones_boton {
+    width: 90vw;
+    font-size: 18px;
+    height: 60px;
+  }
+
+  .admin_pagado_titulo,
+  .admin_productos_titulo {
+    font-size: 22px;
+  }
+
+  .admin_pagado_label {
+    font-size: 18px;
+  }
+
+  .admin_producto_fila {
+    font-size: 18px;
+  }
+
+  .admin_producto_add_btn {
+    font-size: 15px;
+    padding: 6px 10px;
+  }
+
+  .texto_reserva_movil {
+    display: block;
+  }
+
+  .texto_reserva_pc {
+    display: none;
+  }
+
+  .admin_modo_toggle {
+    width: 100%;
+  }
+
+  .admin_modo_btn {
+    font-size: 15px;
+    padding: 10px;
+  }
+
+  .div_confirmar_reserva_botones {
+    flex-direction: column;
+    align-items: center;
+  }
+}
+
+@media (max-width: 500px) {
+  .admin_section_reservar_pista {
+    margin: 0 10px 20px 10px;
+  }
+
+  .texto_reserva_movil {
+    transform: rotate(-90deg);
+    font-size: 18px;
+  }
+
+  .admin_productos_botones {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .admin_producto_add_btn {
+    width: 80vw;
+  }
+
+  .admin_seccion_funciones {
+    margin: 40px 20px;
+  }
+}
+
+@media (max-width: 420px) {
+  .texto_reserva_movil {
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 380px) {
+  .texto_reserva_movil {
+    font-size: 15px;
+  }
 }

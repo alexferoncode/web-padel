@@ -171,7 +171,7 @@ function ReservarPista({ date }: { date: Date }) {
         (r) =>
           r.pista === pista &&
           r.inicio <= horario.inicio &&
-          r.fin >= horario.fin
+          r.fin >= horario.fin,
       );
       if (!yaExiste) {
         bloquesCerrados.push({
@@ -256,19 +256,19 @@ function ReservarPista({ date }: { date: Date }) {
         // Detectar tipo de trigger
         if (
           error.message.includes(
-            "No se puede modificar una reserva con inicio en el pasado"
+            "No se puede modificar una reserva con inicio en el pasado",
           )
         ) {
           setErrorMsg("No se puede reservar una pista ya iniciada.");
         } else if (
           error.message.includes(
-            "El usuario ya tiene una reserva que solapa con este horario"
+            "El usuario ya tiene una reserva que solapa con este horario",
           )
         ) {
           setErrorMsg("Ya tienes otra reserva que se solapa con este horario.");
         } else if (
           error.message.includes(
-            "Ya existe otra reserva en esta pista que se solapa en el horario"
+            "Ya existe otra reserva en esta pista que se solapa en el horario",
           )
         ) {
           setErrorMsg("Ya existe otra reserva en esta pista en ese horario.");
@@ -280,7 +280,7 @@ function ReservarPista({ date }: { date: Date }) {
 
       if (!data || data.length === 0) {
         setErrorMsg(
-          "Otro usuario ha reservado esta pista. Recarga la página para ver la información actualizada."
+          "Otro usuario ha reservado esta pista. Recarga la página para ver la información actualizada.",
         );
         return;
       }
@@ -333,11 +333,11 @@ function ReservarPista({ date }: { date: Date }) {
 
         if (
           error.message.includes(
-            "No se puede cancelar la reserva con menos de 24 horas de antelación"
+            "No se puede cancelar la reserva con menos de 24 horas de antelación",
           )
         ) {
           setErrorMsg(
-            "No se puede cancelar una reserva con menos de 24 horas de antelación."
+            "No se puede cancelar una reserva con menos de 24 horas de antelación.",
           );
         } else {
           setErrorMsg("Error al cancelar la reserva. Inténtalo de nuevo.");
@@ -486,7 +486,7 @@ function ReservarPista({ date }: { date: Date }) {
                       style={{
                         gridColumn: idx + 2,
                         gridRow: `${calcularFila(
-                          bloque.inicio
+                          bloque.inicio,
                         )} / span ${filas}`,
                       }}
                     >
@@ -503,7 +503,7 @@ function ReservarPista({ date }: { date: Date }) {
                       )}
                     </div>
                   );
-                })
+                }),
             )}
 
             {/* CELDAS VACÍAS */}
@@ -517,7 +517,7 @@ function ReservarPista({ date }: { date: Date }) {
                     style={{ gridColumn: idx + 2, gridRow: calcularFila(h) }}
                   />
                 );
-              })
+              }),
             )}
           </div>
         </div>
