@@ -139,7 +139,7 @@ export default function Login() {
     }
 
     try {
-      const { data, error } = await supabase.auth.signUp({
+      const { error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -168,13 +168,6 @@ export default function Login() {
   /* -------------------- Continuar -------------------- */
   const handleContinue = async () => {
     setErrorMsg("Verifica tu email y vuelve desde el enlace que te enviamos.");
-  };
-
-  /* -------------------- Logout -------------------- */
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    setUser(null);
-    setStep("form");
   };
 
   if (loading) return <p>Cargando...</p>;

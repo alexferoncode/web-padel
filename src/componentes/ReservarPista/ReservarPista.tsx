@@ -45,7 +45,6 @@ function ReservarPista({ date }: { date: Date }) {
 
   const [reservasSupabase, setReservasSupabase] = useState<ReservaDB[]>([]);
   const [pistasDB, setPistasDB] = useState<PistaDB[]>([]);
-  const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
 
   // Overlay
@@ -106,7 +105,7 @@ function ReservarPista({ date }: { date: Date }) {
     if (pistasDB.length === 0) return;
 
     const cargarReservas = async () => {
-      setLoading(true);
+      // setLoading(true);
       const año = date.getFullYear();
       const mes = (date.getMonth() + 1).toString().padStart(2, "0");
       const dia = date.getDate().toString().padStart(2, "0");
@@ -121,12 +120,12 @@ function ReservarPista({ date }: { date: Date }) {
 
       if (error) {
         console.error("Error cargando reservas:", error);
-        setLoading(false);
+        // setLoading(false);
         return;
       }
 
       setReservasSupabase(data || []);
-      setLoading(false);
+      // setLoading(false);
     };
 
     cargarReservas();
@@ -330,7 +329,7 @@ function ReservarPista({ date }: { date: Date }) {
     }
 
     try {
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from("reservas")
         .update({ estado: "libre", user_id: null })
         .eq("id", reservaSeleccionadaId)

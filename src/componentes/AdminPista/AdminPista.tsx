@@ -64,8 +64,6 @@ function AdminPista({ date }: { date: Date }) {
 
   const [reservasSupabase, setReservasSupabase] = useState<ReservaDB[]>([]);
   const [pistasDB, setPistasDB] = useState<PistaDB[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [userId, setUserId] = useState<string | null>(null);
 
   // Overlay
   const [showOverlay, setShowOverlay] = useState(false);
@@ -290,7 +288,7 @@ function AdminPista({ date }: { date: Date }) {
     if (pistasDB.length === 0) return;
 
     const cargarReservas = async () => {
-      setLoading(true);
+      // setLoading(true);
       const año = date.getFullYear();
       const mes = (date.getMonth() + 1).toString().padStart(2, "0");
       const dia = date.getDate().toString().padStart(2, "0");
@@ -305,12 +303,12 @@ function AdminPista({ date }: { date: Date }) {
 
       if (error) {
         console.error("Error cargando reservas:", error);
-        setLoading(false);
+        // setLoading(false);
         return;
       }
 
       setReservasSupabase(data || []);
-      setLoading(false);
+      // setLoading(false);
     };
 
     cargarReservas();
@@ -1177,7 +1175,7 @@ function AdminPista({ date }: { date: Date }) {
       return;
     }
 
-    const [inicioHora, finHora] = fijaFranja.split(" - ");
+    const [inicioHora] = fijaFranja.split(" - ");
 
     setFijaLoading(true);
 
