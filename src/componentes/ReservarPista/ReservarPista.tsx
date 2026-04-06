@@ -316,6 +316,7 @@ function ReservarPista({ date }: { date: Date }) {
     } catch (error) {
       console.error("Error inesperado:", error);
       setErrorMsg("Error inesperado al reservar.");
+      // setLoading(false);
     }
   };
 
