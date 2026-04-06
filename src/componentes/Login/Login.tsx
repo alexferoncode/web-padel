@@ -19,25 +19,38 @@ export default function Login() {
   const [step, setStep] = useState<"form" | "verifyEmail" | "verified">("form");
   const [user, setUser] = useState<any>(null);
 
-  // 🔹 Inicializar user y step según authUser al cargar
+  /* -------------------- Navegar según rol -------------------- */
+  const handleNavigateAfterLogin = async (userId: string) => {
+    const { data: perfil } = await supabase
+      .from("profile")
+      .select("rol")
+      .eq("id", userId)
+      .single();
+
+    if (perfil?.rol === "admin") {
+      navigate("/admin");
+    } else {
+      navigate("/reservar");
+    }
+  };
+
+  /* -------------------- Inicializar según authUser -------------------- */
   useEffect(() => {
     if (authUser) {
       setUser(authUser);
       if (authUser.email_confirmed_at) {
         setStep("verified");
-        // Redirigir a /reservar si ya está verificado
-        navigate("/reservar");
+        handleNavigateAfterLogin(authUser.id);
       } else {
         setStep("verifyEmail");
       }
     }
   }, [authUser, navigate]);
 
-  // Detectar si viene de verificación: /login?verified=1
+  /* -------------------- Verificación por URL -------------------- */
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const verified = params.get("verified");
-
     if (verified === "1") {
       handleVerificationRedirect();
     }
@@ -52,15 +65,14 @@ export default function Login() {
       if (data.user?.email_confirmed_at) {
         setUser(data.user);
         setStep("verified");
-        // Redirigir a /reservar después de verificar
-        navigate("/reservar");
+        handleNavigateAfterLogin(data.user.id);
       }
     } catch (err: any) {
       setErrorMsg("Error verificando la cuenta");
     }
   };
 
-  // ===== LOGIN =====
+  /* -------------------- Login -------------------- */
   const handleLogin = async () => {
     setErrorMsg("");
     setSuccessMsg("");
@@ -81,7 +93,7 @@ export default function Login() {
           setErrorMsg("Email o contraseña erróneos");
         } else if (error.message.includes("Email not confirmed")) {
           setErrorMsg(
-            "Aún no has verificado tu cuenta desde el email que te hemos enviado."
+            "Aún no has verificado tu cuenta desde el email que te hemos enviado.",
           );
           setStep("verifyEmail");
           return;
@@ -94,8 +106,7 @@ export default function Login() {
       if (data.user?.email_confirmed_at) {
         setUser(data.user);
         setStep("verified");
-        // Redirigir a /reservar después de login exitoso
-        navigate("/reservar");
+        handleNavigateAfterLogin(data.user.id);
       } else {
         setUser(data.user);
         setStep("verifyEmail");
@@ -105,7 +116,7 @@ export default function Login() {
     }
   };
 
-  // ===== REGISTRO =====
+  /* -------------------- Registro -------------------- */
   const handleRegister = async () => {
     setErrorMsg("");
     setSuccessMsg("");
@@ -154,12 +165,12 @@ export default function Login() {
     }
   };
 
-  // ===== CONTINUAR =====
+  /* -------------------- Continuar -------------------- */
   const handleContinue = async () => {
     setErrorMsg("Verifica tu email y vuelve desde el enlace que te enviamos.");
   };
 
-  // ===== LOGOUT =====
+  /* -------------------- Logout -------------------- */
   const handleLogout = async () => {
     await supabase.auth.signOut();
     setUser(null);
@@ -191,13 +202,12 @@ export default function Login() {
                   value={lastName}
                   onChange={(e) => setLastName(e.target.value)}
                   className="login_input"
-                />{" "}
+                />
                 <input
-                  type="tel" // tipo "tel" es más semántico para teléfonos
+                  type="tel"
                   placeholder="Teléfono"
                   value={telefono}
                   onChange={(e) => {
-                    // Filtra solo dígitos
                     const onlyNumbers = e.target.value.replace(/\D/g, "");
                     setTelefono(onlyNumbers);
                   }}
@@ -278,9 +288,6 @@ export default function Login() {
           <h2 className="login_h2_verificado">
             ¡Bienvenido {user.user_metadata?.first_name || user.email}!
           </h2>
-          {/* <button onClick={handleLogout} className="login_btn">
-            Cerrar sesión
-          </button> */}
         </div>
       )}
     </div>

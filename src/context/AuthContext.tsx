@@ -21,6 +21,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [reservas, setReservas] = useState<ReservaUsuario[]>([]);
+  const [rol, setRol] = useState<string | null>(null);
   const location = useLocation();
 
   /* -------------------- Cargar reservas -------------------- */
@@ -48,16 +49,41 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   useEffect(() => {
     const getSession = async () => {
       const { data } = await supabase.auth.getSession();
-      setUser(data.session?.user ?? null);
+      const currentUser = data.session?.user ?? null;
+      setUser(currentUser);
+
+      if (currentUser) {
+        const { data: perfil } = await supabase
+          .from("profile")
+          .select("rol")
+          .eq("id", currentUser.id)
+          .single();
+        setRol(perfil?.rol ?? null);
+      } else {
+        setRol(null);
+      }
+
       setLoading(false);
     };
 
     getSession();
 
     const { data: listener } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setUser(session?.user ?? null);
-      }
+      async (_event, session) => {
+        const currentUser = session?.user ?? null;
+        setUser(currentUser);
+
+        if (currentUser) {
+          const { data: perfil } = await supabase
+            .from("profile")
+            .select("rol")
+            .eq("id", currentUser.id)
+            .single();
+          setRol(perfil?.rol ?? null);
+        } else {
+          setRol(null);
+        }
+      },
     );
 
     return () => {
@@ -76,7 +102,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   }, [user, location.pathname]);
 
   return (
-    <AuthContext.Provider value={{ user, loading, reservas, cargarReservas }}>
+    <AuthContext.Provider
+      value={{ user, loading, reservas, cargarReservas, rol }}
+    >
       {children}
     </AuthContext.Provider>
   );

@@ -17,9 +17,14 @@ function Navbar() {
   const location = useLocation();
   const isActive = (path: string) => location.pathname.startsWith(path);
   const navigate = useNavigate();
-  const { user: authUser, reservas } = useAuth() as {
+  const {
+    user: authUser,
+    reservas,
+    rol,
+  } = useAuth() as {
     user: any;
     reservas: ReservaUsuario[];
+    rol: string | null;
   };
   // const [reservasUsuario, setReservasUsuario] = useState<ReservaUsuario[]>([]);
 
@@ -110,14 +115,23 @@ function Navbar() {
           )}
 
           <li className="horizontal_li">
-            <span
-              className={`horizontal_href horizontal_href_reservar ${
-                isActive("/reservar") ? "active_nav_reservar" : ""
-              }`}
-              onClick={() => navigate("/reservar")}
-            >
-              RESERVAR
-            </span>
+            {rol === "admin" ? (
+              <span
+                className="horizontal_href horizontal_href_reservar"
+                onClick={() => navigate("/admin")}
+              >
+                ADMIN
+              </span>
+            ) : (
+              <span
+                className={`horizontal_href horizontal_href_reservar ${
+                  isActive("/reservar") ? "active_nav_reservar" : ""
+                }`}
+                onClick={() => navigate("/reservar")}
+              >
+                RESERVAR
+              </span>
+            )}
           </li>
 
           <li className="horizontal_li hideOnMobile">
