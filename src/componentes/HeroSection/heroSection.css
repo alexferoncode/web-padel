@@ -74,7 +74,7 @@
     font-size: 25px;
   }
   .div_hero_section {
-    background-image: url("public/images/pistas.jpg");
+    background-image: url("/images/pistas.jpg");
   }
 }
 

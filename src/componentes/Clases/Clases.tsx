@@ -11,7 +11,7 @@ function Clases() {
         </div>
         <div className="clases_video_div">
           <video className="clases_video" controls>
-            <source src="/public/videos/videomonitores.mp4" type="video/mp4" />
+            <source src="/videos/videomonitores.mp4" type="video/mp4" />
             Fallo de reproducción.
           </video>
         </div>
@@ -19,7 +19,7 @@ function Clases() {
           <div className="clases_monitor">
             <img
               className="clases_monitor_img"
-              src="public/images/guille.png"
+              src="/images/guille.png"
               alt=""
             />
             <p className="clases_monitor_p">Guille Acosta</p>
@@ -27,7 +27,7 @@ function Clases() {
           <div className="clases_monitor">
             <img
               className="clases_monitor_img"
-              src="public/images/bodalo.png"
+              src="/images/bodalo.png"
               alt=""
             />
             <p className="clases_monitor_p">David Bódalo</p>
@@ -43,7 +43,7 @@ function Clases() {
                 <li className="clases_precios_li">
                   <img
                     className="clases_precios_img"
-                    src="public/images/pala1_b.png"
+                    src="/images/pala1_b.png"
                     alt=""
                   />
                   <p className="clases_precios_p">
@@ -53,7 +53,7 @@ function Clases() {
                 <li className="clases_precios_li">
                   <img
                     className="clases_precios_img"
-                    src="public/images/pala2_b.png"
+                    src="/images/pala2_b.png"
                     alt=""
                   />
                   <p className="clases_precios_p">
@@ -63,7 +63,7 @@ function Clases() {
                 <li className="clases_precios_li">
                   <img
                     className="clases_precios_img"
-                    src="public/images/pala3_b.png"
+                    src="/images/pala3_b.png"
                     alt=""
                   />
                   <p className="clases_precios_p">
@@ -73,7 +73,7 @@ function Clases() {
                 <li className="clases_precios_li">
                   <img
                     className="clases_precios_img"
-                    src="public/images/pala4_b.png"
+                    src="/images/pala4_b.png"
                     alt=""
                   />
                   <p className="clases_precios_p">
@@ -88,7 +88,7 @@ function Clases() {
                 <li className="clases_precios_li">
                   <img
                     className="clases_precios_img"
-                    src="public/images/pala1_b.png"
+                    src="/images/pala1_b.png"
                     alt=""
                   />
                   <p className="clases_precios_p">
@@ -98,7 +98,7 @@ function Clases() {
                 <li className="clases_precios_li">
                   <img
                     className="clases_precios_img"
-                    src="public/images/pala2_b.png"
+                    src="/images/pala2_b.png"
                     alt=""
                   />
                   <p className="clases_precios_p">
@@ -108,7 +108,7 @@ function Clases() {
                 <li className="clases_precios_li">
                   <img
                     className="clases_precios_img"
-                    src="public/images/pala3_b.png"
+                    src="/images/pala3_b.png"
                     alt=""
                   />
                   <p className="clases_precios_p">
@@ -118,7 +118,7 @@ function Clases() {
                 <li className="clases_precios_li">
                   <img
                     className="clases_precios_img"
-                    src="public/images/pala4_b.png"
+                    src="/images/pala4_b.png"
                     alt=""
                   />
                   <p className="clases_precios_p">
