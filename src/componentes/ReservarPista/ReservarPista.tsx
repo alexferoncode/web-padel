@@ -64,7 +64,6 @@ function ReservarPista({ date }: { date: Date }) {
   -----------------------------------------------------*/
   useEffect(() => {
     let cancelado = false;
-    let intentos = 0;
 
     const cargarPistas = async () => {
       const { data, error } = await supabase
@@ -75,12 +74,7 @@ function ReservarPista({ date }: { date: Date }) {
       if (cancelado) return;
 
       if (error || !data || data.length === 0) {
-        if (intentos < 3) {
-          intentos++;
-          setTimeout(cargarPistas, 1000);
-        } else {
-          setErrorPistas(true);
-        }
+        console.error("Error cargando pistas:", error);
         return;
       }
 
@@ -92,7 +86,7 @@ function ReservarPista({ date }: { date: Date }) {
     return () => {
       cancelado = true;
     };
-  }, []);
+  }, [userId]);
 
   /* ----------------------------------------------------
       0.5) OBTENER USUARIO LOGUEADO
