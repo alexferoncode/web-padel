@@ -667,6 +667,9 @@
     font-size: 18px;
   }
 
+  .admin_div_reserva_bloque.torneo {
+    overflow: hidden;
+  }
 
 }
 
