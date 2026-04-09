@@ -75,7 +75,7 @@ function Navbar() {
   const handleLogout = async () => {
     await supabase.auth.signOut();
     handleMenuClickCerrar();
-    navigate("/"); // opcional: redirige a home
+    window.location.href = "/";
   };
 
   return (
