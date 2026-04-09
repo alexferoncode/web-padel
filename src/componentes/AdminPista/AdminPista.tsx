@@ -223,15 +223,18 @@ function AdminPista({ date }: { date: Date }) {
     let intentos = 0;
 
     const cargarPistas = async () => {
+      console.log(`[pistas] intento ${intentos + 1}`);
+
       const { data, error } = await supabase
         .from("pistas")
         .select("id, nombre")
         .order("id");
 
+      console.log(`[pistas] data:`, data, `error:`, error);
+
       if (cancelado) return;
 
       if (error || !data || data.length === 0) {
-        console.error("Error cargando pistas, reintentando...", error);
         if (intentos < 3) {
           intentos++;
           setTimeout(cargarPistas, 1000);
