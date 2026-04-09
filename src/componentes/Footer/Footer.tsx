@@ -28,9 +28,6 @@ function Footer() {
               <li className="li_footer" onClick={() => navigate("/clases")}>
                 Clases
               </li>
-              <li className="li_footer" onClick={() => navigate("/contacto")}>
-                Contacto
-              </li>
             </ul>
           </div>
           <div className="div_div_footer">
@@ -39,11 +36,17 @@ function Footer() {
               <li>Calle B, 22, Polígono Industrial Campollano, Albacete</li>
               <li>WhatsApp: 649 28 07 34</li>
               <li>
-                <img
-                  className="instagram_footer"
-                  src="images/instagram.png"
-                  alt=""
-                />
+                <a
+                  href="https://www.instagram.com/propadel360/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <img
+                    className="instagram_footer"
+                    src="images/instagram.png"
+                    alt="Instagram Pro Pádel 360"
+                  />
+                </a>
               </li>
             </ul>
           </div>
