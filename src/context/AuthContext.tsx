@@ -72,6 +72,11 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       async (_event, session) => {
         const currentUser = session?.user ?? null;
 
+        setUser((prev: any) => {
+          if (prev?.id === currentUser?.id) return prev;
+          return currentUser;
+        });
+
         if (currentUser) {
           const { data: perfil } = await supabase
             .from("profile")
@@ -82,8 +87,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         } else {
           setRol(null);
         }
-
-        setUser(currentUser);
       },
     );
 
