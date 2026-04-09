@@ -50,7 +50,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     const getSession = async () => {
       const { data } = await supabase.auth.getSession();
       const currentUser = data.session?.user ?? null;
-      setUser(currentUser);
 
       if (currentUser) {
         const { data: perfil } = await supabase
@@ -63,6 +62,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         setRol(null);
       }
 
+      setUser(currentUser);
       setLoading(false);
     };
 
@@ -71,7 +71,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     const { data: listener } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
         const currentUser = session?.user ?? null;
-        setUser(currentUser);
 
         if (currentUser) {
           const { data: perfil } = await supabase
@@ -83,6 +82,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         } else {
           setRol(null);
         }
+
+        setUser(currentUser);
       },
     );
 
