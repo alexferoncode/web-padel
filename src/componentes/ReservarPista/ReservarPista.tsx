@@ -46,7 +46,6 @@ function ReservarPista({ date }: { date: Date }) {
   const [reservasSupabase, setReservasSupabase] = useState<ReservaDB[]>([]);
   const [pistasDB, setPistasDB] = useState<PistaDB[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
-  const [errorPistas, setErrorPistas] = useState(false);
 
   // Overlay
   const [showOverlay, setShowOverlay] = useState(false);
@@ -396,15 +395,10 @@ function ReservarPista({ date }: { date: Date }) {
   /* ----------------------------------------------------
       7) RENDER
   -----------------------------------------------------*/
-  if (pistasDB.length === 0 && !errorPistas) {
+  if (pistasDB.length === 0) {
     return <div className="cargando">Cargando pistas...</div>;
   }
 
-  if (errorPistas) {
-    return (
-      <div className="cargando">Error cargando pistas. Recarga la página.</div>
-    );
-  }
   return (
     <>
       {/* OVERLAY */}
