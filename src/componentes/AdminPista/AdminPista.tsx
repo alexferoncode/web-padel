@@ -1879,13 +1879,37 @@ function AdminPista({ date }: { date: Date }) {
   /* ----------------------------------------------------
       7) RENDER
   -----------------------------------------------------*/
+  // if (pistasDB.length === 0 && !errorPistas) {
+  //   return <div className="cargando">Cargando pistas...</div>;
+  // }
+
+  // if (errorPistas) {
+  //   return (
+  //     <div className="cargando">Error cargando pistas. Recarga la página.</div>
+  //   );
+  // }
+
   if (pistasDB.length === 0 && !errorPistas) {
-    return <div className="cargando">Cargando pistas...</div>;
+    return (
+      <div
+        className="cargando"
+        style={{ color: "white", padding: 20, background: "#003b5c" }}
+      >
+        <p>Cargando pistas...</p>
+        <p>errorPistas: {String(errorPistas)}</p>
+        <p>pistasDB length: {pistasDB.length}</p>
+      </div>
+    );
   }
 
   if (errorPistas) {
     return (
-      <div className="cargando">Error cargando pistas. Recarga la página.</div>
+      <div
+        className="cargando"
+        style={{ color: "white", padding: 20, background: "#003b5c" }}
+      >
+        <p>Error cargando pistas</p>
+      </div>
     );
   }
 
