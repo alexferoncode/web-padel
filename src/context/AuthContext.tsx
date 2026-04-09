@@ -72,10 +72,18 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       async (_event, session) => {
         const currentUser = session?.user ?? null;
 
-        setUser((prev: any) => {
-          if (prev?.id === currentUser?.id) return prev;
-          return currentUser;
+        const mismoUsuario = await new Promise<boolean>((resolve) => {
+          setUser((prev: any) => {
+            if (prev?.id === currentUser?.id) {
+              resolve(true);
+              return prev;
+            }
+            resolve(false);
+            return currentUser;
+          });
         });
+
+        if (mismoUsuario) return;
 
         if (currentUser) {
           const { data: perfil } = await supabase
