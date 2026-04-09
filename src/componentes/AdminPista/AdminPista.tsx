@@ -219,6 +219,7 @@ function AdminPista({ date }: { date: Date }) {
       0) CARGAR PISTAS
   -----------------------------------------------------*/
   useEffect(() => {
+    let cancelado = false;
     let intentos = 0;
 
     const cargarPistas = async () => {
@@ -226,6 +227,8 @@ function AdminPista({ date }: { date: Date }) {
         .from("pistas")
         .select("id, nombre")
         .order("id");
+
+      if (cancelado) return;
 
       if (error || !data || data.length === 0) {
         console.error("Error cargando pistas, reintentando...", error);
@@ -242,6 +245,10 @@ function AdminPista({ date }: { date: Date }) {
     };
 
     cargarPistas();
+
+    return () => {
+      cancelado = true;
+    };
   }, []);
 
   /* ----------------------------------------------------
