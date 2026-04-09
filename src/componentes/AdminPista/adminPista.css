@@ -662,6 +662,11 @@
     width: 160px;
   }
 
+  .admin_div_reserva_bloque.torneo .texto_reserva {
+    transform: rotate(-90deg);
+    font-size: 18px;
+  }
+
 
 }
 
