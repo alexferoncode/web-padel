@@ -43,8 +43,18 @@ export default function Pagina_Admin() {
   }, [user, loading, rol, navigate]);
 
   // --------------------- Render condicional ---------------------
+  // if (loading || isAdmin === null) {
+  //   return <div>Cargando...</div>;
+  // }
   if (loading || isAdmin === null) {
-    return <div>Cargando...</div>;
+    return (
+      <div style={{ color: "white", padding: 20, background: "black" }}>
+        <p>loading: {String(loading)}</p>
+        <p>isAdmin: {String(isAdmin)}</p>
+        <p>user: {user ? user.email : "null"}</p>
+        <p>rol: {rol ?? "null"}</p>
+      </div>
+    );
   }
 
   return (
