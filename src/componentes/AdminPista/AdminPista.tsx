@@ -65,6 +65,8 @@ function AdminPista({ date }: { date: Date }) {
   const [reservasSupabase, setReservasSupabase] = useState<ReservaDB[]>([]);
   const [pistasDB, setPistasDB] = useState<PistaDB[]>([]);
 
+  const [errorPistas, setErrorPistas] = useState(false);
+
   // Overlay
   const [showOverlay, setShowOverlay] = useState(false);
   const [showOverlayConfirmacion, setshowOverlayConfirmacion] = useState(false);
@@ -217,17 +219,28 @@ function AdminPista({ date }: { date: Date }) {
       0) CARGAR PISTAS
   -----------------------------------------------------*/
   useEffect(() => {
+    let intentos = 0;
+
     const cargarPistas = async () => {
       const { data, error } = await supabase
         .from("pistas")
         .select("id, nombre")
         .order("id");
-      if (error) {
-        console.error("Error cargando pistas:", error);
+
+      if (error || !data || data.length === 0) {
+        console.error("Error cargando pistas, reintentando...", error);
+        if (intentos < 3) {
+          intentos++;
+          setTimeout(cargarPistas, 1000);
+        } else {
+          setErrorPistas(true);
+        }
         return;
       }
-      setPistasDB(data || []);
+
+      setPistasDB(data);
     };
+
     cargarPistas();
   }, []);
 
@@ -1859,8 +1872,14 @@ function AdminPista({ date }: { date: Date }) {
   /* ----------------------------------------------------
       7) RENDER
   -----------------------------------------------------*/
-  if (pistasDB.length === 0) {
+  if (pistasDB.length === 0 && !errorPistas) {
     return <div className="cargando">Cargando pistas...</div>;
+  }
+
+  if (errorPistas) {
+    return (
+      <div className="cargando">Error cargando pistas. Recarga la página.</div>
+    );
   }
 
   return (
