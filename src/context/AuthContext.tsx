@@ -88,39 +88,53 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   /* -------------------- Autenticación -------------------- */
   useEffect(() => {
     const getSession = async () => {
-      console.log("🔵 getSession iniciando...");
       try {
-        const sessionPromise = supabase.auth.getSession();
-        const timeoutPromise = new Promise<null>((resolve) =>
-          setTimeout(() => resolve(null), 10000),
+        // Leer token directamente del localStorage sin pasar por supabase-js
+        const storageKey = Object.keys(localStorage).find(
+          (k) => k.startsWith("sb-") && k.endsWith("-auth-token"),
         );
 
-        const result = await Promise.race([sessionPromise, timeoutPromise]);
-
-        console.log("🟡 Promise.race resultado:", result);
-
-        const currentUser = result
-          ? ((result as any).data?.session?.user ?? null)
-          : null;
-
-        console.log("🟢 currentUser:", currentUser?.id ?? "null");
-
-        if (currentUser) {
-          const { data: perfil } = await supabase
-            .from("profile")
-            .select("rol")
-            .eq("id", currentUser.id)
-            .single();
-          setRol(perfil?.rol ?? null);
-        } else {
+        if (!storageKey) {
+          // No hay sesión guardada, usuario no logueado
+          setUser(null);
           setRol(null);
+          setLoading(false);
+          return;
         }
 
-        setUser(currentUser);
+        const raw = localStorage.getItem(storageKey);
+        if (!raw) {
+          setUser(null);
+          setRol(null);
+          setLoading(false);
+          return;
+        }
+
+        const parsed = JSON.parse(raw);
+        const currentUser = parsed?.user ?? null;
+        const accessToken = parsed?.access_token ?? null;
+
+        if (currentUser && accessToken) {
+          // Cargar rol con fetch directo también
+          const url = `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/profile?select=rol&id=eq.${currentUser.id}&limit=1`;
+          const res = await fetch(url, {
+            headers: {
+              apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+              Authorization: `Bearer ${accessToken}`,
+            },
+          });
+          const perfiles = await res.json();
+          setRol(perfiles?.[0]?.rol ?? null);
+          setUser(currentUser);
+        } else {
+          setUser(null);
+          setRol(null);
+        }
       } catch (e) {
-        console.error("🔴 getSession error:", e);
+        console.error("Error leyendo sesión:", e);
+        setUser(null);
+        setRol(null);
       } finally {
-        console.log("⚫ setLoading(false)");
         setLoading(false);
       }
     };
