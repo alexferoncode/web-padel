@@ -50,7 +50,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       // Esperar a que Supabase resuelva la sesión (máx 3 segundos)
       await new Promise<void>((resolve) => {
         const { data: listener } = supabase.auth.onAuthStateChange(
-          (_event, session) => {
+          (_event, _session) => {
             listener.subscription.unsubscribe();
             resolve();
           },
