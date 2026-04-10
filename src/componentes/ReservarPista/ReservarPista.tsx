@@ -395,15 +395,46 @@ function ReservarPista({ date }: { date: Date }) {
     }
   };
 
+  // /* ----------------------------------------------------
+  //     7) RENDER
+  // -----------------------------------------------------*/
+  // if (pistasDB.length === 0) {
+  //   return <div className="cargando">Cargando pistas...</div>;
+  // }
+
+  // return (
+  //   <>
   /* ----------------------------------------------------
       7) RENDER
   -----------------------------------------------------*/
+  const debugInfo = {
+    pistasDB_length: pistasDB.length,
+    userId,
+    reservasSupabase_length: reservasSupabase.length,
+  };
+
   if (pistasDB.length === 0) {
     return <div className="cargando">Cargando pistas...</div>;
   }
 
   return (
     <>
+      {/* DEBUG - quitar después */}
+      <div
+        style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          zIndex: 9999,
+          background: "rgba(0,0,0,0.8)",
+          color: "lime",
+          fontSize: "12px",
+          padding: "8px",
+          maxWidth: "100vw",
+        }}
+      >
+        <pre>{JSON.stringify(debugInfo, null, 2)}</pre>
+      </div>
       {/* OVERLAY */}
       <div
         onClick={() => setShowOverlay(false)}
