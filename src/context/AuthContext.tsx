@@ -23,6 +23,7 @@ interface AuthContextType {
   cargarReservas: (userId: string | null) => Promise<void>;
   rol: string | null;
   pistas: PistaDB[];
+  pistasStatus: string;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -39,23 +40,24 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [pistas, setPistas] = useState<PistaDB[]>([]);
   const location = useLocation();
 
+  const [pistasStatus, setPistasStatus] = useState<string>("iniciando");
+
   /* -------------------- Cargar pistas -------------------- */
   useEffect(() => {
     const cargarPistas = async () => {
-      console.log("🔵 Intentando cargar pistas...");
+      setPistasStatus("cargando...");
 
       const { data, error } = await supabase
         .from("pistas")
         .select("id, nombre")
         .order("id");
 
-      console.log("🟡 Resultado pistas:", { data, error });
-
       if (error || !data) {
-        console.error("❌ Error cargando pistas:", error);
+        setPistasStatus(`error: ${JSON.stringify(error)}`);
         return;
       }
-      console.log("✅ Pistas cargadas:", data.length);
+
+      setPistasStatus(`ok: ${data.length} pistas`);
       setPistas(data);
     };
 
@@ -152,7 +154,15 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   return (
     <AuthContext.Provider
-      value={{ user, loading, reservas, cargarReservas, rol, pistas }}
+      value={{
+        user,
+        loading,
+        reservas,
+        cargarReservas,
+        rol,
+        pistas,
+        pistasStatus,
+      }}
     >
       {children}
     </AuthContext.Provider>

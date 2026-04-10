@@ -40,7 +40,7 @@ interface BloqueReserva {
 
 function ReservarPista({ date }: { date: Date }) {
   const navigate = useNavigate();
-  const { user, pistas: pistasDB } = useAuth(); // 👈 pistas y user desde contexto
+  const { user, pistas: pistasDB, pistasStatus } = useAuth(); // 👈 pistas y user desde contexto
   const userId = user?.id ?? null; // 👈 userId derivado del contexto
 
   const startHour = 8;
@@ -410,6 +410,7 @@ function ReservarPista({ date }: { date: Date }) {
   const debugInfo = {
     pistasDB_length: pistasDB.length,
     userId,
+    pistasStatus,
     reservasSupabase_length: reservasSupabase.length,
     timestamp: new Date().toLocaleTimeString(),
   };
