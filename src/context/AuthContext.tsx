@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import type { ReactNode } from "react";
-import { supabase, supabasePublic } from "../../supabaseClient";
+import { supabase } from "../../supabaseClient";
 import { useLocation } from "react-router-dom";
 
 interface ReservaUsuario {
