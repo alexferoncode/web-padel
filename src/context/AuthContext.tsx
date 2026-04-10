@@ -47,17 +47,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     const cargarPistas = async () => {
       setPistasStatus("esperando sesión...");
 
-      // Esperar a que Supabase resuelva la sesión (máx 3 segundos)
-      await new Promise<void>((resolve) => {
-        const { data: listener } = supabase.auth.onAuthStateChange(
-          (_event, _session) => {
-            listener.subscription.unsubscribe();
-            resolve();
-          },
-        );
-        // Si no hay cambio de estado en 3s, continuar igualmente
-        setTimeout(resolve, 3000);
-      });
+      // Esperar a que getSession resuelva
+      await supabase.auth.getSession();
 
       setPistasStatus("cargando tras sesión...");
 
