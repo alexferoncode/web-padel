@@ -30,11 +30,6 @@ interface ReservaDB {
   invitado_tlf?: string | null;
 }
 
-interface PistaDB {
-  id: number;
-  nombre: string;
-}
-
 interface BloqueReserva {
   id?: number;
   pista: number;
@@ -65,8 +60,6 @@ function AdminPista({ date }: { date: Date }) {
   const endHour = 23;
 
   const [reservasSupabase, setReservasSupabase] = useState<ReservaDB[]>([]);
-
-  const [errorPistas, setErrorPistas] = useState(false);
 
   // Overlay
   const [showOverlay, setShowOverlay] = useState(false);
@@ -1885,12 +1878,6 @@ function AdminPista({ date }: { date: Date }) {
 
   if (pistasDB.length === 0) {
     return <div className="cargando">Cargando pistas...</div>;
-  }
-
-  if (errorPistas) {
-    return (
-      <div className="cargando">Error cargando pistas. Recarga la página.</div>
-    );
   }
 
   return (
