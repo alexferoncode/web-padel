@@ -1876,44 +1876,419 @@ function AdminPista({ date }: { date: Date }) {
   //   );
   // }
 
-  if (pistasDB.length === 0) {
-    return <div className="cargando">Cargando pistas...</div>;
-  }
+  /* ----------------------------------------------------
+      7) RENDER
+  -----------------------------------------------------*/
+  const debugInfo = {
+    pistasDB_length: pistasDB.length,
+    timestamp: new Date().toLocaleTimeString(),
+  };
 
   return (
     <>
-      {/* OVERLAY PRINCIPAL */}
       <div
-        onClick={() => setShowOverlay(false)}
-        className={`reserva_overlay ${showOverlay ? "show" : ""}`}
+        style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          zIndex: 9999,
+          background: "rgba(0,0,0,0.8)",
+          color: "lime",
+          fontSize: "12px",
+          padding: "8px",
+          maxWidth: "100vw",
+        }}
       >
-        <div
-          className="reservas_contenido"
-          onClick={(e) => e.stopPropagation()}
-        >
-          {bloqueSeleccionado ? (
-            <div className="div_confirmar_reserva">
-              {/* cancelOverlay && <h2>¿Quieres cancelar esta pista?</h2> */}
-              {cancelClaseOverlay && <h2>¿Quieres cancelar esta clase?</h2>}
+        <pre>{JSON.stringify(debugInfo, null, 2)}</pre>
+      </div>
 
-              {bloqueSeleccionado.user_id && (
-                <div>
-                  {bloqueSeleccionado.estado === "clase" ? (
+      {pistasDB.length === 0 ? (
+        <div className="cargando">Cargando pistas...</div>
+      ) : (
+        <>
+          {/* OVERLAY PRINCIPAL */}
+          <div
+            onClick={() => setShowOverlay(false)}
+            className={`reserva_overlay ${showOverlay ? "show" : ""}`}
+          >
+            <div
+              className="reservas_contenido"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {bloqueSeleccionado ? (
+                <div className="div_confirmar_reserva">
+                  {/* cancelOverlay && <h2>¿Quieres cancelar esta pista?</h2> */}
+                  {cancelClaseOverlay && <h2>¿Quieres cancelar esta clase?</h2>}
+
+                  {bloqueSeleccionado.user_id && (
+                    <div>
+                      {bloqueSeleccionado.estado === "clase" ? (
+                        <h2>
+                          Monitor:{" "}
+                          {
+                            perfiles.find(
+                              (p) => p.id === bloqueSeleccionado.user_id,
+                            )?.first_name
+                          }{" "}
+                          {
+                            perfiles.find(
+                              (p) => p.id === bloqueSeleccionado.user_id,
+                            )?.last_name
+                          }
+                        </h2>
+                      ) : (
+                        <>
+                          <h2>
+                            {
+                              perfiles.find(
+                                (p) => p.id === bloqueSeleccionado.user_id,
+                              )?.first_name
+                            }{" "}
+                            {
+                              perfiles.find(
+                                (p) => p.id === bloqueSeleccionado.user_id,
+                              )?.last_name
+                            }
+                          </h2>
+                          <h2>
+                            {
+                              perfiles.find(
+                                (p) => p.id === bloqueSeleccionado.user_id,
+                              )?.email
+                            }
+                          </h2>
+                          <h2>
+                            tlf:{" "}
+                            {
+                              perfiles.find(
+                                (p) => p.id === bloqueSeleccionado.user_id,
+                              )?.tlf
+                            }
+                          </h2>
+                        </>
+                      )}
+                    </div>
+                  )}
+                  {!bloqueSeleccionado.user_id &&
+                    bloqueSeleccionado.invitado_nombre && (
+                      <div>
+                        <h2>👤 {bloqueSeleccionado.invitado_nombre}</h2>
+                        {bloqueSeleccionado.invitado_tlf && (
+                          <h2>tlf: {bloqueSeleccionado.invitado_tlf}</h2>
+                        )}
+                      </div>
+                    )}
+                  <div className="admin_div_info_reserva">
                     <h2>
-                      Monitor:{" "}
-                      {
-                        perfiles.find(
-                          (p) => p.id === bloqueSeleccionado.user_id,
-                        )?.first_name
-                      }{" "}
-                      {
-                        perfiles.find(
-                          (p) => p.id === bloqueSeleccionado.user_id,
-                        )?.last_name
-                      }
+                      {date
+                        .toLocaleDateString("es-ES", {
+                          weekday: "long",
+                          day: "2-digit",
+                          month: "long",
+                          year: "numeric",
+                        })
+                        .replace(/^./, (c) => c.toUpperCase())}
                     </h2>
-                  ) : (
-                    <>
+                    <h2>
+                      {bloqueSeleccionado.inicio} - {bloqueSeleccionado.fin}
+                    </h2>
+                    <h2>Pista {bloqueSeleccionado.pista}</h2>
+                  </div>
+
+                  {/* SECCIÓN PAGADO (solo en ocupada) */}
+                  {cancelOverlay && (
+                    <div className="admin_pagado_section">
+                      <p className="admin_pagado_titulo">Pagado</p>
+                      <div className="admin_pagado_checkboxes">
+                        {(
+                          [
+                            "Jugador 1",
+                            "Jugador 2",
+                            "Jugador 3",
+                            "Jugador 4",
+                          ] as const
+                        ).map((label, i) => (
+                          <label key={i} className="admin_pagado_label">
+                            <input
+                              type="checkbox"
+                              className="admin_pagado_checkbox"
+                              checked={pagados[i as 0 | 1 | 2 | 3]}
+                              onChange={(e) =>
+                                handleTogglePagado(
+                                  i as 0 | 1 | 2 | 3,
+                                  e.target.checked,
+                                )
+                              }
+                            />
+                            <span>{label}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* SECCIÓN PRODUCTOS (solo en ocupada) */}
+                  {cancelOverlay && (
+                    <div className="admin_productos_section">
+                      <p className="admin_productos_titulo">Productos</p>
+
+                      <div className="admin_productos_botones">
+                        {PRODUCTOS.map(({ key, label }) => (
+                          <button
+                            key={key}
+                            className="admin_producto_add_btn"
+                            onClick={() => handleAñadirProducto(key)}
+                          >
+                            + {label}
+                          </button>
+                        ))}
+                      </div>
+
+                      {pedidosLoading ? (
+                        <p style={{ textAlign: "center", color: "white" }}>
+                          Cargando...
+                        </p>
+                      ) : pedidos.length === 0 ? (
+                        <p
+                          style={{
+                            textAlign: "center",
+                            color: "rgba(255,255,255,0.5)",
+                            fontSize: "18px",
+                          }}
+                        >
+                          Sin productos añadidos
+                        </p>
+                      ) : (
+                        <div className="admin_productos_lista">
+                          {pedidos.map((pedido) => (
+                            <div
+                              key={pedido.id}
+                              className={`admin_producto_fila ${pedido.pagado ? "pagado" : ""}`}
+                            >
+                              <span className="admin_producto_nombre">
+                                {
+                                  PRODUCTOS.find(
+                                    (p) => p.key === pedido.producto,
+                                  )?.label
+                                }
+                              </span>
+
+                              <label className="admin_producto_pagado_label">
+                                <input
+                                  type="checkbox"
+                                  className="admin_producto_pagado_checkbox"
+                                  checked={pedido.pagado}
+                                  onChange={(e) =>
+                                    handleTogglePedidoPagado(
+                                      pedido,
+                                      e.target.checked,
+                                    )
+                                  }
+                                />
+                                <span>Pagado</span>
+                              </label>
+
+                              <button
+                                className="admin_producto_cantidad_btn"
+                                onClick={() => handleReducirProducto(pedido)}
+                              >
+                                ×
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* SELECT DE USUARIO (solo en bloque libre) */}
+                  {!cancelOverlay && !cancelClaseOverlay && (
+                    <div className="admin_elegir_usuario">
+                      <div className="admin_modo_toggle">
+                        <button
+                          className={`admin_modo_btn ${!modoInvitado ? "activo" : ""}`}
+                          onClick={() => {
+                            setModoInvitado(false);
+                            setInvitadoNombre("");
+                            setInvitadoTlf("");
+                          }}
+                        >
+                          Usuario registrado
+                        </button>
+                        <button
+                          className={`admin_modo_btn ${modoInvitado ? "activo" : ""}`}
+                          onClick={() => {
+                            setModoInvitado(true);
+                            setUsuarioSeleccionado(null);
+                            setBusquedaUsuario("");
+                          }}
+                        >
+                          Invitado
+                        </button>
+                      </div>
+
+                      {!modoInvitado ? (
+                        <div className="admin_buscador_usuario">
+                          <input
+                            type="text"
+                            className="admin_elegir_usuario_select"
+                            placeholder="Buscar usuario por nombre..."
+                            value={
+                              usuarioSeleccionado
+                                ? (() => {
+                                    const p = perfiles.find(
+                                      (p) => p.id === usuarioSeleccionado,
+                                    );
+                                    return p
+                                      ? `${p.first_name} ${p.last_name} – ${p.email}`
+                                      : busquedaUsuario;
+                                  })()
+                                : busquedaUsuario
+                            }
+                            onChange={(e) => {
+                              setBusquedaUsuario(e.target.value);
+                              setUsuarioSeleccionado(null);
+                            }}
+                          />
+                          {!usuarioSeleccionado &&
+                            busquedaUsuario.length > 0 && (
+                              <div className="admin_buscador_lista">
+                                {perfiles
+                                  .filter((p) =>
+                                    `${p.first_name} ${p.last_name}`
+                                      .toLowerCase()
+                                      .includes(busquedaUsuario.toLowerCase()),
+                                  )
+                                  .slice(0, 8)
+                                  .map((p) => (
+                                    <div
+                                      key={p.id}
+                                      className="admin_buscador_opcion"
+                                      onClick={() => {
+                                        setUsuarioSeleccionado(p.id);
+                                        setBusquedaUsuario("");
+                                      }}
+                                    >
+                                      {p.first_name} {p.last_name} – {p.email}
+                                    </div>
+                                  ))}
+                                {perfiles.filter((p) =>
+                                  `${p.first_name} ${p.last_name}`
+                                    .toLowerCase()
+                                    .includes(busquedaUsuario.toLowerCase()),
+                                ).length === 0 && (
+                                  <div className="admin_buscador_opcion admin_buscador_vacio">
+                                    Sin resultados
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                        </div>
+                      ) : (
+                        <div className="admin_invitado_form">
+                          <input
+                            type="text"
+                            className="admin_elegir_usuario_select"
+                            placeholder="Nombre del invitado *"
+                            value={invitadoNombre}
+                            onChange={(e) => setInvitadoNombre(e.target.value)}
+                          />
+                          <input
+                            type="tel"
+                            className="admin_elegir_usuario_select admin_invitado_tlf"
+                            placeholder="Teléfono (opcional)"
+                            value={invitadoTlf}
+                            onChange={(e) => setInvitadoTlf(e.target.value)}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <p>Error al cargar el bloque</p>
+              )}
+
+              {errorMsg && <p className="reserva_error grande">{errorMsg}</p>}
+              {successMsg && (
+                <p className="reserva_success grande">{successMsg}</p>
+              )}
+
+              <div className="div_confirmar_reserva_botones">
+                <button
+                  className="reserva_boton"
+                  id="reserva_boton_cerrar"
+                  onClick={() => setShowOverlay(false)}
+                >
+                  Atrás
+                </button>
+
+                {/* Cancelar CLASE */}
+                {cancelClaseOverlay && (
+                  <button
+                    className="reserva_boton"
+                    onClick={handleCancelarReserva}
+                  >
+                    Cancelar clase
+                  </button>
+                )}
+
+                {/* Cancelar RESERVA normal */}
+                {!cancelClaseOverlay && cancelOverlay && (
+                  <button
+                    className="reserva_boton"
+                    onClick={() => setshowOverlayConfirmacion(true)}
+                  >
+                    Cancelar pista
+                  </button>
+                )}
+
+                {/* Confirmar reserva (bloque libre) */}
+                {!cancelClaseOverlay && !cancelOverlay && (
+                  <>
+                    <button
+                      className="reserva_boton"
+                      id="admin_reserva_boton_confirmar"
+                      onClick={handleConfirmarReserva}
+                      disabled={
+                        modoInvitado
+                          ? !invitadoNombre.trim()
+                          : !usuarioSeleccionado
+                      }
+                    >
+                      Confirmar reserva
+                    </button>
+                    <button
+                      className="reserva_boton"
+                      id="admin_reserva_boton_confirmar"
+                      onClick={handleEliminarBloque}
+                    >
+                      Eliminar bloque
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* OVERLAY: CONFIRMAR CANCELACIÓN */}
+          {showOverlayConfirmacion && (
+            <div
+              className="reserva_overlay show"
+              onClick={() => setshowOverlayConfirmacion(false)}
+            >
+              <div
+                className="reservas_contenido"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="div_confirmar_reserva">
+                  <h2>
+                    ⚠️ <strong>Confirmar cancelación</strong> ⚠️
+                  </h2>
+                  <h2>¿Seguro que quieres cancelar esta pista?</h2>
+
+                  {bloqueSeleccionado?.user_id && (
+                    <div>
                       <h2>
                         {
                           perfiles.find(
@@ -1941,197 +2316,343 @@ function AdminPista({ date }: { date: Date }) {
                           )?.tlf
                         }
                       </h2>
-                    </>
-                  )}
-                </div>
-              )}
-              {!bloqueSeleccionado.user_id &&
-                bloqueSeleccionado.invitado_nombre && (
-                  <div>
-                    <h2>👤 {bloqueSeleccionado.invitado_nombre}</h2>
-                    {bloqueSeleccionado.invitado_tlf && (
-                      <h2>tlf: {bloqueSeleccionado.invitado_tlf}</h2>
-                    )}
-                  </div>
-                )}
-              <div className="admin_div_info_reserva">
-                <h2>
-                  {date
-                    .toLocaleDateString("es-ES", {
-                      weekday: "long",
-                      day: "2-digit",
-                      month: "long",
-                      year: "numeric",
-                    })
-                    .replace(/^./, (c) => c.toUpperCase())}
-                </h2>
-                <h2>
-                  {bloqueSeleccionado.inicio} - {bloqueSeleccionado.fin}
-                </h2>
-                <h2>Pista {bloqueSeleccionado.pista}</h2>
-              </div>
-
-              {/* SECCIÓN PAGADO (solo en ocupada) */}
-              {cancelOverlay && (
-                <div className="admin_pagado_section">
-                  <p className="admin_pagado_titulo">Pagado</p>
-                  <div className="admin_pagado_checkboxes">
-                    {(
-                      [
-                        "Jugador 1",
-                        "Jugador 2",
-                        "Jugador 3",
-                        "Jugador 4",
-                      ] as const
-                    ).map((label, i) => (
-                      <label key={i} className="admin_pagado_label">
-                        <input
-                          type="checkbox"
-                          className="admin_pagado_checkbox"
-                          checked={pagados[i as 0 | 1 | 2 | 3]}
-                          onChange={(e) =>
-                            handleTogglePagado(
-                              i as 0 | 1 | 2 | 3,
-                              e.target.checked,
-                            )
-                          }
-                        />
-                        <span>{label}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* SECCIÓN PRODUCTOS (solo en ocupada) */}
-              {cancelOverlay && (
-                <div className="admin_productos_section">
-                  <p className="admin_productos_titulo">Productos</p>
-
-                  <div className="admin_productos_botones">
-                    {PRODUCTOS.map(({ key, label }) => (
-                      <button
-                        key={key}
-                        className="admin_producto_add_btn"
-                        onClick={() => handleAñadirProducto(key)}
-                      >
-                        + {label}
-                      </button>
-                    ))}
-                  </div>
-
-                  {pedidosLoading ? (
-                    <p style={{ textAlign: "center", color: "white" }}>
-                      Cargando...
-                    </p>
-                  ) : pedidos.length === 0 ? (
-                    <p
-                      style={{
-                        textAlign: "center",
-                        color: "rgba(255,255,255,0.5)",
-                        fontSize: "18px",
-                      }}
-                    >
-                      Sin productos añadidos
-                    </p>
-                  ) : (
-                    <div className="admin_productos_lista">
-                      {pedidos.map((pedido) => (
-                        <div
-                          key={pedido.id}
-                          className={`admin_producto_fila ${pedido.pagado ? "pagado" : ""}`}
-                        >
-                          <span className="admin_producto_nombre">
-                            {
-                              PRODUCTOS.find((p) => p.key === pedido.producto)
-                                ?.label
-                            }
-                          </span>
-
-                          <label className="admin_producto_pagado_label">
-                            <input
-                              type="checkbox"
-                              className="admin_producto_pagado_checkbox"
-                              checked={pedido.pagado}
-                              onChange={(e) =>
-                                handleTogglePedidoPagado(
-                                  pedido,
-                                  e.target.checked,
-                                )
-                              }
-                            />
-                            <span>Pagado</span>
-                          </label>
-
-                          <button
-                            className="admin_producto_cantidad_btn"
-                            onClick={() => handleReducirProducto(pedido)}
-                          >
-                            ×
-                          </button>
-                        </div>
-                      ))}
                     </div>
                   )}
-                </div>
-              )}
 
-              {/* SELECT DE USUARIO (solo en bloque libre) */}
-              {!cancelOverlay && !cancelClaseOverlay && (
-                <div className="admin_elegir_usuario">
-                  <div className="admin_modo_toggle">
-                    <button
-                      className={`admin_modo_btn ${!modoInvitado ? "activo" : ""}`}
-                      onClick={() => {
-                        setModoInvitado(false);
-                        setInvitadoNombre("");
-                        setInvitadoTlf("");
-                      }}
-                    >
-                      Usuario registrado
-                    </button>
-                    <button
-                      className={`admin_modo_btn ${modoInvitado ? "activo" : ""}`}
-                      onClick={() => {
-                        setModoInvitado(true);
-                        setUsuarioSeleccionado(null);
-                        setBusquedaUsuario("");
-                      }}
-                    >
-                      Invitado
-                    </button>
+                  <div className="admin_div_info_reserva">
+                    <h2>
+                      {date
+                        .toLocaleDateString("es-ES", {
+                          weekday: "long",
+                          day: "2-digit",
+                          month: "long",
+                          year: "numeric",
+                        })
+                        .replace(/^./, (c) => c.toUpperCase())}
+                    </h2>
+                    <h2>
+                      {bloqueSeleccionado?.inicio} - {bloqueSeleccionado?.fin}
+                    </h2>
+                    <h2>Pista {bloqueSeleccionado?.pista}</h2>
+                  </div>
+                </div>
+
+                <div className="div_confirmar_reserva_botones">
+                  <button
+                    className="reserva_boton"
+                    id="reserva_boton_cerrar"
+                    onClick={() => setshowOverlayConfirmacion(false)}
+                  >
+                    Atrás
+                  </button>
+                  <button
+                    className="reserva_boton reserva_boton_peligro"
+                    onClick={() => {
+                      setshowOverlayConfirmacion(false);
+                      handleCancelarReserva();
+                    }}
+                  >
+                    Sí, cancelar pista
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* OVERLAY CREAR BLOQUE */}
+          {showOverlayCrearBloque && (
+            <div
+              className="reserva_overlay show"
+              onClick={() => setShowOverlayCrearBloque(false)}
+            >
+              <div
+                className="reservas_contenido"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="div_confirmar_reserva">
+                  <h2>Crear bloque pista libre</h2>
+
+                  <input
+                    type="date"
+                    className="admin_elegir_usuario_select"
+                    value={fechaBloqueSeleccionada}
+                    min={todayISO}
+                    onChange={(e) => setFechaBloqueSeleccionada(e.target.value)}
+                  />
+
+                  <select
+                    className="admin_elegir_usuario_select"
+                    value={franjaSeleccionada}
+                    onChange={(e) => setFranjaSeleccionada(e.target.value)}
+                  >
+                    <option value="">Selecciona horario</option>
+                    {franjasHorarias.map((f, i) => (
+                      <option key={i} value={`${f.inicio} - ${f.fin}`}>
+                        {f.inicio} - {f.fin}
+                      </option>
+                    ))}
+                  </select>
+
+                  <select
+                    className="admin_elegir_usuario_select"
+                    id="admin_elegir_usuario_select_ultimo"
+                    value={pistaSeleccionada}
+                    onChange={(e) =>
+                      setPistaSeleccionada(Number(e.target.value))
+                    }
+                  >
+                    <option value="">Selecciona pista</option>
+                    {pistasDB.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.nombre.replace(/_/g, " ")}
+                      </option>
+                    ))}
+                  </select>
+
+                  {crearBloqueError && (
+                    <p className="reserva_error grande">{crearBloqueError}</p>
+                  )}
+                  {crearBloqueSuccess && (
+                    <p className="reserva_success grande">
+                      {crearBloqueSuccess}
+                    </p>
+                  )}
+                </div>
+
+                <div className="div_confirmar_reserva_botones">
+                  <button
+                    className="reserva_boton"
+                    id="reserva_boton_cerrar"
+                    onClick={() => setShowOverlayCrearBloque(false)}
+                  >
+                    Atrás
+                  </button>
+                  <button
+                    className="reserva_boton"
+                    onClick={handleCrearBloquePista}
+                  >
+                    Crear bloque
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* OVERLAY CREAR CLASE */}
+          {showOverlayCrearClase && (
+            <div
+              className="reserva_overlay show"
+              onClick={() => setShowOverlayCrearClase(false)}
+            >
+              <div
+                className="reservas_contenido"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="div_confirmar_reserva">
+                  <h2>Reservar clase</h2>
+
+                  <input
+                    type="date"
+                    className="admin_elegir_usuario_select"
+                    value={fechaClaseSeleccionada}
+                    min={todayISO}
+                    onChange={(e) => setFechaClaseSeleccionada(e.target.value)}
+                  />
+
+                  <select
+                    className="admin_elegir_usuario_select"
+                    value={franjaClaseSeleccionada}
+                    onChange={(e) => setFranjaClaseSeleccionada(e.target.value)}
+                  >
+                    <option value="">Selecciona horario</option>
+                    {franjasHorariasClase.map((f, i) => (
+                      <option key={i} value={`${f.inicio} - ${f.fin}`}>
+                        {f.inicio} - {f.fin}
+                      </option>
+                    ))}
+                  </select>
+
+                  <select
+                    className="admin_elegir_usuario_select"
+                    value={pistaClaseSeleccionada}
+                    onChange={(e) =>
+                      setPistaClaseSeleccionada(Number(e.target.value))
+                    }
+                  >
+                    <option value="">Selecciona pista</option>
+                    {pistasDB.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.nombre.replace(/_/g, " ")}
+                      </option>
+                    ))}
+                  </select>
+
+                  <select
+                    className="admin_elegir_usuario_select"
+                    id="admin_elegir_usuario_select_ultimo"
+                    value={monitorSeleccionado}
+                    onChange={(e) => setMonitorSeleccionado(e.target.value)}
+                  >
+                    <option value="">Selecciona monitor</option>
+                    {monitores.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.first_name} {m.last_name}
+                      </option>
+                    ))}
+                  </select>
+
+                  {crearClaseError && (
+                    <p className="reserva_error grande">{crearClaseError}</p>
+                  )}
+                  {crearClaseSuccess && (
+                    <p className="reserva_success grande">
+                      {crearClaseSuccess}
+                    </p>
+                  )}
+                </div>
+
+                <div className="div_confirmar_reserva_botones">
+                  <button
+                    className="reserva_boton"
+                    id="reserva_boton_cerrar"
+                    onClick={() => setShowOverlayCrearClase(false)}
+                  >
+                    Atrás
+                  </button>
+                  <button className="reserva_boton" onClick={handleCrearClase}>
+                    Reservar clase
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* OVERLAY TORNEO */}
+          {showOverlayTorneo && (
+            <div
+              className="reserva_overlay show"
+              onClick={() => setShowOverlayTorneo(false)}
+            >
+              <div
+                className="reservas_contenido"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="div_confirmar_reserva">
+                  <h2>Bloquear fin de semana — Torneo</h2>
+
+                  <div className="admin_torneo_form">
+                    <label className="admin_torneo_label">
+                      Inicio del torneo
+                    </label>
+                    <div className="admin_torneo_fila">
+                      <input
+                        type="date"
+                        className="admin_elegir_usuario_select admin_torneo_input_fecha"
+                        value={torneoFechaInicio}
+                        onChange={(e) => setTorneoFechaInicio(e.target.value)}
+                      />
+                      <input
+                        type="time"
+                        className="admin_elegir_usuario_select admin_torneo_input_hora"
+                        value={torneoHoraInicio}
+                        onChange={(e) => setTorneoHoraInicio(e.target.value)}
+                      />
+                    </div>
+
+                    <label className="admin_torneo_label">Fin del torneo</label>
+                    <div className="admin_torneo_fila">
+                      <input
+                        type="date"
+                        className="admin_elegir_usuario_select admin_torneo_input_fecha"
+                        value={torneoFechaFin}
+                        onChange={(e) => setTorneoFechaFin(e.target.value)}
+                      />
+                      <input
+                        type="time"
+                        className="admin_elegir_usuario_select admin_torneo_input_hora"
+                        value={torneoHoraFin}
+                        onChange={(e) => setTorneoHoraFin(e.target.value)}
+                      />
+                    </div>
                   </div>
 
-                  {!modoInvitado ? (
+                  {torneoError && (
+                    <p
+                      className="reserva_error grande"
+                      style={{ whiteSpace: "pre-line" }}
+                    >
+                      {torneoError}
+                    </p>
+                  )}
+                  {torneoSuccess && (
+                    <p className="reserva_success grande">{torneoSuccess}</p>
+                  )}
+                </div>
+
+                <div className="div_confirmar_reserva_botones">
+                  <button
+                    className="reserva_boton"
+                    id="reserva_boton_cerrar"
+                    onClick={() => setShowOverlayTorneo(false)}
+                  >
+                    Atrás
+                  </button>
+                  <button
+                    className="reserva_boton"
+                    onClick={handleBloquearTorneo}
+                    disabled={torneoLoading}
+                  >
+                    {torneoLoading ? "Procesando..." : "Bloquear torneo"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* OVERLAY PISTA FIJA */}
+          {showOverlayPistaFija && (
+            <div
+              className="reserva_overlay show"
+              onClick={() => setShowOverlayPistaFija(false)}
+            >
+              <div
+                className="reservas_contenido"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="div_confirmar_reserva">
+                  <h2>Asignar pista fija</h2>
+
+                  {/* BUSCADOR USUARIO */}
+                  <div className="admin_elegir_usuario">
                     <div className="admin_buscador_usuario">
                       <input
                         type="text"
                         className="admin_elegir_usuario_select"
                         placeholder="Buscar usuario por nombre..."
                         value={
-                          usuarioSeleccionado
+                          fijaUsuario
                             ? (() => {
                                 const p = perfiles.find(
-                                  (p) => p.id === usuarioSeleccionado,
+                                  (p) => p.id === fijaUsuario,
                                 );
                                 return p
                                   ? `${p.first_name} ${p.last_name} – ${p.email}`
-                                  : busquedaUsuario;
+                                  : fijaBusqueda;
                               })()
-                            : busquedaUsuario
+                            : fijaBusqueda
                         }
                         onChange={(e) => {
-                          setBusquedaUsuario(e.target.value);
-                          setUsuarioSeleccionado(null);
+                          setFijaBusqueda(e.target.value);
+                          setFijaUsuario(null);
                         }}
                       />
-                      {!usuarioSeleccionado && busquedaUsuario.length > 0 && (
+                      {!fijaUsuario && fijaBusqueda.length > 0 && (
                         <div className="admin_buscador_lista">
                           {perfiles
                             .filter((p) =>
                               `${p.first_name} ${p.last_name}`
                                 .toLowerCase()
-                                .includes(busquedaUsuario.toLowerCase()),
+                                .includes(fijaBusqueda.toLowerCase()),
                             )
                             .slice(0, 8)
                             .map((p) => (
@@ -2139,8 +2660,8 @@ function AdminPista({ date }: { date: Date }) {
                                 key={p.id}
                                 className="admin_buscador_opcion"
                                 onClick={() => {
-                                  setUsuarioSeleccionado(p.id);
-                                  setBusquedaUsuario("");
+                                  setFijaUsuario(p.id);
+                                  setFijaBusqueda("");
                                 }}
                               >
                                 {p.first_name} {p.last_name} – {p.email}
@@ -2149,7 +2670,7 @@ function AdminPista({ date }: { date: Date }) {
                           {perfiles.filter((p) =>
                             `${p.first_name} ${p.last_name}`
                               .toLowerCase()
-                              .includes(busquedaUsuario.toLowerCase()),
+                              .includes(fijaBusqueda.toLowerCase()),
                           ).length === 0 && (
                             <div className="admin_buscador_opcion admin_buscador_vacio">
                               Sin resultados
@@ -2158,1408 +2679,955 @@ function AdminPista({ date }: { date: Date }) {
                         </div>
                       )}
                     </div>
-                  ) : (
-                    <div className="admin_invitado_form">
-                      <input
-                        type="text"
-                        className="admin_elegir_usuario_select"
-                        placeholder="Nombre del invitado *"
-                        value={invitadoNombre}
-                        onChange={(e) => setInvitadoNombre(e.target.value)}
-                      />
-                      <input
-                        type="tel"
-                        className="admin_elegir_usuario_select admin_invitado_tlf"
-                        placeholder="Teléfono (opcional)"
-                        value={invitadoTlf}
-                        onChange={(e) => setInvitadoTlf(e.target.value)}
-                      />
+                  </div>
+
+                  {/* PISTA */}
+                  <select
+                    className="admin_elegir_usuario_select"
+                    value={fijaPista}
+                    onChange={(e) => setFijaPista(Number(e.target.value))}
+                  >
+                    <option value="">Selecciona pista</option>
+                    {pistasDB.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.nombre.replace(/_/g, " ")}
+                      </option>
+                    ))}
+                  </select>
+
+                  {/* FRANJA */}
+                  <select
+                    className="admin_elegir_usuario_select"
+                    value={fijaFranja}
+                    onChange={(e) => setFijaFranja(e.target.value)}
+                  >
+                    <option value="">Selecciona horario</option>
+                    {franjasHorarias.map((f, i) => (
+                      <option key={i} value={`${f.inicio} - ${f.fin}`}>
+                        {f.inicio} - {f.fin}
+                      </option>
+                    ))}
+                  </select>
+
+                  {/* DÍA DE LA SEMANA */}
+                  <select
+                    className="admin_elegir_usuario_select"
+                    value={fijaDiaSemana}
+                    onChange={(e) => setFijaDiaSemana(Number(e.target.value))}
+                  >
+                    <option value="">Selecciona día de la semana</option>
+                    <option value={1}>Lunes</option>
+                    <option value={2}>Martes</option>
+                    <option value={3}>Miércoles</option>
+                    <option value={4}>Jueves</option>
+                    <option value={5}>Viernes</option>
+                    <option value={6}>Sábado</option>
+                    <option value={0}>Domingo</option>
+                  </select>
+
+                  {/* FECHAS */}
+                  <div className="admin_torneo_form">
+                    <label className="admin_torneo_label">Fecha inicio</label>
+                    <input
+                      type="date"
+                      className="admin_elegir_usuario_select"
+                      value={fijaFechaInicio}
+                      onChange={(e) => {
+                        setFijaFechaInicio(e.target.value);
+                        setFijaFechaFin("");
+                      }}
+                    />
+                    <label className="admin_torneo_label">Fecha fin</label>
+                    <input
+                      type="date"
+                      className="admin_elegir_usuario_select"
+                      value={fijaFechaFin}
+                      min={fijaFechaInicio}
+                      onChange={(e) => setFijaFechaFin(e.target.value)}
+                    />
+                  </div>
+
+                  {/* AVISOS */}
+                  {fijaAvisos.length > 0 && (
+                    <div className="admin_fija_avisos">
+                      <p className="admin_fija_avisos_titulo">⚠️ Avisos</p>
+                      {fijaAvisos.map((aviso, i) => (
+                        <p key={i} className="admin_fija_aviso_item">
+                          {aviso}
+                        </p>
+                      ))}
                     </div>
                   )}
+
+                  {fijaError && (
+                    <p className="reserva_error grande">{fijaError}</p>
+                  )}
+                  {fijaSuccess && (
+                    <p className="reserva_success grande">{fijaSuccess}</p>
+                  )}
                 </div>
-              )}
+
+                <div className="div_confirmar_reserva_botones">
+                  <button
+                    className="reserva_boton"
+                    id="reserva_boton_cerrar"
+                    onClick={() => setShowOverlayPistaFija(false)}
+                  >
+                    Atrás
+                  </button>
+                  <button
+                    className="reserva_boton"
+                    onClick={handleAsignarPistaFija}
+                    disabled={
+                      fijaLoading ||
+                      !fijaUsuario ||
+                      !fijaPista ||
+                      !fijaFranja ||
+                      !fijaFechaInicio ||
+                      !fijaFechaFin ||
+                      fijaDiaSemana === ""
+                    }
+                  >
+                    {fijaLoading ? "Procesando..." : "Asignar pista fija"}
+                  </button>
+                </div>
+              </div>
             </div>
-          ) : (
-            <p>Error al cargar el bloque</p>
           )}
 
-          {errorMsg && <p className="reserva_error grande">{errorMsg}</p>}
-          {successMsg && <p className="reserva_success grande">{successMsg}</p>}
-
-          <div className="div_confirmar_reserva_botones">
-            <button
-              className="reserva_boton"
-              id="reserva_boton_cerrar"
-              onClick={() => setShowOverlay(false)}
+          {/* OVERLAY CREAR BLOQUE RECURRENTE */}
+          {showOverlayRecurrente && (
+            <div
+              className="reserva_overlay show"
+              onClick={() => setShowOverlayRecurrente(false)}
             >
-              Atrás
-            </button>
-
-            {/* Cancelar CLASE */}
-            {cancelClaseOverlay && (
-              <button className="reserva_boton" onClick={handleCancelarReserva}>
-                Cancelar clase
-              </button>
-            )}
-
-            {/* Cancelar RESERVA normal */}
-            {!cancelClaseOverlay && cancelOverlay && (
-              <button
-                className="reserva_boton"
-                onClick={() => setshowOverlayConfirmacion(true)}
+              <div
+                className="reservas_contenido"
+                onClick={(e) => e.stopPropagation()}
               >
-                Cancelar pista
-              </button>
-            )}
+                <div className="div_confirmar_reserva">
+                  <h2>Crear bloque pista — Recurrente</h2>
 
-            {/* Confirmar reserva (bloque libre) */}
-            {!cancelClaseOverlay && !cancelOverlay && (
-              <>
-                <button
-                  className="reserva_boton"
-                  id="admin_reserva_boton_confirmar"
-                  onClick={handleConfirmarReserva}
-                  disabled={
-                    modoInvitado ? !invitadoNombre.trim() : !usuarioSeleccionado
-                  }
-                >
-                  Confirmar reserva
-                </button>
-                <button
-                  className="reserva_boton"
-                  id="admin_reserva_boton_confirmar"
-                  onClick={handleEliminarBloque}
-                >
-                  Eliminar bloque
-                </button>
-              </>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* OVERLAY: CONFIRMAR CANCELACIÓN */}
-      {showOverlayConfirmacion && (
-        <div
-          className="reserva_overlay show"
-          onClick={() => setshowOverlayConfirmacion(false)}
-        >
-          <div
-            className="reservas_contenido"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="div_confirmar_reserva">
-              <h2>
-                ⚠️ <strong>Confirmar cancelación</strong> ⚠️
-              </h2>
-              <h2>¿Seguro que quieres cancelar esta pista?</h2>
-
-              {bloqueSeleccionado?.user_id && (
-                <div>
-                  <h2>
-                    {
-                      perfiles.find((p) => p.id === bloqueSeleccionado.user_id)
-                        ?.first_name
-                    }{" "}
-                    {
-                      perfiles.find((p) => p.id === bloqueSeleccionado.user_id)
-                        ?.last_name
-                    }
-                  </h2>
-                  <h2>
-                    {
-                      perfiles.find((p) => p.id === bloqueSeleccionado.user_id)
-                        ?.email
-                    }
-                  </h2>
-                  <h2>
-                    tlf:{" "}
-                    {
-                      perfiles.find((p) => p.id === bloqueSeleccionado.user_id)
-                        ?.tlf
-                    }
-                  </h2>
-                </div>
-              )}
-
-              <div className="admin_div_info_reserva">
-                <h2>
-                  {date
-                    .toLocaleDateString("es-ES", {
-                      weekday: "long",
-                      day: "2-digit",
-                      month: "long",
-                      year: "numeric",
-                    })
-                    .replace(/^./, (c) => c.toUpperCase())}
-                </h2>
-                <h2>
-                  {bloqueSeleccionado?.inicio} - {bloqueSeleccionado?.fin}
-                </h2>
-                <h2>Pista {bloqueSeleccionado?.pista}</h2>
-              </div>
-            </div>
-
-            <div className="div_confirmar_reserva_botones">
-              <button
-                className="reserva_boton"
-                id="reserva_boton_cerrar"
-                onClick={() => setshowOverlayConfirmacion(false)}
-              >
-                Atrás
-              </button>
-              <button
-                className="reserva_boton reserva_boton_peligro"
-                onClick={() => {
-                  setshowOverlayConfirmacion(false);
-                  handleCancelarReserva();
-                }}
-              >
-                Sí, cancelar pista
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* OVERLAY CREAR BLOQUE */}
-      {showOverlayCrearBloque && (
-        <div
-          className="reserva_overlay show"
-          onClick={() => setShowOverlayCrearBloque(false)}
-        >
-          <div
-            className="reservas_contenido"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="div_confirmar_reserva">
-              <h2>Crear bloque pista libre</h2>
-
-              <input
-                type="date"
-                className="admin_elegir_usuario_select"
-                value={fechaBloqueSeleccionada}
-                min={todayISO}
-                onChange={(e) => setFechaBloqueSeleccionada(e.target.value)}
-              />
-
-              <select
-                className="admin_elegir_usuario_select"
-                value={franjaSeleccionada}
-                onChange={(e) => setFranjaSeleccionada(e.target.value)}
-              >
-                <option value="">Selecciona horario</option>
-                {franjasHorarias.map((f, i) => (
-                  <option key={i} value={`${f.inicio} - ${f.fin}`}>
-                    {f.inicio} - {f.fin}
-                  </option>
-                ))}
-              </select>
-
-              <select
-                className="admin_elegir_usuario_select"
-                id="admin_elegir_usuario_select_ultimo"
-                value={pistaSeleccionada}
-                onChange={(e) => setPistaSeleccionada(Number(e.target.value))}
-              >
-                <option value="">Selecciona pista</option>
-                {pistasDB.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.nombre.replace(/_/g, " ")}
-                  </option>
-                ))}
-              </select>
-
-              {crearBloqueError && (
-                <p className="reserva_error grande">{crearBloqueError}</p>
-              )}
-              {crearBloqueSuccess && (
-                <p className="reserva_success grande">{crearBloqueSuccess}</p>
-              )}
-            </div>
-
-            <div className="div_confirmar_reserva_botones">
-              <button
-                className="reserva_boton"
-                id="reserva_boton_cerrar"
-                onClick={() => setShowOverlayCrearBloque(false)}
-              >
-                Atrás
-              </button>
-              <button
-                className="reserva_boton"
-                onClick={handleCrearBloquePista}
-              >
-                Crear bloque
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* OVERLAY CREAR CLASE */}
-      {showOverlayCrearClase && (
-        <div
-          className="reserva_overlay show"
-          onClick={() => setShowOverlayCrearClase(false)}
-        >
-          <div
-            className="reservas_contenido"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="div_confirmar_reserva">
-              <h2>Reservar clase</h2>
-
-              <input
-                type="date"
-                className="admin_elegir_usuario_select"
-                value={fechaClaseSeleccionada}
-                min={todayISO}
-                onChange={(e) => setFechaClaseSeleccionada(e.target.value)}
-              />
-
-              <select
-                className="admin_elegir_usuario_select"
-                value={franjaClaseSeleccionada}
-                onChange={(e) => setFranjaClaseSeleccionada(e.target.value)}
-              >
-                <option value="">Selecciona horario</option>
-                {franjasHorariasClase.map((f, i) => (
-                  <option key={i} value={`${f.inicio} - ${f.fin}`}>
-                    {f.inicio} - {f.fin}
-                  </option>
-                ))}
-              </select>
-
-              <select
-                className="admin_elegir_usuario_select"
-                value={pistaClaseSeleccionada}
-                onChange={(e) =>
-                  setPistaClaseSeleccionada(Number(e.target.value))
-                }
-              >
-                <option value="">Selecciona pista</option>
-                {pistasDB.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.nombre.replace(/_/g, " ")}
-                  </option>
-                ))}
-              </select>
-
-              <select
-                className="admin_elegir_usuario_select"
-                id="admin_elegir_usuario_select_ultimo"
-                value={monitorSeleccionado}
-                onChange={(e) => setMonitorSeleccionado(e.target.value)}
-              >
-                <option value="">Selecciona monitor</option>
-                {monitores.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.first_name} {m.last_name}
-                  </option>
-                ))}
-              </select>
-
-              {crearClaseError && (
-                <p className="reserva_error grande">{crearClaseError}</p>
-              )}
-              {crearClaseSuccess && (
-                <p className="reserva_success grande">{crearClaseSuccess}</p>
-              )}
-            </div>
-
-            <div className="div_confirmar_reserva_botones">
-              <button
-                className="reserva_boton"
-                id="reserva_boton_cerrar"
-                onClick={() => setShowOverlayCrearClase(false)}
-              >
-                Atrás
-              </button>
-              <button className="reserva_boton" onClick={handleCrearClase}>
-                Reservar clase
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* OVERLAY TORNEO */}
-      {showOverlayTorneo && (
-        <div
-          className="reserva_overlay show"
-          onClick={() => setShowOverlayTorneo(false)}
-        >
-          <div
-            className="reservas_contenido"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="div_confirmar_reserva">
-              <h2>Bloquear fin de semana — Torneo</h2>
-
-              <div className="admin_torneo_form">
-                <label className="admin_torneo_label">Inicio del torneo</label>
-                <div className="admin_torneo_fila">
-                  <input
-                    type="date"
-                    className="admin_elegir_usuario_select admin_torneo_input_fecha"
-                    value={torneoFechaInicio}
-                    onChange={(e) => setTorneoFechaInicio(e.target.value)}
-                  />
-                  <input
-                    type="time"
-                    className="admin_elegir_usuario_select admin_torneo_input_hora"
-                    value={torneoHoraInicio}
-                    onChange={(e) => setTorneoHoraInicio(e.target.value)}
-                  />
-                </div>
-
-                <label className="admin_torneo_label">Fin del torneo</label>
-                <div className="admin_torneo_fila">
-                  <input
-                    type="date"
-                    className="admin_elegir_usuario_select admin_torneo_input_fecha"
-                    value={torneoFechaFin}
-                    onChange={(e) => setTorneoFechaFin(e.target.value)}
-                  />
-                  <input
-                    type="time"
-                    className="admin_elegir_usuario_select admin_torneo_input_hora"
-                    value={torneoHoraFin}
-                    onChange={(e) => setTorneoHoraFin(e.target.value)}
-                  />
-                </div>
-              </div>
-
-              {torneoError && (
-                <p
-                  className="reserva_error grande"
-                  style={{ whiteSpace: "pre-line" }}
-                >
-                  {torneoError}
-                </p>
-              )}
-              {torneoSuccess && (
-                <p className="reserva_success grande">{torneoSuccess}</p>
-              )}
-            </div>
-
-            <div className="div_confirmar_reserva_botones">
-              <button
-                className="reserva_boton"
-                id="reserva_boton_cerrar"
-                onClick={() => setShowOverlayTorneo(false)}
-              >
-                Atrás
-              </button>
-              <button
-                className="reserva_boton"
-                onClick={handleBloquearTorneo}
-                disabled={torneoLoading}
-              >
-                {torneoLoading ? "Procesando..." : "Bloquear torneo"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* OVERLAY PISTA FIJA */}
-      {showOverlayPistaFija && (
-        <div
-          className="reserva_overlay show"
-          onClick={() => setShowOverlayPistaFija(false)}
-        >
-          <div
-            className="reservas_contenido"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="div_confirmar_reserva">
-              <h2>Asignar pista fija</h2>
-
-              {/* BUSCADOR USUARIO */}
-              <div className="admin_elegir_usuario">
-                <div className="admin_buscador_usuario">
-                  <input
-                    type="text"
-                    className="admin_elegir_usuario_select"
-                    placeholder="Buscar usuario por nombre..."
-                    value={
-                      fijaUsuario
-                        ? (() => {
-                            const p = perfiles.find(
-                              (p) => p.id === fijaUsuario,
-                            );
-                            return p
-                              ? `${p.first_name} ${p.last_name} – ${p.email}`
-                              : fijaBusqueda;
-                          })()
-                        : fijaBusqueda
-                    }
-                    onChange={(e) => {
-                      setFijaBusqueda(e.target.value);
-                      setFijaUsuario(null);
-                    }}
-                  />
-                  {!fijaUsuario && fijaBusqueda.length > 0 && (
-                    <div className="admin_buscador_lista">
-                      {perfiles
-                        .filter((p) =>
-                          `${p.first_name} ${p.last_name}`
-                            .toLowerCase()
-                            .includes(fijaBusqueda.toLowerCase()),
-                        )
-                        .slice(0, 8)
-                        .map((p) => (
-                          <div
-                            key={p.id}
-                            className="admin_buscador_opcion"
-                            onClick={() => {
-                              setFijaUsuario(p.id);
-                              setFijaBusqueda("");
+                  {/* PISTAS */}
+                  <div className="admin_cal_seccion">
+                    <p className="admin_cal_titulo">Pistas</p>
+                    <div className="admin_cal_checkboxes">
+                      {pistasDB.map((p) => (
+                        <label key={p.id} className="admin_cal_check_label">
+                          <input
+                            type="checkbox"
+                            className="admin_pagado_checkbox"
+                            checked={recPistas.includes(p.id)}
+                            onChange={(e) => {
+                              setRecPistas((prev) =>
+                                e.target.checked
+                                  ? [...prev, p.id]
+                                  : prev.filter((id) => id !== p.id),
+                              );
                             }}
-                          >
-                            {p.first_name} {p.last_name} – {p.email}
-                          </div>
-                        ))}
-                      {perfiles.filter((p) =>
-                        `${p.first_name} ${p.last_name}`
-                          .toLowerCase()
-                          .includes(fijaBusqueda.toLowerCase()),
-                      ).length === 0 && (
-                        <div className="admin_buscador_opcion admin_buscador_vacio">
-                          Sin resultados
-                        </div>
-                      )}
+                          />
+                          <span>{p.nombre.replace(/_/g, " ")}</span>
+                        </label>
+                      ))}
                     </div>
+                  </div>
+
+                  {/* DÍAS DE LA SEMANA */}
+                  <div className="admin_cal_seccion">
+                    <p className="admin_cal_titulo">Días de la semana</p>
+                    <div className="admin_cal_checkboxes">
+                      {[
+                        { label: "Lunes", value: 1 },
+                        { label: "Martes", value: 2 },
+                        { label: "Miércoles", value: 3 },
+                        { label: "Jueves", value: 4 },
+                        { label: "Viernes", value: 5 },
+                        { label: "Sábado", value: 6 },
+                        { label: "Domingo", value: 0 },
+                      ].map((d) => (
+                        <label key={d.value} className="admin_cal_check_label">
+                          <input
+                            type="checkbox"
+                            className="admin_pagado_checkbox"
+                            checked={recDias.includes(d.value)}
+                            onChange={(e) => {
+                              setRecDias((prev) =>
+                                e.target.checked
+                                  ? [...prev, d.value]
+                                  : prev.filter((v) => v !== d.value),
+                              );
+                            }}
+                          />
+                          <span>{d.label}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* FECHAS */}
+                  <div className="admin_torneo_form">
+                    <label className="admin_torneo_label">Fecha inicio</label>
+                    <input
+                      type="date"
+                      className="admin_elegir_usuario_select"
+                      value={recFechaInicio}
+                      onChange={(e) => setRecFechaInicio(e.target.value)}
+                    />
+                    <label className="admin_torneo_label">Fecha fin</label>
+                    <input
+                      type="date"
+                      className="admin_elegir_usuario_select"
+                      value={recFechaFin}
+                      min={recFechaInicio}
+                      onChange={(e) => setRecFechaFin(e.target.value)}
+                    />
+                  </div>
+
+                  {/* FRANJAS */}
+                  <div className="admin_cal_seccion">
+                    <p className="admin_cal_titulo">Franjas horarias</p>
+                    <div className="admin_cal_franjas">
+                      {" "}
+                      {recFranjas.map((franja, i) => (
+                        <select
+                          key={i}
+                          className="admin_cal_franja_select"
+                          value={franja}
+                          onChange={(e) => {
+                            const nuevas = [...recFranjas];
+                            nuevas[i] = e.target.value;
+                            setRecFranjas(nuevas);
+                          }}
+                        >
+                          <option value="">— vacía —</option>
+                          {franjasHorarias.map((f, j) => (
+                            <option key={j} value={`${f.inicio} - ${f.fin}`}>
+                              {f.inicio} - {f.fin}
+                            </option>
+                          ))}
+                        </select>
+                      ))}
+                    </div>{" "}
+                  </div>
+
+                  {recError && (
+                    <p className="reserva_error grande">{recError}</p>
+                  )}
+                  {recSuccess && (
+                    <p className="reserva_success grande">{recSuccess}</p>
                   )}
                 </div>
-              </div>
 
-              {/* PISTA */}
-              <select
-                className="admin_elegir_usuario_select"
-                value={fijaPista}
-                onChange={(e) => setFijaPista(Number(e.target.value))}
-              >
-                <option value="">Selecciona pista</option>
-                {pistasDB.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.nombre.replace(/_/g, " ")}
-                  </option>
-                ))}
-              </select>
-
-              {/* FRANJA */}
-              <select
-                className="admin_elegir_usuario_select"
-                value={fijaFranja}
-                onChange={(e) => setFijaFranja(e.target.value)}
-              >
-                <option value="">Selecciona horario</option>
-                {franjasHorarias.map((f, i) => (
-                  <option key={i} value={`${f.inicio} - ${f.fin}`}>
-                    {f.inicio} - {f.fin}
-                  </option>
-                ))}
-              </select>
-
-              {/* DÍA DE LA SEMANA */}
-              <select
-                className="admin_elegir_usuario_select"
-                value={fijaDiaSemana}
-                onChange={(e) => setFijaDiaSemana(Number(e.target.value))}
-              >
-                <option value="">Selecciona día de la semana</option>
-                <option value={1}>Lunes</option>
-                <option value={2}>Martes</option>
-                <option value={3}>Miércoles</option>
-                <option value={4}>Jueves</option>
-                <option value={5}>Viernes</option>
-                <option value={6}>Sábado</option>
-                <option value={0}>Domingo</option>
-              </select>
-
-              {/* FECHAS */}
-              <div className="admin_torneo_form">
-                <label className="admin_torneo_label">Fecha inicio</label>
-                <input
-                  type="date"
-                  className="admin_elegir_usuario_select"
-                  value={fijaFechaInicio}
-                  onChange={(e) => {
-                    setFijaFechaInicio(e.target.value);
-                    setFijaFechaFin("");
-                  }}
-                />
-                <label className="admin_torneo_label">Fecha fin</label>
-                <input
-                  type="date"
-                  className="admin_elegir_usuario_select"
-                  value={fijaFechaFin}
-                  min={fijaFechaInicio}
-                  onChange={(e) => setFijaFechaFin(e.target.value)}
-                />
-              </div>
-
-              {/* AVISOS */}
-              {fijaAvisos.length > 0 && (
-                <div className="admin_fija_avisos">
-                  <p className="admin_fija_avisos_titulo">⚠️ Avisos</p>
-                  {fijaAvisos.map((aviso, i) => (
-                    <p key={i} className="admin_fija_aviso_item">
-                      {aviso}
-                    </p>
-                  ))}
+                <div className="div_confirmar_reserva_botones">
+                  <button
+                    className="reserva_boton"
+                    id="reserva_boton_cerrar"
+                    onClick={() => setShowOverlayRecurrente(false)}
+                  >
+                    Atrás
+                  </button>
+                  <button
+                    className="reserva_boton"
+                    onClick={handleCrearBloqueRecurrente}
+                    disabled={recLoading}
+                  >
+                    {recLoading ? "Generando..." : "Crear bloques"}
+                  </button>
                 </div>
-              )}
-
-              {fijaError && <p className="reserva_error grande">{fijaError}</p>}
-              {fijaSuccess && (
-                <p className="reserva_success grande">{fijaSuccess}</p>
-              )}
+              </div>
             </div>
+          )}
 
-            <div className="div_confirmar_reserva_botones">
-              <button
-                className="reserva_boton"
-                id="reserva_boton_cerrar"
-                onClick={() => setShowOverlayPistaFija(false)}
+          {/* OVERLAY ELIMINAR BLOQUE RECURRENTE */}
+          {showOverlayEliminarRec && (
+            <div
+              className="reserva_overlay show"
+              onClick={() => setShowOverlayEliminarRec(false)}
+            >
+              <div
+                className="reservas_contenido"
+                onClick={(e) => e.stopPropagation()}
               >
-                Atrás
-              </button>
-              <button
-                className="reserva_boton"
-                onClick={handleAsignarPistaFija}
-                disabled={
-                  fijaLoading ||
-                  !fijaUsuario ||
-                  !fijaPista ||
-                  !fijaFranja ||
-                  !fijaFechaInicio ||
-                  !fijaFechaFin ||
-                  fijaDiaSemana === ""
-                }
-              >
-                {fijaLoading ? "Procesando..." : "Asignar pista fija"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+                <div className="div_confirmar_reserva">
+                  <h2>Eliminar bloque pista — Recurrente</h2>
 
-      {/* OVERLAY CREAR BLOQUE RECURRENTE */}
-      {showOverlayRecurrente && (
-        <div
-          className="reserva_overlay show"
-          onClick={() => setShowOverlayRecurrente(false)}
-        >
-          <div
-            className="reservas_contenido"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="div_confirmar_reserva">
-              <h2>Crear bloque pista — Recurrente</h2>
-
-              {/* PISTAS */}
-              <div className="admin_cal_seccion">
-                <p className="admin_cal_titulo">Pistas</p>
-                <div className="admin_cal_checkboxes">
-                  {pistasDB.map((p) => (
-                    <label key={p.id} className="admin_cal_check_label">
-                      <input
-                        type="checkbox"
-                        className="admin_pagado_checkbox"
-                        checked={recPistas.includes(p.id)}
-                        onChange={(e) => {
-                          setRecPistas((prev) =>
-                            e.target.checked
-                              ? [...prev, p.id]
-                              : prev.filter((id) => id !== p.id),
-                          );
-                        }}
-                      />
-                      <span>{p.nombre.replace(/_/g, " ")}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              {/* DÍAS DE LA SEMANA */}
-              <div className="admin_cal_seccion">
-                <p className="admin_cal_titulo">Días de la semana</p>
-                <div className="admin_cal_checkboxes">
-                  {[
-                    { label: "Lunes", value: 1 },
-                    { label: "Martes", value: 2 },
-                    { label: "Miércoles", value: 3 },
-                    { label: "Jueves", value: 4 },
-                    { label: "Viernes", value: 5 },
-                    { label: "Sábado", value: 6 },
-                    { label: "Domingo", value: 0 },
-                  ].map((d) => (
-                    <label key={d.value} className="admin_cal_check_label">
-                      <input
-                        type="checkbox"
-                        className="admin_pagado_checkbox"
-                        checked={recDias.includes(d.value)}
-                        onChange={(e) => {
-                          setRecDias((prev) =>
-                            e.target.checked
-                              ? [...prev, d.value]
-                              : prev.filter((v) => v !== d.value),
-                          );
-                        }}
-                      />
-                      <span>{d.label}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              {/* FECHAS */}
-              <div className="admin_torneo_form">
-                <label className="admin_torneo_label">Fecha inicio</label>
-                <input
-                  type="date"
-                  className="admin_elegir_usuario_select"
-                  value={recFechaInicio}
-                  onChange={(e) => setRecFechaInicio(e.target.value)}
-                />
-                <label className="admin_torneo_label">Fecha fin</label>
-                <input
-                  type="date"
-                  className="admin_elegir_usuario_select"
-                  value={recFechaFin}
-                  min={recFechaInicio}
-                  onChange={(e) => setRecFechaFin(e.target.value)}
-                />
-              </div>
-
-              {/* FRANJAS */}
-              <div className="admin_cal_seccion">
-                <p className="admin_cal_titulo">Franjas horarias</p>
-                <div className="admin_cal_franjas">
-                  {" "}
-                  {recFranjas.map((franja, i) => (
-                    <select
-                      key={i}
-                      className="admin_cal_franja_select"
-                      value={franja}
-                      onChange={(e) => {
-                        const nuevas = [...recFranjas];
-                        nuevas[i] = e.target.value;
-                        setRecFranjas(nuevas);
-                      }}
-                    >
-                      <option value="">— vacía —</option>
-                      {franjasHorarias.map((f, j) => (
-                        <option key={j} value={`${f.inicio} - ${f.fin}`}>
-                          {f.inicio} - {f.fin}
-                        </option>
+                  {/* PISTAS */}
+                  <div className="admin_cal_seccion">
+                    <p className="admin_cal_titulo">Pistas</p>
+                    <div className="admin_cal_checkboxes">
+                      {pistasDB.map((p) => (
+                        <label key={p.id} className="admin_cal_check_label">
+                          <input
+                            type="checkbox"
+                            className="admin_pagado_checkbox"
+                            checked={elimRecPistas.includes(p.id)}
+                            onChange={(e) => {
+                              setElimRecPistas((prev) =>
+                                e.target.checked
+                                  ? [...prev, p.id]
+                                  : prev.filter((id) => id !== p.id),
+                              );
+                            }}
+                          />
+                          <span>{p.nombre.replace(/_/g, " ")}</span>
+                        </label>
                       ))}
-                    </select>
-                  ))}
-                </div>{" "}
-              </div>
-
-              {recError && <p className="reserva_error grande">{recError}</p>}
-              {recSuccess && (
-                <p className="reserva_success grande">{recSuccess}</p>
-              )}
-            </div>
-
-            <div className="div_confirmar_reserva_botones">
-              <button
-                className="reserva_boton"
-                id="reserva_boton_cerrar"
-                onClick={() => setShowOverlayRecurrente(false)}
-              >
-                Atrás
-              </button>
-              <button
-                className="reserva_boton"
-                onClick={handleCrearBloqueRecurrente}
-                disabled={recLoading}
-              >
-                {recLoading ? "Generando..." : "Crear bloques"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* OVERLAY ELIMINAR BLOQUE RECURRENTE */}
-      {showOverlayEliminarRec && (
-        <div
-          className="reserva_overlay show"
-          onClick={() => setShowOverlayEliminarRec(false)}
-        >
-          <div
-            className="reservas_contenido"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="div_confirmar_reserva">
-              <h2>Eliminar bloque pista — Recurrente</h2>
-
-              {/* PISTAS */}
-              <div className="admin_cal_seccion">
-                <p className="admin_cal_titulo">Pistas</p>
-                <div className="admin_cal_checkboxes">
-                  {pistasDB.map((p) => (
-                    <label key={p.id} className="admin_cal_check_label">
-                      <input
-                        type="checkbox"
-                        className="admin_pagado_checkbox"
-                        checked={elimRecPistas.includes(p.id)}
-                        onChange={(e) => {
-                          setElimRecPistas((prev) =>
-                            e.target.checked
-                              ? [...prev, p.id]
-                              : prev.filter((id) => id !== p.id),
-                          );
-                        }}
-                      />
-                      <span>{p.nombre.replace(/_/g, " ")}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              {/* DÍAS DE LA SEMANA */}
-              <div className="admin_cal_seccion">
-                <p className="admin_cal_titulo">Días de la semana</p>
-                <div className="admin_cal_checkboxes">
-                  {[
-                    { label: "Lunes", value: 1 },
-                    { label: "Martes", value: 2 },
-                    { label: "Miércoles", value: 3 },
-                    { label: "Jueves", value: 4 },
-                    { label: "Viernes", value: 5 },
-                    { label: "Sábado", value: 6 },
-                    { label: "Domingo", value: 0 },
-                  ].map((d) => (
-                    <label key={d.value} className="admin_cal_check_label">
-                      <input
-                        type="checkbox"
-                        className="admin_pagado_checkbox"
-                        checked={elimRecDias.includes(d.value)}
-                        onChange={(e) => {
-                          setElimRecDias((prev) =>
-                            e.target.checked
-                              ? [...prev, d.value]
-                              : prev.filter((v) => v !== d.value),
-                          );
-                        }}
-                      />
-                      <span>{d.label}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              {/* FECHAS */}
-              <div className="admin_torneo_form">
-                <label className="admin_torneo_label">Fecha inicio</label>
-                <input
-                  type="date"
-                  className="admin_elegir_usuario_select"
-                  value={elimRecFechaInicio}
-                  onChange={(e) => setElimRecFechaInicio(e.target.value)}
-                />
-                <label className="admin_torneo_label">Fecha fin</label>
-                <input
-                  type="date"
-                  className="admin_elegir_usuario_select"
-                  value={elimRecFechaFin}
-                  min={elimRecFechaInicio}
-                  onChange={(e) => setElimRecFechaFin(e.target.value)}
-                />
-              </div>
-
-              {/* FRANJAS */}
-              <div className="admin_cal_seccion">
-                <p className="admin_cal_titulo">Franjas horarias a eliminar</p>
-                <div className="admin_cal_franjas">
-                  {elimRecFranjas.map((franja, i) => (
-                    <select
-                      key={i}
-                      className="admin_cal_franja_select"
-                      value={franja}
-                      onChange={(e) => {
-                        const nuevas = [...elimRecFranjas];
-                        nuevas[i] = e.target.value;
-                        setElimRecFranjas(nuevas);
-                      }}
-                    >
-                      <option value="">— vacía —</option>
-                      {franjasHorarias.map((f, j) => (
-                        <option key={j} value={`${f.inicio} - ${f.fin}`}>
-                          {f.inicio} - {f.fin}
-                        </option>
-                      ))}
-                    </select>
-                  ))}
-                </div>
-              </div>
-
-              {elimRecError && (
-                <p className="reserva_error grande">{elimRecError}</p>
-              )}
-              {elimRecSuccess && (
-                <p className="reserva_success grande">{elimRecSuccess}</p>
-              )}
-            </div>
-
-            <div className="div_confirmar_reserva_botones">
-              <button
-                className="reserva_boton"
-                id="reserva_boton_cerrar"
-                onClick={() => setShowOverlayEliminarRec(false)}
-              >
-                Atrás
-              </button>
-              <button
-                className="reserva_boton"
-                onClick={handleEliminarBloqueRecurrente}
-                disabled={elimRecLoading}
-              >
-                {elimRecLoading ? "Eliminando..." : "Eliminar bloques"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* OVERLAY CREAR CLASE RECURRENTE */}
-      {showOverlayCrearClaseRec && (
-        <div
-          className="reserva_overlay show"
-          onClick={() => setShowOverlayCrearClaseRec(false)}
-        >
-          <div
-            className="reservas_contenido"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="div_confirmar_reserva">
-              <h2>Reservar clase — Recurrente</h2>
-
-              {/* PISTA */}
-              <div className="admin_cal_seccion">
-                <p className="admin_cal_titulo">Pista</p>
-                <select
-                  className="admin_elegir_usuario_select"
-                  value={claseRecPista}
-                  onChange={(e) => setClaseRecPista(Number(e.target.value))}
-                >
-                  <option value="">Selecciona pista</option>
-                  {pistasDB.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.nombre.replace(/_/g, " ")}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* MONITOR */}
-              <div className="admin_cal_seccion">
-                <p className="admin_cal_titulo">Monitor</p>
-                <select
-                  className="admin_elegir_usuario_select"
-                  value={claseRecMonitor}
-                  onChange={(e) => setClaseRecMonitor(e.target.value)}
-                >
-                  <option value="">Selecciona monitor</option>
-                  {monitores.map((m) => (
-                    <option key={m.id} value={m.id}>
-                      {m.first_name} {m.last_name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* DÍAS DE LA SEMANA */}
-              <div className="admin_cal_seccion">
-                <p className="admin_cal_titulo">Días de la semana</p>
-                <div className="admin_cal_checkboxes">
-                  {[
-                    { label: "Lunes", value: 1 },
-                    { label: "Martes", value: 2 },
-                    { label: "Miércoles", value: 3 },
-                    { label: "Jueves", value: 4 },
-                    { label: "Viernes", value: 5 },
-                    { label: "Sábado", value: 6 },
-                    { label: "Domingo", value: 0 },
-                  ].map((d) => (
-                    <label key={d.value} className="admin_cal_check_label">
-                      <input
-                        type="checkbox"
-                        className="admin_pagado_checkbox"
-                        checked={claseRecDias.includes(d.value)}
-                        onChange={(e) => {
-                          setClaseRecDias((prev) =>
-                            e.target.checked
-                              ? [...prev, d.value]
-                              : prev.filter((v) => v !== d.value),
-                          );
-                        }}
-                      />
-                      <span>{d.label}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              {/* FECHAS */}
-              <div className="admin_torneo_form">
-                <label className="admin_torneo_label">Fecha inicio</label>
-                <input
-                  type="date"
-                  className="admin_elegir_usuario_select"
-                  value={claseRecFechaInicio}
-                  onChange={(e) => setClaseRecFechaInicio(e.target.value)}
-                />
-                <label className="admin_torneo_label">Fecha fin</label>
-                <input
-                  type="date"
-                  className="admin_elegir_usuario_select"
-                  value={claseRecFechaFin}
-                  min={claseRecFechaInicio}
-                  onChange={(e) => setClaseRecFechaFin(e.target.value)}
-                />
-              </div>
-
-              {/* FRANJAS */}
-              <div className="admin_cal_seccion">
-                <p className="admin_cal_titulo">Franjas horarias (1h)</p>
-                <div className="admin_cal_franjas">
-                  {claseRecFranjas.map((franja, i) => (
-                    <select
-                      key={i}
-                      className="admin_cal_franja_select"
-                      value={franja}
-                      onChange={(e) => {
-                        const nuevas = [...claseRecFranjas];
-                        nuevas[i] = e.target.value;
-                        setClaseRecFranjas(nuevas);
-                      }}
-                    >
-                      <option value="">— vacía —</option>
-                      {franjasHorariasClase.map((f, j) => (
-                        <option key={j} value={`${f.inicio} - ${f.fin}`}>
-                          {f.inicio} - {f.fin}
-                        </option>
-                      ))}
-                    </select>
-                  ))}
-                </div>
-              </div>
-
-              {claseRecError && (
-                <p className="reserva_error grande">{claseRecError}</p>
-              )}
-              {claseRecSuccess && (
-                <p className="reserva_success grande">{claseRecSuccess}</p>
-              )}
-            </div>
-
-            <div className="div_confirmar_reserva_botones">
-              <button
-                className="reserva_boton"
-                id="reserva_boton_cerrar"
-                onClick={() => setShowOverlayCrearClaseRec(false)}
-              >
-                Atrás
-              </button>
-              <button
-                className="reserva_boton"
-                onClick={handleCrearClaseRecurrente}
-                disabled={claseRecLoading}
-              >
-                {claseRecLoading ? "Generando..." : "Crear clases"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* OVERLAY ELIMINAR CLASE RECURRENTE */}
-      {showOverlayEliminarClaseRec && (
-        <div
-          className="reserva_overlay show"
-          onClick={() => setShowOverlayEliminarClaseRec(false)}
-        >
-          <div
-            className="reservas_contenido"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="div_confirmar_reserva">
-              <h2>Eliminar clase — Recurrente</h2>
-
-              {/* PISTA */}
-              <div className="admin_cal_seccion">
-                <p className="admin_cal_titulo">Pista</p>
-                <select
-                  className="admin_elegir_usuario_select"
-                  value={elimClaseRecPista}
-                  onChange={(e) => setElimClaseRecPista(Number(e.target.value))}
-                >
-                  <option value="">Selecciona pista</option>
-                  {pistasDB.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.nombre.replace(/_/g, " ")}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* MONITOR */}
-              <div className="admin_cal_seccion">
-                <p className="admin_cal_titulo">Monitor</p>
-                <select
-                  className="admin_elegir_usuario_select"
-                  value={elimClaseRecMonitor}
-                  onChange={(e) => setElimClaseRecMonitor(e.target.value)}
-                >
-                  <option value="">Selecciona monitor</option>
-                  {monitores.map((m) => (
-                    <option key={m.id} value={m.id}>
-                      {m.first_name} {m.last_name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* DÍAS DE LA SEMANA */}
-              <div className="admin_cal_seccion">
-                <p className="admin_cal_titulo">Días de la semana</p>
-                <div className="admin_cal_checkboxes">
-                  {[
-                    { label: "Lunes", value: 1 },
-                    { label: "Martes", value: 2 },
-                    { label: "Miércoles", value: 3 },
-                    { label: "Jueves", value: 4 },
-                    { label: "Viernes", value: 5 },
-                    { label: "Sábado", value: 6 },
-                    { label: "Domingo", value: 0 },
-                  ].map((d) => (
-                    <label key={d.value} className="admin_cal_check_label">
-                      <input
-                        type="checkbox"
-                        className="admin_pagado_checkbox"
-                        checked={elimClaseRecDias.includes(d.value)}
-                        onChange={(e) => {
-                          setElimClaseRecDias((prev) =>
-                            e.target.checked
-                              ? [...prev, d.value]
-                              : prev.filter((v) => v !== d.value),
-                          );
-                        }}
-                      />
-                      <span>{d.label}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              {/* FECHAS */}
-              <div className="admin_torneo_form">
-                <label className="admin_torneo_label">Fecha inicio</label>
-                <input
-                  type="date"
-                  className="admin_elegir_usuario_select"
-                  value={elimClaseRecFechaInicio}
-                  onChange={(e) => setElimClaseRecFechaInicio(e.target.value)}
-                />
-                <label className="admin_torneo_label">Fecha fin</label>
-                <input
-                  type="date"
-                  className="admin_elegir_usuario_select"
-                  value={elimClaseRecFechaFin}
-                  min={elimClaseRecFechaInicio}
-                  onChange={(e) => setElimClaseRecFechaFin(e.target.value)}
-                />
-              </div>
-
-              {/* FRANJAS */}
-              <div className="admin_cal_seccion">
-                <p className="admin_cal_titulo">
-                  Franjas horarias a eliminar (1h)
-                </p>
-                <div className="admin_cal_franjas">
-                  {elimClaseRecFranjas.map((franja, i) => (
-                    <select
-                      key={i}
-                      className="admin_cal_franja_select"
-                      value={franja}
-                      onChange={(e) => {
-                        const nuevas = [...elimClaseRecFranjas];
-                        nuevas[i] = e.target.value;
-                        setElimClaseRecFranjas(nuevas);
-                      }}
-                    >
-                      <option value="">— vacía —</option>
-                      {franjasHorariasClase.map((f, j) => (
-                        <option key={j} value={`${f.inicio} - ${f.fin}`}>
-                          {f.inicio} - {f.fin}
-                        </option>
-                      ))}
-                    </select>
-                  ))}
-                </div>
-              </div>
-
-              {elimClaseRecError && (
-                <p className="reserva_error grande">{elimClaseRecError}</p>
-              )}
-              {elimClaseRecSuccess && (
-                <p className="reserva_success grande">{elimClaseRecSuccess}</p>
-              )}
-            </div>
-
-            <div className="div_confirmar_reserva_botones">
-              <button
-                className="reserva_boton"
-                id="reserva_boton_cerrar"
-                onClick={() => setShowOverlayEliminarClaseRec(false)}
-              >
-                Atrás
-              </button>
-              <button
-                className="reserva_boton"
-                onClick={handleEliminarClaseRecurrente}
-                disabled={elimClaseRecLoading}
-              >
-                {elimClaseRecLoading ? "Eliminando..." : "Eliminar clases"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* CALENDARIO */}
-      <section className="admin_section_reservar_pista">
-        <div className="admin_div_calendario_pistas">
-          {/* HEADER */}
-          <div className="div_calendario_header">
-            <div className="div_hora_columna_header">HORA</div>
-            {pistasDB.map((p) => (
-              <div key={p.id} className="div_pista_columna_header">
-                <span className="nombre_pc">{p.nombre.replace(/_/g, " ")}</span>
-                <span className="nombre_movil">{`P${p.id}`}</span>
-              </div>
-            ))}
-          </div>
-
-          {/* BODY */}
-          <div className="admin_div_calendario_body">
-            {horas.map((h) => (
-              <div key={h} className="div_hora_celda" data-hora={h}>
-                {h}
-              </div>
-            ))}
-
-            {pistas.map((p, idx) =>
-              todasLasReservas
-                .filter((r) => r.pista === p)
-                .map((bloque, i) => {
-                  const filas = calcularFilasBloque(bloque.inicio, bloque.fin);
-                  const esLibre = bloque.estado === "libre";
-                  const esOcupada = bloque.estado === "ocupada";
-                  const esClase = bloque.estado === "clase";
-                  const esTorneo = bloque.estado === "torneo";
-
-                  const todoPagado =
-                    bloque.estado === "ocupada" &&
-                    bloque.pagado_1 &&
-                    bloque.pagado_2 &&
-                    bloque.pagado_3 &&
-                    bloque.pagado_4;
-
-                  return (
-                    <div
-                      key={`${p}-${bloque.inicio}-${i}`}
-                      className={`admin_div_reserva_bloque ${bloque.estado}${todoPagado ? " todo_pagado" : ""}`}
-                      data-libres={esLibre ? "true" : "false"}
-                      onClick={() => {
-                        if (esLibre) handleClickLibre(bloque);
-                        else if (esOcupada) handleClickOcupada(bloque);
-                        else if (esClase) handleClickClase(bloque);
-                      }}
-                      style={{
-                        gridColumn: idx + 2,
-                        gridRow: `${calcularFila(bloque.inicio)} / span ${filas}`,
-                      }}
-                    >
-                      {(esLibre || esOcupada || esClase) && (
-                        <>
-                          <span className="texto_reserva texto_reserva_pc">{`${bloque.inicio} - ${bloque.fin}`}</span>
-                          <span className="texto_reserva texto_reserva_movil">
-                            {bloque.inicio}
-                          </span>
-                        </>
-                      )}
-                      {esTorneo && (
-                        <span className="texto_reserva">Torneo</span>
-                      )}
                     </div>
-                  );
-                }),
-            )}
+                  </div>
 
-            {pistas.map((p, idx) =>
-              horas.map((h) => {
-                if (estaCeldaOcupada(p, h)) return null;
-                return (
-                  <div
-                    key={`${p}-${h}-vacia`}
-                    className="div_celda_vacia"
-                    style={{ gridColumn: idx + 2, gridRow: calcularFila(h) }}
-                  />
-                );
-              }),
-            )}
-          </div>
-        </div>
-      </section>
+                  {/* DÍAS DE LA SEMANA */}
+                  <div className="admin_cal_seccion">
+                    <p className="admin_cal_titulo">Días de la semana</p>
+                    <div className="admin_cal_checkboxes">
+                      {[
+                        { label: "Lunes", value: 1 },
+                        { label: "Martes", value: 2 },
+                        { label: "Miércoles", value: 3 },
+                        { label: "Jueves", value: 4 },
+                        { label: "Viernes", value: 5 },
+                        { label: "Sábado", value: 6 },
+                        { label: "Domingo", value: 0 },
+                      ].map((d) => (
+                        <label key={d.value} className="admin_cal_check_label">
+                          <input
+                            type="checkbox"
+                            className="admin_pagado_checkbox"
+                            checked={elimRecDias.includes(d.value)}
+                            onChange={(e) => {
+                              setElimRecDias((prev) =>
+                                e.target.checked
+                                  ? [...prev, d.value]
+                                  : prev.filter((v) => v !== d.value),
+                              );
+                            }}
+                          />
+                          <span>{d.label}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
 
-      {/* BOTONES FUNCIONES */}
-      <section className="admin_seccion_funciones">
-        <button
-          className="admin_seccion_funciones_boton"
-          onClick={() => {
-            setShowOverlayCrearBloque(true);
-            setCrearBloqueError("");
-            setCrearBloqueSuccess("");
-          }}
-        >
-          <span className="admin_boton_icono_left">
-            <span className="admin_colores_leyenda_span admin_disponible" />
-          </span>
-          CREAR PISTA LIBRE
-        </button>
+                  {/* FECHAS */}
+                  <div className="admin_torneo_form">
+                    <label className="admin_torneo_label">Fecha inicio</label>
+                    <input
+                      type="date"
+                      className="admin_elegir_usuario_select"
+                      value={elimRecFechaInicio}
+                      onChange={(e) => setElimRecFechaInicio(e.target.value)}
+                    />
+                    <label className="admin_torneo_label">Fecha fin</label>
+                    <input
+                      type="date"
+                      className="admin_elegir_usuario_select"
+                      value={elimRecFechaFin}
+                      min={elimRecFechaInicio}
+                      onChange={(e) => setElimRecFechaFin(e.target.value)}
+                    />
+                  </div>
 
-        <button
-          className="admin_seccion_funciones_boton"
-          onClick={() => {
-            setRecPistas([]);
-            setRecDias([]);
-            setRecFechaInicio("");
-            setRecFechaFin("");
-            setRecFranjas(Array(9).fill(""));
-            setRecError("");
-            setRecSuccess("");
-            setShowOverlayRecurrente(true);
-          }}
-        >
-          <span className="admin_boton_icono_left">
-            <span className="admin_colores_leyenda_span admin_disponible" /> 🔁
-          </span>
-          CREAR PISTA LIBRE - RECURRENTE
-        </button>
+                  {/* FRANJAS */}
+                  <div className="admin_cal_seccion">
+                    <p className="admin_cal_titulo">
+                      Franjas horarias a eliminar
+                    </p>
+                    <div className="admin_cal_franjas">
+                      {elimRecFranjas.map((franja, i) => (
+                        <select
+                          key={i}
+                          className="admin_cal_franja_select"
+                          value={franja}
+                          onChange={(e) => {
+                            const nuevas = [...elimRecFranjas];
+                            nuevas[i] = e.target.value;
+                            setElimRecFranjas(nuevas);
+                          }}
+                        >
+                          <option value="">— vacía —</option>
+                          {franjasHorarias.map((f, j) => (
+                            <option key={j} value={`${f.inicio} - ${f.fin}`}>
+                              {f.inicio} - {f.fin}
+                            </option>
+                          ))}
+                        </select>
+                      ))}
+                    </div>
+                  </div>
 
-        <button
-          className="admin_seccion_funciones_boton"
-          onClick={() => {
-            setElimRecPistas([]);
-            setElimRecDias([]);
-            setElimRecFechaInicio("");
-            setElimRecFechaFin("");
-            setElimRecFranjas(Array(9).fill(""));
-            setElimRecError("");
-            setElimRecSuccess("");
-            setShowOverlayEliminarRec(true);
-          }}
-        >
-          <span className="admin_boton_icono_left">
-            <span className="admin_colores_leyenda_span admin_disponible" /> 🔁{" "}
-            <span className="admin_icono_x">✕</span>
-          </span>
-          ELIMINAR PISTA LIBRE - RECURRENTE
-        </button>
+                  {elimRecError && (
+                    <p className="reserva_error grande">{elimRecError}</p>
+                  )}
+                  {elimRecSuccess && (
+                    <p className="reserva_success grande">{elimRecSuccess}</p>
+                  )}
+                </div>
 
-        <button
-          className="admin_seccion_funciones_boton"
-          onClick={() => {
-            setClaseRecPista("");
-            setClaseRecDias([]);
-            setClaseRecFechaInicio("");
-            setClaseRecFechaFin("");
-            setClaseRecFranjas(Array(9).fill(""));
-            setClaseRecMonitor("");
-            setClaseRecError("");
-            setClaseRecSuccess("");
-            setShowOverlayCrearClaseRec(true);
-          }}
-        >
-          <span className="admin_boton_icono_left">
-            <span className="admin_colores_leyenda_span admin_clase" />
-          </span>
-          RESERVAR PISTA CLASE - RECURRENTE
-        </button>
+                <div className="div_confirmar_reserva_botones">
+                  <button
+                    className="reserva_boton"
+                    id="reserva_boton_cerrar"
+                    onClick={() => setShowOverlayEliminarRec(false)}
+                  >
+                    Atrás
+                  </button>
+                  <button
+                    className="reserva_boton"
+                    onClick={handleEliminarBloqueRecurrente}
+                    disabled={elimRecLoading}
+                  >
+                    {elimRecLoading ? "Eliminando..." : "Eliminar bloques"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
-        <button
-          className="admin_seccion_funciones_boton"
-          onClick={() => {
-            setElimClaseRecPista("");
-            setElimClaseRecMonitor("");
-            setElimClaseRecDias([]);
-            setElimClaseRecFechaInicio("");
-            setElimClaseRecFechaFin("");
-            setElimClaseRecFranjas(Array(9).fill(""));
-            setElimClaseRecError("");
-            setElimClaseRecSuccess("");
-            setShowOverlayEliminarClaseRec(true);
-          }}
-        >
-          <span className="admin_boton_icono_left">
-            <span className="admin_colores_leyenda_span admin_clase" />{" "}
-            <span className="admin_icono_x">✕</span>
-          </span>
-          ELIMINAR PISTA CLASE - RECURRENTE
-        </button>
+          {/* OVERLAY CREAR CLASE RECURRENTE */}
+          {showOverlayCrearClaseRec && (
+            <div
+              className="reserva_overlay show"
+              onClick={() => setShowOverlayCrearClaseRec(false)}
+            >
+              <div
+                className="reservas_contenido"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="div_confirmar_reserva">
+                  <h2>Reservar clase — Recurrente</h2>
 
-        <button
-          className="admin_seccion_funciones_boton"
-          onClick={() => {
-            setTorneoError("");
-            setTorneoSuccess("");
-            setTorneoFechaInicio("");
-            setTorneoHoraInicio("");
-            setTorneoFechaFin("");
-            setTorneoHoraFin("");
-            setShowOverlayTorneo(true);
-          }}
-        >
-          <span className="admin_boton_icono_left">
-            <span className="admin_colores_leyenda_span admin_torneo" />
-          </span>
-          BLOQUEAR FIN DE SEMANA TORNEO
-        </button>
+                  {/* PISTA */}
+                  <div className="admin_cal_seccion">
+                    <p className="admin_cal_titulo">Pista</p>
+                    <select
+                      className="admin_elegir_usuario_select"
+                      value={claseRecPista}
+                      onChange={(e) => setClaseRecPista(Number(e.target.value))}
+                    >
+                      <option value="">Selecciona pista</option>
+                      {pistasDB.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.nombre.replace(/_/g, " ")}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
-        <button
-          className="admin_seccion_funciones_boton"
-          onClick={() => {
-            setFijaError("");
-            setFijaSuccess("");
-            setFijaAvisos([]);
-            setFijaFechaInicio("");
-            setFijaFechaFin("");
-            setFijaPista("");
-            setFijaFranja("");
-            setFijaUsuario(null);
-            setFijaBusqueda("");
-            setShowOverlayPistaFija(true);
-            setFijaDiaSemana("");
-          }}
-        >
-          <span className="admin_boton_icono_left">
-            <span className="admin_colores_leyenda_span admin_ocupada" />{" "}
-            🔁{" "}
-          </span>
-          ASIGNAR PISTA FIJA
-        </button>
-      </section>
+                  {/* MONITOR */}
+                  <div className="admin_cal_seccion">
+                    <p className="admin_cal_titulo">Monitor</p>
+                    <select
+                      className="admin_elegir_usuario_select"
+                      value={claseRecMonitor}
+                      onChange={(e) => setClaseRecMonitor(e.target.value)}
+                    >
+                      <option value="">Selecciona monitor</option>
+                      {monitores.map((m) => (
+                        <option key={m.id} value={m.id}>
+                          {m.first_name} {m.last_name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* DÍAS DE LA SEMANA */}
+                  <div className="admin_cal_seccion">
+                    <p className="admin_cal_titulo">Días de la semana</p>
+                    <div className="admin_cal_checkboxes">
+                      {[
+                        { label: "Lunes", value: 1 },
+                        { label: "Martes", value: 2 },
+                        { label: "Miércoles", value: 3 },
+                        { label: "Jueves", value: 4 },
+                        { label: "Viernes", value: 5 },
+                        { label: "Sábado", value: 6 },
+                        { label: "Domingo", value: 0 },
+                      ].map((d) => (
+                        <label key={d.value} className="admin_cal_check_label">
+                          <input
+                            type="checkbox"
+                            className="admin_pagado_checkbox"
+                            checked={claseRecDias.includes(d.value)}
+                            onChange={(e) => {
+                              setClaseRecDias((prev) =>
+                                e.target.checked
+                                  ? [...prev, d.value]
+                                  : prev.filter((v) => v !== d.value),
+                              );
+                            }}
+                          />
+                          <span>{d.label}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* FECHAS */}
+                  <div className="admin_torneo_form">
+                    <label className="admin_torneo_label">Fecha inicio</label>
+                    <input
+                      type="date"
+                      className="admin_elegir_usuario_select"
+                      value={claseRecFechaInicio}
+                      onChange={(e) => setClaseRecFechaInicio(e.target.value)}
+                    />
+                    <label className="admin_torneo_label">Fecha fin</label>
+                    <input
+                      type="date"
+                      className="admin_elegir_usuario_select"
+                      value={claseRecFechaFin}
+                      min={claseRecFechaInicio}
+                      onChange={(e) => setClaseRecFechaFin(e.target.value)}
+                    />
+                  </div>
+
+                  {/* FRANJAS */}
+                  <div className="admin_cal_seccion">
+                    <p className="admin_cal_titulo">Franjas horarias (1h)</p>
+                    <div className="admin_cal_franjas">
+                      {claseRecFranjas.map((franja, i) => (
+                        <select
+                          key={i}
+                          className="admin_cal_franja_select"
+                          value={franja}
+                          onChange={(e) => {
+                            const nuevas = [...claseRecFranjas];
+                            nuevas[i] = e.target.value;
+                            setClaseRecFranjas(nuevas);
+                          }}
+                        >
+                          <option value="">— vacía —</option>
+                          {franjasHorariasClase.map((f, j) => (
+                            <option key={j} value={`${f.inicio} - ${f.fin}`}>
+                              {f.inicio} - {f.fin}
+                            </option>
+                          ))}
+                        </select>
+                      ))}
+                    </div>
+                  </div>
+
+                  {claseRecError && (
+                    <p className="reserva_error grande">{claseRecError}</p>
+                  )}
+                  {claseRecSuccess && (
+                    <p className="reserva_success grande">{claseRecSuccess}</p>
+                  )}
+                </div>
+
+                <div className="div_confirmar_reserva_botones">
+                  <button
+                    className="reserva_boton"
+                    id="reserva_boton_cerrar"
+                    onClick={() => setShowOverlayCrearClaseRec(false)}
+                  >
+                    Atrás
+                  </button>
+                  <button
+                    className="reserva_boton"
+                    onClick={handleCrearClaseRecurrente}
+                    disabled={claseRecLoading}
+                  >
+                    {claseRecLoading ? "Generando..." : "Crear clases"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* OVERLAY ELIMINAR CLASE RECURRENTE */}
+          {showOverlayEliminarClaseRec && (
+            <div
+              className="reserva_overlay show"
+              onClick={() => setShowOverlayEliminarClaseRec(false)}
+            >
+              <div
+                className="reservas_contenido"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="div_confirmar_reserva">
+                  <h2>Eliminar clase — Recurrente</h2>
+
+                  {/* PISTA */}
+                  <div className="admin_cal_seccion">
+                    <p className="admin_cal_titulo">Pista</p>
+                    <select
+                      className="admin_elegir_usuario_select"
+                      value={elimClaseRecPista}
+                      onChange={(e) =>
+                        setElimClaseRecPista(Number(e.target.value))
+                      }
+                    >
+                      <option value="">Selecciona pista</option>
+                      {pistasDB.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.nombre.replace(/_/g, " ")}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* MONITOR */}
+                  <div className="admin_cal_seccion">
+                    <p className="admin_cal_titulo">Monitor</p>
+                    <select
+                      className="admin_elegir_usuario_select"
+                      value={elimClaseRecMonitor}
+                      onChange={(e) => setElimClaseRecMonitor(e.target.value)}
+                    >
+                      <option value="">Selecciona monitor</option>
+                      {monitores.map((m) => (
+                        <option key={m.id} value={m.id}>
+                          {m.first_name} {m.last_name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* DÍAS DE LA SEMANA */}
+                  <div className="admin_cal_seccion">
+                    <p className="admin_cal_titulo">Días de la semana</p>
+                    <div className="admin_cal_checkboxes">
+                      {[
+                        { label: "Lunes", value: 1 },
+                        { label: "Martes", value: 2 },
+                        { label: "Miércoles", value: 3 },
+                        { label: "Jueves", value: 4 },
+                        { label: "Viernes", value: 5 },
+                        { label: "Sábado", value: 6 },
+                        { label: "Domingo", value: 0 },
+                      ].map((d) => (
+                        <label key={d.value} className="admin_cal_check_label">
+                          <input
+                            type="checkbox"
+                            className="admin_pagado_checkbox"
+                            checked={elimClaseRecDias.includes(d.value)}
+                            onChange={(e) => {
+                              setElimClaseRecDias((prev) =>
+                                e.target.checked
+                                  ? [...prev, d.value]
+                                  : prev.filter((v) => v !== d.value),
+                              );
+                            }}
+                          />
+                          <span>{d.label}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* FECHAS */}
+                  <div className="admin_torneo_form">
+                    <label className="admin_torneo_label">Fecha inicio</label>
+                    <input
+                      type="date"
+                      className="admin_elegir_usuario_select"
+                      value={elimClaseRecFechaInicio}
+                      onChange={(e) =>
+                        setElimClaseRecFechaInicio(e.target.value)
+                      }
+                    />
+                    <label className="admin_torneo_label">Fecha fin</label>
+                    <input
+                      type="date"
+                      className="admin_elegir_usuario_select"
+                      value={elimClaseRecFechaFin}
+                      min={elimClaseRecFechaInicio}
+                      onChange={(e) => setElimClaseRecFechaFin(e.target.value)}
+                    />
+                  </div>
+
+                  {/* FRANJAS */}
+                  <div className="admin_cal_seccion">
+                    <p className="admin_cal_titulo">
+                      Franjas horarias a eliminar (1h)
+                    </p>
+                    <div className="admin_cal_franjas">
+                      {elimClaseRecFranjas.map((franja, i) => (
+                        <select
+                          key={i}
+                          className="admin_cal_franja_select"
+                          value={franja}
+                          onChange={(e) => {
+                            const nuevas = [...elimClaseRecFranjas];
+                            nuevas[i] = e.target.value;
+                            setElimClaseRecFranjas(nuevas);
+                          }}
+                        >
+                          <option value="">— vacía —</option>
+                          {franjasHorariasClase.map((f, j) => (
+                            <option key={j} value={`${f.inicio} - ${f.fin}`}>
+                              {f.inicio} - {f.fin}
+                            </option>
+                          ))}
+                        </select>
+                      ))}
+                    </div>
+                  </div>
+
+                  {elimClaseRecError && (
+                    <p className="reserva_error grande">{elimClaseRecError}</p>
+                  )}
+                  {elimClaseRecSuccess && (
+                    <p className="reserva_success grande">
+                      {elimClaseRecSuccess}
+                    </p>
+                  )}
+                </div>
+
+                <div className="div_confirmar_reserva_botones">
+                  <button
+                    className="reserva_boton"
+                    id="reserva_boton_cerrar"
+                    onClick={() => setShowOverlayEliminarClaseRec(false)}
+                  >
+                    Atrás
+                  </button>
+                  <button
+                    className="reserva_boton"
+                    onClick={handleEliminarClaseRecurrente}
+                    disabled={elimClaseRecLoading}
+                  >
+                    {elimClaseRecLoading ? "Eliminando..." : "Eliminar clases"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* CALENDARIO */}
+          <section className="admin_section_reservar_pista">
+            <div className="admin_div_calendario_pistas">
+              {/* HEADER */}
+              <div className="div_calendario_header">
+                <div className="div_hora_columna_header">HORA</div>
+                {pistasDB.map((p) => (
+                  <div key={p.id} className="div_pista_columna_header">
+                    <span className="nombre_pc">
+                      {p.nombre.replace(/_/g, " ")}
+                    </span>
+                    <span className="nombre_movil">{`P${p.id}`}</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* BODY */}
+              <div className="admin_div_calendario_body">
+                {horas.map((h) => (
+                  <div key={h} className="div_hora_celda" data-hora={h}>
+                    {h}
+                  </div>
+                ))}
+
+                {pistas.map((p, idx) =>
+                  todasLasReservas
+                    .filter((r) => r.pista === p)
+                    .map((bloque, i) => {
+                      const filas = calcularFilasBloque(
+                        bloque.inicio,
+                        bloque.fin,
+                      );
+                      const esLibre = bloque.estado === "libre";
+                      const esOcupada = bloque.estado === "ocupada";
+                      const esClase = bloque.estado === "clase";
+                      const esTorneo = bloque.estado === "torneo";
+
+                      const todoPagado =
+                        bloque.estado === "ocupada" &&
+                        bloque.pagado_1 &&
+                        bloque.pagado_2 &&
+                        bloque.pagado_3 &&
+                        bloque.pagado_4;
+
+                      return (
+                        <div
+                          key={`${p}-${bloque.inicio}-${i}`}
+                          className={`admin_div_reserva_bloque ${bloque.estado}${todoPagado ? " todo_pagado" : ""}`}
+                          data-libres={esLibre ? "true" : "false"}
+                          onClick={() => {
+                            if (esLibre) handleClickLibre(bloque);
+                            else if (esOcupada) handleClickOcupada(bloque);
+                            else if (esClase) handleClickClase(bloque);
+                          }}
+                          style={{
+                            gridColumn: idx + 2,
+                            gridRow: `${calcularFila(bloque.inicio)} / span ${filas}`,
+                          }}
+                        >
+                          {(esLibre || esOcupada || esClase) && (
+                            <>
+                              <span className="texto_reserva texto_reserva_pc">{`${bloque.inicio} - ${bloque.fin}`}</span>
+                              <span className="texto_reserva texto_reserva_movil">
+                                {bloque.inicio}
+                              </span>
+                            </>
+                          )}
+                          {esTorneo && (
+                            <span className="texto_reserva">Torneo</span>
+                          )}
+                        </div>
+                      );
+                    }),
+                )}
+
+                {pistas.map((p, idx) =>
+                  horas.map((h) => {
+                    if (estaCeldaOcupada(p, h)) return null;
+                    return (
+                      <div
+                        key={`${p}-${h}-vacia`}
+                        className="div_celda_vacia"
+                        style={{
+                          gridColumn: idx + 2,
+                          gridRow: calcularFila(h),
+                        }}
+                      />
+                    );
+                  }),
+                )}
+              </div>
+            </div>
+          </section>
+
+          {/* BOTONES FUNCIONES */}
+          <section className="admin_seccion_funciones">
+            <button
+              className="admin_seccion_funciones_boton"
+              onClick={() => {
+                setShowOverlayCrearBloque(true);
+                setCrearBloqueError("");
+                setCrearBloqueSuccess("");
+              }}
+            >
+              <span className="admin_boton_icono_left">
+                <span className="admin_colores_leyenda_span admin_disponible" />
+              </span>
+              CREAR PISTA LIBRE
+            </button>
+
+            <button
+              className="admin_seccion_funciones_boton"
+              onClick={() => {
+                setRecPistas([]);
+                setRecDias([]);
+                setRecFechaInicio("");
+                setRecFechaFin("");
+                setRecFranjas(Array(9).fill(""));
+                setRecError("");
+                setRecSuccess("");
+                setShowOverlayRecurrente(true);
+              }}
+            >
+              <span className="admin_boton_icono_left">
+                <span className="admin_colores_leyenda_span admin_disponible" />{" "}
+                🔁
+              </span>
+              CREAR PISTA LIBRE - RECURRENTE
+            </button>
+
+            <button
+              className="admin_seccion_funciones_boton"
+              onClick={() => {
+                setElimRecPistas([]);
+                setElimRecDias([]);
+                setElimRecFechaInicio("");
+                setElimRecFechaFin("");
+                setElimRecFranjas(Array(9).fill(""));
+                setElimRecError("");
+                setElimRecSuccess("");
+                setShowOverlayEliminarRec(true);
+              }}
+            >
+              <span className="admin_boton_icono_left">
+                <span className="admin_colores_leyenda_span admin_disponible" />{" "}
+                🔁 <span className="admin_icono_x">✕</span>
+              </span>
+              ELIMINAR PISTA LIBRE - RECURRENTE
+            </button>
+
+            <button
+              className="admin_seccion_funciones_boton"
+              onClick={() => {
+                setClaseRecPista("");
+                setClaseRecDias([]);
+                setClaseRecFechaInicio("");
+                setClaseRecFechaFin("");
+                setClaseRecFranjas(Array(9).fill(""));
+                setClaseRecMonitor("");
+                setClaseRecError("");
+                setClaseRecSuccess("");
+                setShowOverlayCrearClaseRec(true);
+              }}
+            >
+              <span className="admin_boton_icono_left">
+                <span className="admin_colores_leyenda_span admin_clase" />
+              </span>
+              RESERVAR PISTA CLASE - RECURRENTE
+            </button>
+
+            <button
+              className="admin_seccion_funciones_boton"
+              onClick={() => {
+                setElimClaseRecPista("");
+                setElimClaseRecMonitor("");
+                setElimClaseRecDias([]);
+                setElimClaseRecFechaInicio("");
+                setElimClaseRecFechaFin("");
+                setElimClaseRecFranjas(Array(9).fill(""));
+                setElimClaseRecError("");
+                setElimClaseRecSuccess("");
+                setShowOverlayEliminarClaseRec(true);
+              }}
+            >
+              <span className="admin_boton_icono_left">
+                <span className="admin_colores_leyenda_span admin_clase" />{" "}
+                <span className="admin_icono_x">✕</span>
+              </span>
+              ELIMINAR PISTA CLASE - RECURRENTE
+            </button>
+
+            <button
+              className="admin_seccion_funciones_boton"
+              onClick={() => {
+                setTorneoError("");
+                setTorneoSuccess("");
+                setTorneoFechaInicio("");
+                setTorneoHoraInicio("");
+                setTorneoFechaFin("");
+                setTorneoHoraFin("");
+                setShowOverlayTorneo(true);
+              }}
+            >
+              <span className="admin_boton_icono_left">
+                <span className="admin_colores_leyenda_span admin_torneo" />
+              </span>
+              BLOQUEAR FIN DE SEMANA TORNEO
+            </button>
+
+            <button
+              className="admin_seccion_funciones_boton"
+              onClick={() => {
+                setFijaError("");
+                setFijaSuccess("");
+                setFijaAvisos([]);
+                setFijaFechaInicio("");
+                setFijaFechaFin("");
+                setFijaPista("");
+                setFijaFranja("");
+                setFijaUsuario(null);
+                setFijaBusqueda("");
+                setShowOverlayPistaFija(true);
+                setFijaDiaSemana("");
+              }}
+            >
+              <span className="admin_boton_icono_left">
+                <span className="admin_colores_leyenda_span admin_ocupada" />{" "}
+                🔁{" "}
+              </span>
+              ASIGNAR PISTA FIJA
+            </button>
+          </section>
+        </>
+      )}
     </>
   );
 }
