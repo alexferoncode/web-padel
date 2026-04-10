@@ -219,39 +219,30 @@ function AdminPista({ date }: { date: Date }) {
       0) CARGAR PISTAS
   -----------------------------------------------------*/
   useEffect(() => {
-    let cancelado = false;
-    let intentos = 0;
-
     const cargarPistas = async () => {
-      console.log(`[pistas] intento ${intentos + 1}`);
+      try {
+        const url = `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/pistas?select=id,nombre&order=id`;
 
-      const { data, error } = await supabase
-        .from("pistas")
-        .select("id, nombre")
-        .order("id");
+        const res = await fetch(url, {
+          headers: {
+            apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          },
+        });
 
-      console.log(`[pistas] data:`, data, `error:`, error);
-
-      if (cancelado) return;
-
-      if (error || !data || data.length === 0) {
-        if (intentos < 3) {
-          intentos++;
-          setTimeout(cargarPistas, 1000);
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+          setPistasDB(data);
         } else {
           setErrorPistas(true);
         }
-        return;
+      } catch (e: any) {
+        console.error("Error cargando pistas:", e);
+        setErrorPistas(true);
       }
-
-      setPistasDB(data);
     };
 
     cargarPistas();
-
-    return () => {
-      cancelado = true;
-    };
   }, []);
 
   /* ----------------------------------------------------
@@ -311,33 +302,30 @@ function AdminPista({ date }: { date: Date }) {
     if (pistasDB.length === 0) return;
 
     const cargarReservas = async () => {
-      // setLoading(true);
       const año = date.getFullYear();
       const mes = (date.getMonth() + 1).toString().padStart(2, "0");
       const dia = date.getDate().toString().padStart(2, "0");
       const fechaStr = `${año}-${mes}-${dia}`;
 
-      const { data, error } = await supabase
-        .from("reservas")
-        .select("*")
-        .gte("inicio", `${fechaStr}T00:00:00`)
-        .lt("inicio", `${fechaStr}T23:59:59`)
-        .order("inicio", { ascending: true });
+      try {
+        const url = `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/reservas?select=*&inicio=gte.${fechaStr}T00:00:00&inicio=lt.${fechaStr}T23:59:59&order=inicio.asc`;
 
-      if (error) {
-        console.error("Error cargando reservas:", error);
-        // setLoading(false);
-        return;
+        const res = await fetch(url, {
+          headers: {
+            apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          },
+        });
+
+        const data = await res.json();
+        if (Array.isArray(data)) setReservasSupabase(data);
+      } catch (e: any) {
+        console.error("Error cargando reservas:", e);
       }
-
-      setReservasSupabase(data || []);
-      // setLoading(false);
     };
 
     cargarReservas();
   }, [date, pistasDB]);
-
-  const pistas = pistasDB.map((p) => p.id);
 
   /* ----------------------------------------------------
       3) CARGAR PERFILES
@@ -1125,9 +1113,9 @@ function AdminPista({ date }: { date: Date }) {
     }
 
     // 4) Insertar bloques de torneo para cada pista
-    const inserts = pistas.flatMap((pistaId) =>
+    const inserts = pistasDB.flatMap((p) =>
       bloques.map((b) => ({
-        pista_id: pistaId,
+        pista_id: p.id,
         estado: "torneo",
         inicio: `${b.fecha}T${b.horaInicio}:00`,
         fin: `${b.fecha}T${b.horaFin}:00`,
@@ -1893,26 +1881,12 @@ function AdminPista({ date }: { date: Date }) {
   // }
 
   if (pistasDB.length === 0 && !errorPistas) {
-    return (
-      <div
-        className="cargando"
-        style={{ color: "white", padding: 20, background: "#003b5c" }}
-      >
-        <p>Cargando pistas...</p>
-        <p>errorPistas: {String(errorPistas)}</p>
-        <p>pistasDB length: {pistasDB.length}</p>
-      </div>
-    );
+    return <div className="cargando">Cargando pistas...</div>;
   }
 
   if (errorPistas) {
     return (
-      <div
-        className="cargando"
-        style={{ color: "white", padding: 20, background: "#003b5c" }}
-      >
-        <p>Error cargando pistas</p>
-      </div>
+      <div className="cargando">Error cargando pistas. Recarga la página.</div>
     );
   }
 
