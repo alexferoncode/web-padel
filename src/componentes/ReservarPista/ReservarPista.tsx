@@ -3,6 +3,7 @@ import "../../index.css";
 import { useEffect, useState } from "react";
 import { supabase } from "../../../supabaseClient";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
 
 type EstadoReserva =
   | "libre"
@@ -23,10 +24,10 @@ interface ReservaDB {
   user_id?: string | null;
 }
 
-interface PistaDB {
-  id: number;
-  nombre: string;
-}
+// interface PistaDB {
+//   id: number;
+//   nombre: string;
+// }
 
 interface BloqueReserva {
   id?: number;
@@ -39,13 +40,15 @@ interface BloqueReserva {
 
 function ReservarPista({ date }: { date: Date }) {
   const navigate = useNavigate();
+  const { user, pistas: pistasDB } = useAuth(); // 👈 pistas y user desde contexto
+  const userId = user?.id ?? null; // 👈 userId derivado del contexto
 
   const startHour = 8;
   const endHour = 23;
 
   const [reservasSupabase, setReservasSupabase] = useState<ReservaDB[]>([]);
-  const [pistasDB, setPistasDB] = useState<PistaDB[]>([]);
-  const [userId, setUserId] = useState<string | null>(null);
+  // 👇 elimina: const [pistasDB, setPistasDB] = useState<PistaDB[]>([]);
+  // 👇 elimina: const [userId, setUserId] = useState<string | null>(null);
 
   // Overlay
   const [showOverlay, setShowOverlay] = useState(false);
@@ -61,44 +64,44 @@ function ReservarPista({ date }: { date: Date }) {
   /* ----------------------------------------------------
       0) CARGAR PISTAS
   -----------------------------------------------------*/
-  useEffect(() => {
-    let cancelado = false;
+  // useEffect(() => {
+  //   let cancelado = false;
 
-    const cargarPistas = async () => {
-      const { data, error } = await supabase
-        .from("pistas")
-        .select("id, nombre")
-        .order("id");
+  //   const cargarPistas = async () => {
+  //     const { data, error } = await supabase
+  //       .from("pistas")
+  //       .select("id, nombre")
+  //       .order("id");
 
-      if (cancelado) return;
+  //     if (cancelado) return;
 
-      if (error || !data || data.length === 0) {
-        console.error("Error cargando pistas:", error);
-        return;
-      }
+  //     if (error || !data || data.length === 0) {
+  //       console.error("Error cargando pistas:", error);
+  //       return;
+  //     }
 
-      setPistasDB(data);
-    };
+  //     setPistasDB(data);
+  //   };
 
-    cargarPistas();
+  //   cargarPistas();
 
-    return () => {
-      cancelado = true;
-    };
-  }, []);
+  //   return () => {
+  //     cancelado = true;
+  //   };
+  // }, []);
 
   /* ----------------------------------------------------
       0.5) OBTENER USUARIO LOGUEADO
   -----------------------------------------------------*/
-  useEffect(() => {
-    const obtenerUsuario = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      setUserId(user?.id || null);
-    };
-    obtenerUsuario();
-  }, []);
+  // useEffect(() => {
+  //   const obtenerUsuario = async () => {
+  //     const {
+  //       data: { user },
+  //     } = await supabase.auth.getUser();
+  //     setUserId(user?.id || null);
+  //   };
+  //   obtenerUsuario();
+  // }, []);
 
   /* ----------------------------------------------------
       1) GENERAR HORAS

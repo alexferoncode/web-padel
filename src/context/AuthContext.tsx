@@ -11,7 +11,21 @@ interface ReservaUsuario {
   estado: string;
 }
 
-const AuthContext = createContext<any>(null);
+interface PistaDB {
+  id: number;
+  nombre: string;
+}
+
+interface AuthContextType {
+  user: any;
+  loading: boolean;
+  reservas: ReservaUsuario[];
+  cargarReservas: (userId: string | null) => Promise<void>;
+  rol: string | null;
+  pistas: PistaDB[];
+}
+
+const AuthContext = createContext<AuthContextType | null>(null);
 
 interface AuthProviderProps {
   children: ReactNode;
@@ -22,7 +36,26 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [loading, setLoading] = useState(true);
   const [reservas, setReservas] = useState<ReservaUsuario[]>([]);
   const [rol, setRol] = useState<string | null>(null);
+  const [pistas, setPistas] = useState<PistaDB[]>([]);
   const location = useLocation();
+
+  /* -------------------- Cargar pistas -------------------- */
+  useEffect(() => {
+    const cargarPistas = async () => {
+      const { data, error } = await supabase
+        .from("pistas")
+        .select("id, nombre")
+        .order("id");
+
+      if (error || !data) {
+        console.error("Error cargando pistas:", error);
+        return;
+      }
+      setPistas(data);
+    };
+
+    cargarPistas();
+  }, []);
 
   /* -------------------- Cargar reservas -------------------- */
   const cargarReservas = async (userId: string | null) => {
@@ -103,23 +136,22 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     };
   }, []);
 
-  // Cargar reservas cuando cambia la página o el usuario
+  /* -------------------- Cargar reservas al cambiar usuario/página -------------------- */
   useEffect(() => {
     if (!user) {
       setReservas([]);
       return;
     }
-
     cargarReservas(user.id);
   }, [user, location.pathname]);
 
   return (
     <AuthContext.Provider
-      value={{ user, loading, reservas, cargarReservas, rol }}
+      value={{ user, loading, reservas, cargarReservas, rol, pistas }}
     >
       {children}
     </AuthContext.Provider>
   );
 };
 
-export const useAuth = () => useContext(AuthContext);
+export const useAuth = () => useContext(AuthContext) as AuthContextType;
