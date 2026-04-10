@@ -88,22 +88,33 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   /* -------------------- Autenticación -------------------- */
   useEffect(() => {
     const getSession = async () => {
-      const { data } = await supabase.auth.getSession();
-      const currentUser = data.session?.user ?? null;
+      try {
+        const sessionPromise = supabase.auth.getSession();
+        const timeoutPromise = new Promise<null>((resolve) =>
+          setTimeout(() => resolve(null), 3000),
+        );
 
-      if (currentUser) {
-        const { data: perfil } = await supabase
-          .from("profile")
-          .select("rol")
-          .eq("id", currentUser.id)
-          .single();
-        setRol(perfil?.rol ?? null);
-      } else {
-        setRol(null);
+        const result = await Promise.race([sessionPromise, timeoutPromise]);
+
+        const currentUser = result
+          ? ((result as any).data?.session?.user ?? null)
+          : null;
+
+        if (currentUser) {
+          const { data: perfil } = await supabase
+            .from("profile")
+            .select("rol")
+            .eq("id", currentUser.id)
+            .single();
+          setRol(perfil?.rol ?? null);
+        } else {
+          setRol(null);
+        }
+
+        setUser(currentUser);
+      } finally {
+        setLoading(false);
       }
-
-      setUser(currentUser);
-      setLoading(false);
     };
 
     getSession();
