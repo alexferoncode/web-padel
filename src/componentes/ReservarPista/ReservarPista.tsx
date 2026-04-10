@@ -411,6 +411,7 @@ function ReservarPista({ date }: { date: Date }) {
     pistasDB_length: pistasDB.length,
     userId,
     reservasSupabase_length: reservasSupabase.length,
+    timestamp: new Date().toLocaleTimeString(),
   };
 
   return (

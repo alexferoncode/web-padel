@@ -42,15 +42,20 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   /* -------------------- Cargar pistas -------------------- */
   useEffect(() => {
     const cargarPistas = async () => {
+      console.log("🔵 Intentando cargar pistas...");
+
       const { data, error } = await supabase
         .from("pistas")
         .select("id, nombre")
         .order("id");
 
+      console.log("🟡 Resultado pistas:", { data, error });
+
       if (error || !data) {
-        console.error("Error cargando pistas:", error);
+        console.error("❌ Error cargando pistas:", error);
         return;
       }
+      console.log("✅ Pistas cargadas:", data.length);
       setPistas(data);
     };
 
