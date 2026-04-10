@@ -13,7 +13,14 @@ export default function Pagina_Admin() {
   const navigate = useNavigate();
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [debugLogs, setDebugLogs] = useState<string[]>([]);
-  const addLog = (msg: string) => setDebugLogs((prev) => [...prev, msg]);
+
+  const addLog = (msg: string) => {
+    console.log(msg);
+    setDebugLogs((prev) => [
+      ...prev,
+      new Date().toLocaleTimeString() + " " + msg,
+    ]);
+  };
 
   // --------------------- Manejo del parámetro date ---------------------
   useEffect(() => {
@@ -27,52 +34,44 @@ export default function Pagina_Admin() {
 
   // --------------------- Controlar rol ---------------------
   useEffect(() => {
-    console.log(
-      "🔵 Admin effect - loading:",
-      loading,
-      "user:",
-      user?.id ?? "null",
-      "rol:",
-      rol,
-    );
+    addLog(`loading:${loading} user:${user?.id ?? "null"} rol:${rol}`);
 
     if (loading) return;
     if (!user) {
-      console.log("🔴 No user, redirigiendo...");
+      addLog("NO USER → redirigiendo");
       navigate("/");
       return;
     }
     if (rol === null) {
-      console.log("🟡 User existe pero rol es null, esperando...");
+      addLog("user OK pero rol null, esperando...");
       return;
     }
     if (rol !== "admin") {
-      console.log("🔴 Rol no es admin:", rol);
+      addLog("rol no es admin: " + rol);
       navigate("/");
       return;
     }
-    console.log("✅ Es admin, mostrando panel");
+    addLog("ES ADMIN ✅");
     setIsAdmin(true);
   }, [user, loading, rol, navigate]);
 
-  // --------------------- Render condicional ---------------------
-  if (loading || isAdmin === null) {
-    return <div>Cargando...</div>;
-  }
-
+  // --------------------- Render siempre muestra debug ---------------------
   return (
     <>
+      {/* DEBUG - quitar después */}
       <div
         style={{
           position: "fixed",
           top: 0,
           left: 0,
           zIndex: 9999,
-          background: "rgba(0,0,0,0.8)",
+          background: "rgba(0,0,0,0.85)",
           color: "lime",
           fontSize: "11px",
           padding: "8px",
           maxWidth: "100vw",
+          maxHeight: "40vh",
+          overflowY: "auto",
         }}
       >
         {debugLogs.map((log, i) => (
@@ -80,10 +79,16 @@ export default function Pagina_Admin() {
         ))}
       </div>
 
-      <Navbar />
-      <AdminCalendario date={date} setDate={setDate} />
-      <AdminPistas date={date} />
-      <Footer />
+      {loading || isAdmin === null ? (
+        <div style={{ paddingTop: 60 }}>Cargando...</div>
+      ) : (
+        <>
+          <Navbar />
+          <AdminCalendario date={date} setDate={setDate} />
+          <AdminPistas date={date} />
+          <Footer />
+        </>
+      )}
     </>
   );
 }
