@@ -1,8 +1,6 @@
 import "./navbar.css";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
-import { supabase } from "../../../supabaseClient";
-// import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 
 interface ReservaUsuario {
@@ -21,14 +19,13 @@ function Navbar() {
     user: authUser,
     reservas,
     rol,
+    signOut,
   } = useAuth() as {
     user: any;
     reservas: ReservaUsuario[];
     rol: string | null;
+    signOut: () => Promise<void>;
   };
-  // const [reservasUsuario, setReservasUsuario] = useState<ReservaUsuario[]>([]);
-
-  /* ----------------- Funciones de menú y logout ----------------- */
 
   const handleMenuClickAbrir = () => {
     const navbarVertical = document.querySelector(
@@ -45,35 +42,27 @@ function Navbar() {
   };
 
   const handleReservasAbrir = () => {
-    const navbarVertical = document.querySelector(
-      ".lista_reservas_overlay",
-    ) as HTMLElement;
-    navbarVertical.style.display = "flex";
+    const el = document.querySelector(".lista_reservas_overlay") as HTMLElement;
+    el.style.display = "flex";
   };
 
   const handleReservasCerrar = () => {
-    const navbarVertical = document.querySelector(
-      ".lista_reservas_overlay",
-    ) as HTMLElement;
-    navbarVertical.style.display = "none";
+    const el = document.querySelector(".lista_reservas_overlay") as HTMLElement;
+    el.style.display = "none";
   };
 
   const handleCerrarSesionAbrir = () => {
-    const navbarVertical = document.querySelector(
-      ".cerrar_sesion_aviso",
-    ) as HTMLElement;
-    navbarVertical.style.display = "flex";
+    const el = document.querySelector(".cerrar_sesion_aviso") as HTMLElement;
+    el.style.display = "flex";
   };
 
   const handleCerrarSesionCerrar = () => {
-    const navbarVertical = document.querySelector(
-      ".cerrar_sesion_aviso",
-    ) as HTMLElement;
-    navbarVertical.style.display = "none";
+    const el = document.querySelector(".cerrar_sesion_aviso") as HTMLElement;
+    el.style.display = "none";
   };
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    await signOut(); // 👈 usa signOut del contexto en lugar de supabase directamente
     handleMenuClickCerrar();
     window.location.href = "/";
   };

@@ -23,6 +23,7 @@ interface AuthContextType {
   cargarReservas: (userId: string | null) => Promise<void>;
   rol: string | null;
   pistas: PistaDB[];
+  signOut: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -78,6 +79,14 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       return;
     }
     setReservas(data || []);
+  };
+
+  /* -------------------- Sign out -------------------- */
+  const signOut = async () => {
+    await supabase.auth.signOut();
+    setUser(null);
+    setRol(null);
+    setReservas([]);
   };
 
   /* -------------------- Autenticación -------------------- */
@@ -179,7 +188,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   return (
     <AuthContext.Provider
-      value={{ user, loading, reservas, cargarReservas, rol, pistas }}
+      value={{ user, loading, reservas, cargarReservas, rol, pistas, signOut }}
     >
       {children}
     </AuthContext.Provider>
