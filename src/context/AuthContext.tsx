@@ -88,17 +88,22 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   /* -------------------- Autenticación -------------------- */
   useEffect(() => {
     const getSession = async () => {
+      console.log("🔵 getSession iniciando...");
       try {
         const sessionPromise = supabase.auth.getSession();
-        const timeoutPromise = new Promise<null>(
-          (resolve) => setTimeout(() => resolve(null), 10000), // 10s en vez de 3s
+        const timeoutPromise = new Promise<null>((resolve) =>
+          setTimeout(() => resolve(null), 10000),
         );
 
         const result = await Promise.race([sessionPromise, timeoutPromise]);
 
+        console.log("🟡 Promise.race resultado:", result);
+
         const currentUser = result
           ? ((result as any).data?.session?.user ?? null)
           : null;
+
+        console.log("🟢 currentUser:", currentUser?.id ?? "null");
 
         if (currentUser) {
           const { data: perfil } = await supabase
@@ -112,7 +117,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         }
 
         setUser(currentUser);
+      } catch (e) {
+        console.error("🔴 getSession error:", e);
       } finally {
+        console.log("⚫ setLoading(false)");
         setLoading(false);
       }
     };

@@ -12,6 +12,8 @@ export default function Pagina_Admin() {
   const { user, loading, rol } = useAuth();
   const navigate = useNavigate();
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
+  const [debugLogs, setDebugLogs] = useState<string[]>([]);
+  const addLog = (msg: string) => setDebugLogs((prev) => [...prev, msg]);
 
   // --------------------- Manejo del parámetro date ---------------------
   useEffect(() => {
@@ -25,23 +27,31 @@ export default function Pagina_Admin() {
 
   // --------------------- Controlar rol ---------------------
   useEffect(() => {
+    console.log(
+      "🔵 Admin effect - loading:",
+      loading,
+      "user:",
+      user?.id ?? "null",
+      "rol:",
+      rol,
+    );
+
     if (loading) return;
-
     if (!user) {
-      // Dar margen extra por si la sesión llega tarde
-      const timer = setTimeout(() => {
-        navigate("/");
-      }, 2000);
-      return () => clearTimeout(timer);
-    }
-
-    if (rol === null) return;
-
-    if (rol !== "admin") {
+      console.log("🔴 No user, redirigiendo...");
       navigate("/");
       return;
     }
-
+    if (rol === null) {
+      console.log("🟡 User existe pero rol es null, esperando...");
+      return;
+    }
+    if (rol !== "admin") {
+      console.log("🔴 Rol no es admin:", rol);
+      navigate("/");
+      return;
+    }
+    console.log("✅ Es admin, mostrando panel");
     setIsAdmin(true);
   }, [user, loading, rol, navigate]);
 
@@ -52,6 +62,24 @@ export default function Pagina_Admin() {
 
   return (
     <>
+      <div
+        style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          zIndex: 9999,
+          background: "rgba(0,0,0,0.8)",
+          color: "lime",
+          fontSize: "11px",
+          padding: "8px",
+          maxWidth: "100vw",
+        }}
+      >
+        {debugLogs.map((log, i) => (
+          <div key={i}>{log}</div>
+        ))}
+      </div>
+
       <Navbar />
       <AdminCalendario date={date} setDate={setDate} />
       <AdminPistas date={date} />
