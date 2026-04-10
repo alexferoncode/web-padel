@@ -3,6 +3,7 @@ import "./adminPista.css";
 import "../../index.css";
 import { useEffect, useState } from "react";
 import { supabase } from "../../../supabaseClient";
+import { useAuth } from "../../context/AuthContext";
 
 type EstadoReserva =
   | "libre"
@@ -58,12 +59,12 @@ interface Pedido {
 }
 
 function AdminPista({ date }: { date: Date }) {
+  const { pistas: pistasDB } = useAuth();
   const todayISO = new Date().toISOString().split("T")[0];
   const startHour = 8;
   const endHour = 23;
 
   const [reservasSupabase, setReservasSupabase] = useState<ReservaDB[]>([]);
-  const [pistasDB, setPistasDB] = useState<PistaDB[]>([]);
 
   const [errorPistas, setErrorPistas] = useState(false);
 
@@ -218,32 +219,32 @@ function AdminPista({ date }: { date: Date }) {
   /* ----------------------------------------------------
       0) CARGAR PISTAS
   -----------------------------------------------------*/
-  useEffect(() => {
-    const cargarPistas = async () => {
-      try {
-        const url = `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/pistas?select=id,nombre&order=id`;
+  // useEffect(() => {
+  //   const cargarPistas = async () => {
+  //     try {
+  //       const url = `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/pistas?select=id,nombre&order=id`;
 
-        const res = await fetch(url, {
-          headers: {
-            apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-          },
-        });
+  //       const res = await fetch(url, {
+  //         headers: {
+  //           apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+  //           Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+  //         },
+  //       });
 
-        const data = await res.json();
-        if (Array.isArray(data) && data.length > 0) {
-          setPistasDB(data);
-        } else {
-          setErrorPistas(true);
-        }
-      } catch (e: any) {
-        console.error("Error cargando pistas:", e);
-        setErrorPistas(true);
-      }
-    };
+  //       const data = await res.json();
+  //       if (Array.isArray(data) && data.length > 0) {
+  //         setPistasDB(data);
+  //       } else {
+  //         setErrorPistas(true);
+  //       }
+  //     } catch (e: any) {
+  //       console.error("Error cargando pistas:", e);
+  //       setErrorPistas(true);
+  //     }
+  //   };
 
-    cargarPistas();
-  }, []);
+  //   cargarPistas();
+  // }, []);
 
   /* ----------------------------------------------------
       1) GENERAR HORAS
@@ -1882,7 +1883,7 @@ function AdminPista({ date }: { date: Date }) {
   //   );
   // }
 
-  if (pistasDB.length === 0 && !errorPistas) {
+  if (pistasDB.length === 0) {
     return <div className="cargando">Cargando pistas...</div>;
   }
 
