@@ -90,8 +90,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     const getSession = async () => {
       try {
         const sessionPromise = supabase.auth.getSession();
-        const timeoutPromise = new Promise<null>((resolve) =>
-          setTimeout(() => resolve(null), 3000),
+        const timeoutPromise = new Promise<null>(
+          (resolve) => setTimeout(() => resolve(null), 10000), // 10s en vez de 3s
         );
 
         const result = await Promise.race([sessionPromise, timeoutPromise]);

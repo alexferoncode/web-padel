@@ -28,8 +28,11 @@ export default function Pagina_Admin() {
     if (loading) return;
 
     if (!user) {
-      navigate("/");
-      return;
+      // Dar margen extra por si la sesión llega tarde
+      const timer = setTimeout(() => {
+        navigate("/");
+      }, 2000);
+      return () => clearTimeout(timer);
     }
 
     if (rol === null) return;
