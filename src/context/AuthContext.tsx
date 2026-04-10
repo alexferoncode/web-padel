@@ -42,23 +42,48 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   const [pistasStatus, setPistasStatus] = useState<string>("iniciando");
 
-  /* -------------------- Cargar pistas -------------------- */
+  // AuthContext.tsx - cargarPistas con timeout
   useEffect(() => {
     const cargarPistas = async () => {
       setPistasStatus("cargando...");
 
-      const { data, error } = await supabase
-        .from("pistas")
-        .select("id, nombre")
-        .order("id");
+      const timeout = new Promise<null>((_, reject) =>
+        setTimeout(() => reject(new Error("timeout")), 5000),
+      );
 
-      if (error || !data) {
-        setPistasStatus(`error: ${JSON.stringify(error)}`);
-        return;
+      try {
+        const resultado = (await Promise.race([
+          supabase.from("pistas").select("id, nombre").order("id"),
+          timeout,
+        ])) as { data: PistaDB[] | null; error: any };
+
+        const { data, error } = resultado;
+
+        if (error || !data) {
+          setPistasStatus(`error: ${JSON.stringify(error)}`);
+          return;
+        }
+
+        setPistasStatus(`ok: ${data.length} pistas`);
+        setPistas(data);
+      } catch (e: any) {
+        setPistasStatus(`excepción: ${e.message}`);
+        // Si timeout, reintenta
+        if (e.message === "timeout") {
+          setPistasStatus("reintentando...");
+          const { data, error } = await supabase
+            .from("pistas")
+            .select("id, nombre")
+            .order("id");
+
+          if (!error && data) {
+            setPistasStatus(`ok tras reintento: ${data.length} pistas`);
+            setPistas(data);
+          } else {
+            setPistasStatus(`error tras reintento: ${JSON.stringify(error)}`);
+          }
+        }
       }
-
-      setPistasStatus(`ok: ${data.length} pistas`);
-      setPistas(data);
     };
 
     cargarPistas();
