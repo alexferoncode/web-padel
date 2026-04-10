@@ -40,7 +40,7 @@ interface BloqueReserva {
 
 function ReservarPista({ date }: { date: Date }) {
   const navigate = useNavigate();
-  const { user, pistas: pistasDB, pistasStatus } = useAuth(); // 👈 pistas y user desde contexto
+  const { user, pistas: pistasDB } = useAuth(); // 👈 pistas y user desde contexto
   const userId = user?.id ?? null; // 👈 userId derivado del contexto
 
   const startHour = 8;
@@ -394,198 +394,148 @@ function ReservarPista({ date }: { date: Date }) {
     }
   };
 
-  // /* ----------------------------------------------------
-  //     7) RENDER
-  // -----------------------------------------------------*/
-  // if (pistasDB.length === 0) {
-  //   return <div className="cargando">Cargando pistas...</div>;
-  // }
-
-  // return (
-  //   <>
   /* ----------------------------------------------------
       7) RENDER
   -----------------------------------------------------*/
-  const debugInfo = {
-    pistasDB_length: pistasDB.length,
-    userId,
-    pistasStatus,
-    reservasSupabase_length: reservasSupabase.length,
-    timestamp: new Date().toLocaleTimeString(),
-  };
+  if (pistasDB.length === 0) {
+    return <div className="cargando">Cargando pistas...</div>;
+  }
 
   return (
     <>
-      {/* DEBUG - quitar después */}
+      {/* OVERLAY */}
       <div
-        style={{
-          position: "fixed",
-          top: 0,
-          left: 0,
-          zIndex: 9999,
-          background: "rgba(0,0,0,0.8)",
-          color: "lime",
-          fontSize: "12px",
-          padding: "8px",
-          maxWidth: "100vw",
-        }}
+        onClick={() => setShowOverlay(false)}
+        className={`reserva_overlay ${showOverlay ? "show" : ""}`}
       >
-        <pre>{JSON.stringify(debugInfo, null, 2)}</pre>
+        <div
+          className="reservas_contenido"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {bloqueSeleccionado ? (
+            <div className="div_confirmar_reserva">
+              {cancelOverlay && <h2>¿Quieres cancelar esta pista?</h2>}
+              <h2>
+                {date
+                  .toLocaleDateString("es-ES", {
+                    weekday: "long",
+                    day: "2-digit",
+                    month: "long",
+                    year: "numeric",
+                  })
+                  .replace(/^./, (c) => c.toUpperCase())}
+              </h2>
+              <h2>
+                {bloqueSeleccionado.inicio} - {bloqueSeleccionado.fin}
+              </h2>
+              <h2>Pista {bloqueSeleccionado.pista}</h2>
+            </div>
+          ) : (
+            <p>Error al cargar el bloque</p>
+          )}
+          {errorMsg && <p className="reserva_error grande">{errorMsg}</p>}
+          {successMsg && <p className="reserva_success grande">{successMsg}</p>}
+
+          <div className="div_confirmar_reserva_botones">
+            <button
+              className="reserva_boton"
+              id="reserva_boton_cerrar"
+              onClick={() => setShowOverlay(false)}
+            >
+              Atrás
+            </button>
+            {cancelOverlay ? (
+              <button className="reserva_boton" onClick={handleCancelarReserva}>
+                Cancelar pista
+              </button>
+            ) : (
+              <button
+                className="reserva_boton"
+                onClick={handleConfirmarReserva}
+              >
+                Confirmar reserva
+              </button>
+            )}
+          </div>
+        </div>
       </div>
 
-      {pistasDB.length === 0 ? (
-        <div className="cargando">Cargando pistas...</div>
-      ) : (
-        <>
-          {/* OVERLAY */}
-          <div
-            onClick={() => setShowOverlay(false)}
-            className={`reserva_overlay ${showOverlay ? "show" : ""}`}
-          >
-            <div
-              className="reservas_contenido"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {bloqueSeleccionado ? (
-                <div className="div_confirmar_reserva">
-                  {cancelOverlay && <h2>¿Quieres cancelar esta pista?</h2>}
-                  <h2>
-                    {date
-                      .toLocaleDateString("es-ES", {
-                        weekday: "long",
-                        day: "2-digit",
-                        month: "long",
-                        year: "numeric",
-                      })
-                      .replace(/^./, (c) => c.toUpperCase())}
-                  </h2>
-                  <h2>
-                    {bloqueSeleccionado.inicio} - {bloqueSeleccionado.fin}
-                  </h2>
-                  <h2>Pista {bloqueSeleccionado.pista}</h2>
-                </div>
-              ) : (
-                <p>Error al cargar el bloque</p>
-              )}
-              {errorMsg && <p className="reserva_error grande">{errorMsg}</p>}
-              {successMsg && (
-                <p className="reserva_success grande">{successMsg}</p>
-              )}
-
-              <div className="div_confirmar_reserva_botones">
-                <button
-                  className="reserva_boton"
-                  id="reserva_boton_cerrar"
-                  onClick={() => setShowOverlay(false)}
-                >
-                  Atrás
-                </button>
-                {cancelOverlay ? (
-                  <button
-                    className="reserva_boton"
-                    onClick={handleCancelarReserva}
-                  >
-                    Cancelar pista
-                  </button>
-                ) : (
-                  <button
-                    className="reserva_boton"
-                    onClick={handleConfirmarReserva}
-                  >
-                    Confirmar reserva
-                  </button>
-                )}
+      {/* CALENDARIO */}
+      <section className="section_reservar_pista">
+        <div className="div_calendario_pistas">
+          <div className="div_calendario_header">
+            <div className="div_hora_columna_header">HORA</div>
+            {pistasDB.map((p) => (
+              <div key={p.id} className="div_pista_columna_header">
+                <span className="nombre_pc">{p.nombre.replace(/_/g, " ")}</span>
+                <span className="nombre_movil">{`P${p.id}`}</span>
               </div>
-            </div>
+            ))}
           </div>
 
-          {/* CALENDARIO */}
-          <section className="section_reservar_pista">
-            <div className="div_calendario_pistas">
-              <div className="div_calendario_header">
-                <div className="div_hora_columna_header">HORA</div>
-                {pistasDB.map((p) => (
-                  <div key={p.id} className="div_pista_columna_header">
-                    <span className="nombre_pc">
-                      {p.nombre.replace(/_/g, " ")}
-                    </span>
-                    <span className="nombre_movil">{`P${p.id}`}</span>
-                  </div>
-                ))}
+          <div className="div_calendario_body">
+            {horas.map((h) => (
+              <div key={h} className="div_hora_celda" data-hora={h}>
+                {h}
               </div>
+            ))}
 
-              <div className="div_calendario_body">
-                {horas.map((h) => (
-                  <div key={h} className="div_hora_celda" data-hora={h}>
-                    {h}
-                  </div>
-                ))}
+            {pistas.map((p, idx) =>
+              todasLasReservas
+                .filter((r) => r.pista === p)
+                .map((bloque, i) => {
+                  const filas = calcularFilasBloque(bloque.inicio, bloque.fin);
+                  const esLibre = bloque.estado === "libre";
+                  const esPropia =
+                    bloque.estado === "ocupada" && bloque.user_id === userId;
+                  const claseBloque = esLibre
+                    ? "libre"
+                    : esPropia
+                      ? "propia"
+                      : "ocupada";
 
-                {pistas.map((p, idx) =>
-                  todasLasReservas
-                    .filter((r) => r.pista === p)
-                    .map((bloque, i) => {
-                      const filas = calcularFilasBloque(
-                        bloque.inicio,
-                        bloque.fin,
-                      );
-                      const esLibre = bloque.estado === "libre";
-                      const esPropia =
-                        bloque.estado === "ocupada" &&
-                        bloque.user_id === userId;
-                      const claseBloque = esLibre
-                        ? "libre"
-                        : esPropia
-                          ? "propia"
-                          : "ocupada";
+                  return (
+                    <div
+                      key={`${p}-${bloque.inicio}-${i}`}
+                      className={`div_reserva_bloque ${claseBloque}`}
+                      data-libres={esLibre ? "true" : "false"}
+                      onClick={() => {
+                        if (esLibre) handleClickLibre(bloque);
+                        else if (esPropia) handleClickPropia(bloque);
+                      }}
+                      style={{
+                        gridColumn: idx + 2,
+                        gridRow: `${calcularFila(bloque.inicio)} / span ${filas}`,
+                      }}
+                    >
+                      {(esLibre || esPropia) && (
+                        <>
+                          <span className="texto_reserva texto_reserva_pc">{`${bloque.inicio} - ${bloque.fin}`}</span>
+                          <span className="texto_reserva texto_reserva_movil">
+                            {bloque.inicio}
+                          </span>
+                        </>
+                      )}
+                    </div>
+                  );
+                }),
+            )}
 
-                      return (
-                        <div
-                          key={`${p}-${bloque.inicio}-${i}`}
-                          className={`div_reserva_bloque ${claseBloque}`}
-                          data-libres={esLibre ? "true" : "false"}
-                          onClick={() => {
-                            if (esLibre) handleClickLibre(bloque);
-                            else if (esPropia) handleClickPropia(bloque);
-                          }}
-                          style={{
-                            gridColumn: idx + 2,
-                            gridRow: `${calcularFila(bloque.inicio)} / span ${filas}`,
-                          }}
-                        >
-                          {(esLibre || esPropia) && (
-                            <>
-                              <span className="texto_reserva texto_reserva_pc">{`${bloque.inicio} - ${bloque.fin}`}</span>
-                              <span className="texto_reserva texto_reserva_movil">
-                                {bloque.inicio}
-                              </span>
-                            </>
-                          )}
-                        </div>
-                      );
-                    }),
-                )}
-
-                {pistas.map((p, idx) =>
-                  horas.map((h) => {
-                    if (estaCeldaOcupada(p, h)) return null;
-                    return (
-                      <div
-                        key={`${p}-${h}-vacia`}
-                        className="div_celda_vacia"
-                        style={{
-                          gridColumn: idx + 2,
-                          gridRow: calcularFila(h),
-                        }}
-                      />
-                    );
-                  }),
-                )}
-              </div>
-            </div>
-          </section>
-        </>
-      )}
+            {pistas.map((p, idx) =>
+              horas.map((h) => {
+                if (estaCeldaOcupada(p, h)) return null;
+                return (
+                  <div
+                    key={`${p}-${h}-vacia`}
+                    className="div_celda_vacia"
+                    style={{ gridColumn: idx + 2, gridRow: calcularFila(h) }}
+                  />
+                );
+              }),
+            )}
+          </div>
+        </div>
+      </section>
     </>
   );
 }

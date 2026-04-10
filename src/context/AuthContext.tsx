@@ -23,7 +23,6 @@ interface AuthContextType {
   cargarReservas: (userId: string | null) => Promise<void>;
   rol: string | null;
   pistas: PistaDB[];
-  pistasStatus: string;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -40,13 +39,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [pistas, setPistas] = useState<PistaDB[]>([]);
   const location = useLocation();
 
-  const [pistasStatus, setPistasStatus] = useState<string>("iniciando");
-
-  // AuthContext.tsx - cargarPistas con fetch directo
+  /* -------------------- Cargar pistas -------------------- */
   useEffect(() => {
     const cargarPistas = async () => {
-      setPistasStatus("cargando con fetch...");
-
       try {
         const url = `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/pistas?select=id,nombre&order=id`;
 
@@ -58,15 +53,11 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         });
 
         const data = await res.json();
-        setPistasStatus(
-          `fetch resultado: ${JSON.stringify(data).slice(0, 100)}`,
-        );
-
         if (Array.isArray(data) && data.length > 0) {
           setPistas(data);
         }
       } catch (e: any) {
-        setPistasStatus(`fetch error: ${e.message}`);
+        console.error("Error cargando pistas:", e);
       }
     };
 
@@ -163,15 +154,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   return (
     <AuthContext.Provider
-      value={{
-        user,
-        loading,
-        reservas,
-        cargarReservas,
-        rol,
-        pistas,
-        pistasStatus,
-      }}
+      value={{ user, loading, reservas, cargarReservas, rol, pistas }}
     >
       {children}
     </AuthContext.Provider>
