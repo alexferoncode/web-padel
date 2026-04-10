@@ -44,23 +44,18 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     const cargarPistas = async () => {
       try {
         const url = `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/pistas?select=id,nombre&order=id`;
-
         const res = await fetch(url, {
           headers: {
             apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
             Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
           },
         });
-
         const data = await res.json();
-        if (Array.isArray(data) && data.length > 0) {
-          setPistas(data);
-        }
+        if (Array.isArray(data) && data.length > 0) setPistas(data);
       } catch (e: any) {
         console.error("Error cargando pistas:", e);
       }
     };
-
     cargarPistas();
   }, []);
 
@@ -89,13 +84,11 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   useEffect(() => {
     const getSession = async () => {
       try {
-        // Leer token directamente del localStorage sin pasar por supabase-js
         const storageKey = Object.keys(localStorage).find(
           (k) => k.startsWith("sb-") && k.endsWith("-auth-token"),
         );
 
         if (!storageKey) {
-          // No hay sesión guardada, usuario no logueado
           setUser(null);
           setRol(null);
           setLoading(false);
@@ -115,7 +108,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         const accessToken = parsed?.access_token ?? null;
 
         if (currentUser && accessToken) {
-          // Cargar rol con fetch directo también
           const url = `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/profile?select=rol&id=eq.${currentUser.id}&limit=1`;
           const res = await fetch(url, {
             headers: {
