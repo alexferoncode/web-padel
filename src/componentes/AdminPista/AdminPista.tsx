@@ -327,6 +327,8 @@ function AdminPista({ date }: { date: Date }) {
     cargarReservas();
   }, [date, pistasDB]);
 
+  const pistas = pistasDB.map((p) => p.id);
+
   /* ----------------------------------------------------
       3) CARGAR PERFILES
   -----------------------------------------------------*/
