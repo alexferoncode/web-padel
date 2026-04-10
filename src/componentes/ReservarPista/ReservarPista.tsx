@@ -85,7 +85,7 @@ function ReservarPista({ date }: { date: Date }) {
     return () => {
       cancelado = true;
     };
-  }, [userId]);
+  }, []);
 
   /* ----------------------------------------------------
       0.5) OBTENER USUARIO LOGUEADO
@@ -140,7 +140,7 @@ function ReservarPista({ date }: { date: Date }) {
     };
 
     cargarReservas();
-  }, [date, pistasDB]);
+  }, [date, pistasDB, userId]);
 
   const pistas = pistasDB.map((p) => p.id);
 
