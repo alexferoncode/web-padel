@@ -42,48 +42,37 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   const [pistasStatus, setPistasStatus] = useState<string>("iniciando");
 
-  // AuthContext.tsx - cargarPistas con timeout
+  // AuthContext.tsx - cargarPistas esperando sesión
   useEffect(() => {
     const cargarPistas = async () => {
-      setPistasStatus("cargando...");
+      setPistasStatus("esperando sesión...");
 
-      const timeout = new Promise<null>((_, reject) =>
-        setTimeout(() => reject(new Error("timeout")), 5000),
-      );
+      // Esperar a que Supabase resuelva la sesión (máx 3 segundos)
+      await new Promise<void>((resolve) => {
+        const { data: listener } = supabase.auth.onAuthStateChange(
+          (_event, session) => {
+            listener.subscription.unsubscribe();
+            resolve();
+          },
+        );
+        // Si no hay cambio de estado en 3s, continuar igualmente
+        setTimeout(resolve, 3000);
+      });
 
-      try {
-        const resultado = (await Promise.race([
-          supabase.from("pistas").select("id, nombre").order("id"),
-          timeout,
-        ])) as { data: PistaDB[] | null; error: any };
+      setPistasStatus("cargando tras sesión...");
 
-        const { data, error } = resultado;
+      const { data, error } = await supabase
+        .from("pistas")
+        .select("id, nombre")
+        .order("id");
 
-        if (error || !data) {
-          setPistasStatus(`error: ${JSON.stringify(error)}`);
-          return;
-        }
-
-        setPistasStatus(`ok: ${data.length} pistas`);
-        setPistas(data);
-      } catch (e: any) {
-        setPistasStatus(`excepción: ${e.message}`);
-        // Si timeout, reintenta
-        if (e.message === "timeout") {
-          setPistasStatus("reintentando...");
-          const { data, error } = await supabase
-            .from("pistas")
-            .select("id, nombre")
-            .order("id");
-
-          if (!error && data) {
-            setPistasStatus(`ok tras reintento: ${data.length} pistas`);
-            setPistas(data);
-          } else {
-            setPistasStatus(`error tras reintento: ${JSON.stringify(error)}`);
-          }
-        }
+      if (error || !data) {
+        setPistasStatus(`error: ${JSON.stringify(error)}`);
+        return;
       }
+
+      setPistasStatus(`ok: ${data.length} pistas`);
+      setPistas(data);
     };
 
     cargarPistas();
