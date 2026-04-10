@@ -42,23 +42,32 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   const [pistasStatus, setPistasStatus] = useState<string>("iniciando");
 
-  // cargarPistas - usa cliente público, nunca se bloquea
+  // AuthContext.tsx - cargarPistas con fetch directo
   useEffect(() => {
     const cargarPistas = async () => {
-      setPistasStatus("cargando...");
+      setPistasStatus("cargando con fetch...");
 
-      const { data, error } = await supabasePublic
-        .from("pistas")
-        .select("id, nombre")
-        .order("id");
+      try {
+        const url = `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/pistas?select=id,nombre&order=id`;
 
-      if (error || !data) {
-        setPistasStatus(`error: ${JSON.stringify(error)}`);
-        return;
+        const res = await fetch(url, {
+          headers: {
+            apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          },
+        });
+
+        const data = await res.json();
+        setPistasStatus(
+          `fetch resultado: ${JSON.stringify(data).slice(0, 100)}`,
+        );
+
+        if (Array.isArray(data) && data.length > 0) {
+          setPistas(data);
+        }
+      } catch (e: any) {
+        setPistasStatus(`fetch error: ${e.message}`);
       }
-
-      setPistasStatus(`ok: ${data.length} pistas`);
-      setPistas(data);
     };
 
     cargarPistas();
