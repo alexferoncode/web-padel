@@ -119,27 +119,26 @@ function ReservarPista({ date }: { date: Date }) {
     if (pistasDB.length === 0) return;
 
     const cargarReservas = async () => {
-      // setLoading(true);
       const año = date.getFullYear();
       const mes = (date.getMonth() + 1).toString().padStart(2, "0");
       const dia = date.getDate().toString().padStart(2, "0");
       const fechaStr = `${año}-${mes}-${dia}`;
 
-      const { data, error } = await supabase
-        .from("reservas")
-        .select("*")
-        .gte("inicio", `${fechaStr}T00:00:00`)
-        .lt("inicio", `${fechaStr}T23:59:59`)
-        .order("inicio", { ascending: true });
+      try {
+        const url = `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/reservas?select=*&inicio=gte.${fechaStr}T00:00:00&inicio=lt.${fechaStr}T23:59:59&order=inicio.asc`;
 
-      if (error) {
-        console.error("Error cargando reservas:", error);
-        // setLoading(false);
-        return;
+        const res = await fetch(url, {
+          headers: {
+            apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          },
+        });
+
+        const data = await res.json();
+        if (Array.isArray(data)) setReservasSupabase(data);
+      } catch (e: any) {
+        console.error("Error cargando reservas:", e);
       }
-
-      setReservasSupabase(data || []);
-      // setLoading(false);
     };
 
     cargarReservas();
