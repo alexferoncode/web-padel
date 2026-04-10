@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import type { ReactNode } from "react";
-import { supabase } from "../../supabaseClient";
+import { supabase, supabasePublic } from "../../supabaseClient";
 import { useLocation } from "react-router-dom";
 
 interface ReservaUsuario {
@@ -42,17 +42,12 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   const [pistasStatus, setPistasStatus] = useState<string>("iniciando");
 
-  // AuthContext.tsx - cargarPistas esperando sesión
+  // cargarPistas - usa cliente público, nunca se bloquea
   useEffect(() => {
     const cargarPistas = async () => {
-      setPistasStatus("esperando sesión...");
+      setPistasStatus("cargando...");
 
-      // Esperar a que getSession resuelva
-      await supabase.auth.getSession();
-
-      setPistasStatus("cargando tras sesión...");
-
-      const { data, error } = await supabase
+      const { data, error } = await supabasePublic
         .from("pistas")
         .select("id, nombre")
         .order("id");
