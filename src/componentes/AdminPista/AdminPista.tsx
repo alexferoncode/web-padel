@@ -2,7 +2,6 @@ import "../ReservarPista/reservarPista.css";
 import "./adminPista.css";
 import "../../index.css";
 import { useEffect, useState } from "react";
-import { supabase } from "../../../supabaseClient";
 import { useAuth } from "../../context/AuthContext";
 
 type EstadoReserva =
@@ -129,7 +128,6 @@ function AdminPista({ date }: { date: Date }) {
   >([]);
 
   // Overlay reservar torneo
-
   const [showOverlayTorneo, setShowOverlayTorneo] = useState(false);
   const [torneoFechaInicio, setTorneoFechaInicio] = useState("");
   const [torneoHoraInicio, setTorneoHoraInicio] = useState("");
@@ -219,36 +217,6 @@ function AdminPista({ date }: { date: Date }) {
   const [elimTorneoLoading, setElimTorneoLoading] = useState(false);
 
   /* ----------------------------------------------------
-      0) CARGAR PISTAS
-  -----------------------------------------------------*/
-  // useEffect(() => {
-  //   const cargarPistas = async () => {
-  //     try {
-  //       const url = `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/pistas?select=id,nombre&order=id`;
-
-  //       const res = await fetch(url, {
-  //         headers: {
-  //           apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
-  //           Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-  //         },
-  //       });
-
-  //       const data = await res.json();
-  //       if (Array.isArray(data) && data.length > 0) {
-  //         setPistasDB(data);
-  //       } else {
-  //         setErrorPistas(true);
-  //       }
-  //     } catch (e: any) {
-  //       console.error("Error cargando pistas:", e);
-  //       setErrorPistas(true);
-  //     }
-  //   };
-
-  //   cargarPistas();
-  // }, []);
-
-  /* ----------------------------------------------------
       1) GENERAR HORAS
   -----------------------------------------------------*/
   const horas: string[] = [];
@@ -268,12 +236,10 @@ function AdminPista({ date }: { date: Date }) {
     return `${h}:${m}`;
   }
 
-  // -------------------- BLOQUES 90 MIN --------------------
   const bloques90 = [
     { inicio: 9 * 60, fin: 14 * 60 },
     { inicio: 16 * 60, fin: 23 * 60 },
   ];
-
   bloques90.forEach(({ inicio, fin }) => {
     for (let t = inicio; t + 90 <= fin; t += 30) {
       franjasHorarias.push({
@@ -283,12 +249,10 @@ function AdminPista({ date }: { date: Date }) {
     }
   });
 
-  // -------------------- BLOQUES 60 MIN (clase) --------------------
   const bloques60 = [
     { inicio: 9 * 60, fin: 14 * 60 },
     { inicio: 16 * 60, fin: 23 * 60 },
   ];
-
   bloques60.forEach(({ inicio, fin }) => {
     for (let t = inicio; t + 60 <= fin; t += 30) {
       franjasHorariasClase.push({
@@ -298,65 +262,84 @@ function AdminPista({ date }: { date: Date }) {
     }
   });
 
+  /* ────────────────────────────────────────────────
+      HELPERS FETCH DIRECTO
+  ──────────────────────────────────────────────── */
+  const BASE = import.meta.env.VITE_SUPABASE_URL as string;
+  const ANON = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
+
+  const getToken = (): string => {
+    try {
+      const key = Object.keys(localStorage).find(
+        (k) => k.startsWith("sb-") && k.endsWith("-auth-token"),
+      );
+      const raw = key ? localStorage.getItem(key) : null;
+      return raw ? (JSON.parse(raw)?.access_token ?? ANON) : ANON;
+    } catch {
+      return ANON;
+    }
+  };
+
+  const authH = () => ({ apikey: ANON, Authorization: `Bearer ${getToken()}` });
+  const jsonH = () => ({
+    ...authH(),
+    "Content-Type": "application/json",
+    Prefer: "return=representation",
+  });
+
+  const recargarReservasDia = async () => {
+    const año = date.getFullYear();
+    const mes = (date.getMonth() + 1).toString().padStart(2, "0");
+    const dia = date.getDate().toString().padStart(2, "0");
+    const fechaStr = `${año}-${mes}-${dia}`;
+    try {
+      const res = await fetch(
+        `${BASE}/rest/v1/reservas?select=*&inicio=gte.${fechaStr}T00:00:00&inicio=lt.${fechaStr}T23:59:59&order=inicio.asc`,
+        { headers: authH() },
+      );
+      const data = await res.json();
+      if (Array.isArray(data)) setReservasSupabase(data);
+    } catch (e) {
+      console.error("Error recargando reservas:", e);
+    }
+  };
+
+  const pistas = pistasDB.map((p) => p.id);
+
   /* ----------------------------------------------------
       2) CARGAR RESERVAS
   -----------------------------------------------------*/
   useEffect(() => {
     if (pistasDB.length === 0) return;
-
-    const cargarReservas = async () => {
-      const año = date.getFullYear();
-      const mes = (date.getMonth() + 1).toString().padStart(2, "0");
-      const dia = date.getDate().toString().padStart(2, "0");
-      const fechaStr = `${año}-${mes}-${dia}`;
-
-      try {
-        const url = `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/reservas?select=*&inicio=gte.${fechaStr}T00:00:00&inicio=lt.${fechaStr}T23:59:59&order=inicio.asc`;
-
-        const res = await fetch(url, {
-          headers: {
-            apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-          },
-        });
-
-        const data = await res.json();
-        if (Array.isArray(data)) setReservasSupabase(data);
-      } catch (e: any) {
-        console.error("Error cargando reservas:", e);
-      }
-    };
-
-    cargarReservas();
+    recargarReservasDia();
   }, [date, pistasDB]);
-
-  const pistas = pistasDB.map((p) => p.id);
 
   /* ----------------------------------------------------
       3) CARGAR PERFILES
   -----------------------------------------------------*/
   useEffect(() => {
     const cargarPerfiles = async () => {
-      const { data, error } = await supabase
-        .from("profile")
-        .select("id, first_name, last_name, email, tlf, monitor")
-        .order("first_name", { ascending: true })
-        .order("last_name", { ascending: true });
-
-      if (error) {
-        console.error("Error cargando perfiles:", error);
-        return;
+      try {
+        const res = await fetch(
+          `${BASE}/rest/v1/profile?select=id,first_name,last_name,email,tlf,monitor&order=first_name.asc,last_name.asc`,
+          { headers: authH() },
+        );
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          setPerfiles(
+            data.map((p: any) => ({
+              id: p.id,
+              first_name: p.first_name,
+              last_name: p.last_name,
+              email: p.email,
+              tlf: p.tlf,
+              monitor: Boolean(p.monitor),
+            })),
+          );
+        }
+      } catch (e) {
+        console.error("Error cargando perfiles:", e);
       }
-      const perfilesMapeados = (data || []).map((p: any) => ({
-        id: p.id,
-        first_name: p.first_name,
-        last_name: p.last_name,
-        email: p.email,
-        tlf: p.tlf,
-        monitor: Boolean(p.monitor),
-      }));
-
-      setPerfiles(perfilesMapeados);
     };
     cargarPerfiles();
   }, []);
@@ -407,7 +390,6 @@ function AdminPista({ date }: { date: Date }) {
   ];
 
   const bloquesCerrados: BloqueReserva[] = [];
-
   pistas.forEach((pista) => {
     horariosCerrados.forEach((horario) => {
       const yaExiste = reservasDelDia.some(
@@ -439,9 +421,7 @@ function AdminPista({ date }: { date: Date }) {
       if (r.pista !== pista) return false;
       const [ih, im] = r.inicio.split(":").map(Number);
       const [fh, fm] = r.fin.split(":").map(Number);
-      const inicioMin = ih * 60 + im;
-      const finMin = fh * 60 + fm;
-      return minuto >= inicioMin && minuto < finMin;
+      return minuto >= ih * 60 + im && minuto < fh * 60 + fm;
     });
   };
 
@@ -470,7 +450,6 @@ function AdminPista({ date }: { date: Date }) {
     setErrorMsg("");
     setSuccessMsg("");
     setPedidos([]);
-
     setPagados([
       bloque.pagado_1 ?? false,
       bloque.pagado_2 ?? false,
@@ -480,38 +459,42 @@ function AdminPista({ date }: { date: Date }) {
 
     if (bloque.user_id && !perfiles.find((p) => p.id === bloque.user_id)) {
       try {
-        const { data, error } = await supabase
-          .from("profile")
-          .select("id, first_name, last_name, email, tlf, monitor")
-          .eq("id", bloque.user_id)
-          .single();
-        if (!error && data) {
+        const res = await fetch(
+          `${BASE}/rest/v1/profile?select=id,first_name,last_name,email,tlf,monitor&id=eq.${bloque.user_id}&limit=1`,
+          { headers: authH() },
+        );
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+          const p = data[0];
           setPerfiles((prev) => [
             ...prev,
             {
-              id: data.id,
-              first_name: data.first_name,
-              last_name: data.last_name,
-              email: data.email,
-              tlf: data.tlf,
-              monitor: Boolean(data.monitor),
+              id: p.id,
+              first_name: p.first_name,
+              last_name: p.last_name,
+              email: p.email,
+              tlf: p.tlf,
+              monitor: Boolean(p.monitor),
             },
           ]);
         }
       } catch (err) {
-        console.error("Error inesperado al cargar perfil:", err);
+        console.error("Error al cargar perfil:", err);
       }
     }
 
-    // Cargar pedidos solo en reservas ocupadas
     if (esCancelar && bloque.id) {
       setPedidosLoading(true);
-      const { data, error } = await supabase
-        .from("pedidos")
-        .select("*")
-        .eq("reserva_id", bloque.id)
-        .order("created_at", { ascending: true });
-      if (!error) setPedidos(data || []);
+      try {
+        const res = await fetch(
+          `${BASE}/rest/v1/pedidos?select=*&reserva_id=eq.${bloque.id}&order=created_at.asc`,
+          { headers: authH() },
+        );
+        const data = await res.json();
+        if (Array.isArray(data)) setPedidos(data);
+      } catch (e) {
+        console.error("Error cargando pedidos:", e);
+      }
       setPedidosLoading(false);
     }
   };
@@ -524,45 +507,40 @@ function AdminPista({ date }: { date: Date }) {
     abrirOverlay(bloque, false, true);
 
   /* ----------------------------------------------------
-      6.0) ACTUALIZAR PAGADO (individual, optimista)
+      6.0) ACTUALIZAR PAGADO
   -----------------------------------------------------*/
   const handleTogglePagado = async (index: 0 | 1 | 2 | 3, value: boolean) => {
     if (!reservaSeleccionadaId) return;
-
+    const campo = `pagado_${index + 1}`;
     setPagados((prev) => {
       const next = [...prev] as [boolean, boolean, boolean, boolean];
       next[index] = value;
       return next;
     });
-
     setBloqueSeleccionado((prev) =>
-      prev ? { ...prev, [`pagado_${index + 1}`]: value } : prev,
+      prev ? { ...prev, [campo]: value } : prev,
     );
-
-    const campo = `pagado_${index + 1}` as
-      | "pagado_1"
-      | "pagado_2"
-      | "pagado_3"
-      | "pagado_4";
-
-    const { error } = await supabase
-      .from("reservas")
-      .update({ [campo]: value })
-      .eq("id", reservaSeleccionadaId);
-
-    if (error) {
-      console.error("Error actualizando pagado:", error);
-      setPagados((prev) => {
-        const next = [...prev] as [boolean, boolean, boolean, boolean];
-        next[index] = !value;
-        return next;
-      });
-    } else {
+    try {
+      const res = await fetch(
+        `${BASE}/rest/v1/reservas?id=eq.${reservaSeleccionadaId}`,
+        {
+          method: "PATCH",
+          headers: jsonH(),
+          body: JSON.stringify({ [campo]: value }),
+        },
+      );
+      if (!res.ok) throw new Error("Error al actualizar");
       setReservasSupabase((prev) =>
         prev.map((r) =>
           r.id === reservaSeleccionadaId ? { ...r, [campo]: value } : r,
         ),
       );
+    } catch {
+      setPagados((prev) => {
+        const next = [...prev] as [boolean, boolean, boolean, boolean];
+        next[index] = !value;
+        return next;
+      });
     }
   };
 
@@ -579,33 +557,50 @@ function AdminPista({ date }: { date: Date }) {
     producto: "agua" | "bolas" | "overgrip",
   ) => {
     if (!reservaSeleccionadaId) return;
-
-    const { data, error } = await supabase
-      .from("pedidos")
-      .insert({
-        reserva_id: reservaSeleccionadaId,
-        producto,
-        cantidad: 1,
-        pagado: false,
-      })
-      .select()
-      .single();
-    if (!error && data) setPedidos((prev) => [...prev, data]);
+    try {
+      const res = await fetch(`${BASE}/rest/v1/pedidos`, {
+        method: "POST",
+        headers: jsonH(),
+        body: JSON.stringify({
+          reserva_id: reservaSeleccionadaId,
+          producto,
+          cantidad: 1,
+          pagado: false,
+        }),
+      });
+      const data = await res.json();
+      if (Array.isArray(data) && data.length > 0)
+        setPedidos((prev) => [...prev, data[0]]);
+    } catch (e) {
+      console.error("Error añadiendo producto:", e);
+    }
   };
 
   const handleReducirProducto = async (pedido: Pedido) => {
     setPedidos((prev) => prev.filter((p) => p.id !== pedido.id));
-    await supabase.from("pedidos").delete().eq("id", pedido.id);
+    try {
+      await fetch(`${BASE}/rest/v1/pedidos?id=eq.${pedido.id}`, {
+        method: "DELETE",
+        headers: authH(),
+      });
+    } catch (e) {
+      console.error("Error eliminando producto:", e);
+    }
   };
 
   const handleTogglePedidoPagado = async (pedido: Pedido, value: boolean) => {
     setPedidos((prev) =>
       prev.map((p) => (p.id === pedido.id ? { ...p, pagado: value } : p)),
     );
-    await supabase
-      .from("pedidos")
-      .update({ pagado: value })
-      .eq("id", pedido.id);
+    try {
+      await fetch(`${BASE}/rest/v1/pedidos?id=eq.${pedido.id}`, {
+        method: "PATCH",
+        headers: jsonH(),
+        body: JSON.stringify({ pagado: value }),
+      });
+    } catch (e) {
+      console.error("Error actualizando pedido:", e);
+    }
   };
 
   /* ----------------------------------------------------
@@ -622,51 +617,36 @@ function AdminPista({ date }: { date: Date }) {
     }
 
     const [inicioHora, finHora] = franjaSeleccionada.split(" - ");
-    const fecha = fechaBloqueSeleccionada;
-
     try {
-      const { error } = await supabase.from("reservas").insert({
-        pista_id: pistaSeleccionada,
-        estado: "libre",
-        inicio: `${fecha}T${inicioHora}:00`,
-        fin: `${fecha}T${finHora}:00`,
-        user_id: null,
+      const res = await fetch(`${BASE}/rest/v1/reservas`, {
+        method: "POST",
+        headers: jsonH(),
+        body: JSON.stringify({
+          pista_id: pistaSeleccionada,
+          estado: "libre",
+          inicio: `${fechaBloqueSeleccionada}T${inicioHora}:00`,
+          fin: `${fechaBloqueSeleccionada}T${finHora}:00`,
+          user_id: null,
+        }),
       });
-
-      if (error) {
-        console.error(error);
-        if (
-          error.message.includes("solapa") ||
-          error.message.includes("overlap")
-        ) {
-          setCrearBloqueError("Ya hay una pista que se solapa en ese horario.");
-        } else {
-          setCrearBloqueError("No se pudo crear el bloque.");
-        }
+      if (!res.ok) {
+        const err = await res.json();
+        const msg = err?.message ?? "";
+        setCrearBloqueError(
+          msg.includes("solapa") || msg.includes("overlap")
+            ? "Ya hay una pista que se solapa en ese horario."
+            : "No se pudo crear el bloque.",
+        );
         return;
       }
-
       setCrearBloqueSuccess("¡Bloque creado correctamente!");
-
-      setTimeout(() => {
+      setTimeout(async () => {
         setShowOverlayCrearBloque(false);
         setPistaSeleccionada("");
         setFranjaSeleccionada("");
         setCrearBloqueSuccess("");
         setCrearBloqueError("");
-
-        const año = date.getFullYear();
-        const mes = (date.getMonth() + 1).toString().padStart(2, "0");
-        const dia = date.getDate().toString().padStart(2, "0");
-        const fechaStr = `${año}-${mes}-${dia}`;
-
-        supabase
-          .from("reservas")
-          .select("*")
-          .gte("inicio", `${fechaStr}T00:00:00`)
-          .lt("inicio", `${fechaStr}T23:59:59`)
-          .order("inicio", { ascending: true })
-          .then(({ data }) => setReservasSupabase(data || []));
+        await recargarReservasDia();
       }, 1200);
     } catch (err) {
       console.error(err);
@@ -682,19 +662,17 @@ function AdminPista({ date }: { date: Date }) {
       setErrorMsg("No se pudo identificar la reserva.");
       return;
     }
-
     if (!modoInvitado && !usuarioSeleccionado) {
       setErrorMsg("Debes seleccionar un usuario.");
       return;
     }
-
     if (modoInvitado && !invitadoNombre.trim()) {
       setErrorMsg("Debes introducir el nombre del invitado.");
       return;
     }
 
     try {
-      const updatePayload = modoInvitado
+      const payload = modoInvitado
         ? {
             estado: "ocupada",
             user_id: null,
@@ -708,42 +686,40 @@ function AdminPista({ date }: { date: Date }) {
             invitado_tlf: null,
           };
 
-      const { data, error } = await supabase
-        .from("reservas")
-        .update(updatePayload)
-        .eq("id", reservaSeleccionadaId)
-        .eq("estado", "libre")
-        .select("*");
+      const res = await fetch(
+        `${BASE}/rest/v1/reservas?id=eq.${reservaSeleccionadaId}&estado=eq.libre`,
+        { method: "PATCH", headers: jsonH(), body: JSON.stringify(payload) },
+      );
 
-      if (error) {
-        console.error("Error al reservar:", error);
+      if (!res.ok) {
+        const err = await res.json();
+        const msg = err?.message ?? "";
         if (
-          error.message.includes(
+          msg.includes(
             "No se puede modificar una reserva con inicio en el pasado",
           )
-        ) {
+        )
           setErrorMsg("No se puede reservar una pista ya iniciada.");
-        } else if (
-          error.message.includes(
+        else if (
+          msg.includes(
             "El usuario ya tiene una reserva que solapa con este horario",
           )
-        ) {
+        )
           setErrorMsg(
             "El usuario ya tiene una reserva que solapa con este horario.",
           );
-        } else if (
-          error.message.includes(
+        else if (
+          msg.includes(
             "Ya existe otra reserva en esta pista que se solapa en el horario",
           )
-        ) {
+        )
           setErrorMsg("Ya existe otra reserva en esta pista en ese horario.");
-        } else {
-          setErrorMsg("Error al confirmar la reserva. Inténtalo de nuevo.");
-        }
+        else setErrorMsg("Error al confirmar la reserva. Inténtalo de nuevo.");
         return;
       }
 
-      if (!data || data.length === 0) {
+      const data = await res.json();
+      if (!Array.isArray(data) || data.length === 0) {
         setErrorMsg(
           "Otro usuario ha reservado esta pista. Recarga la página para ver la información actualizada.",
         );
@@ -751,28 +727,14 @@ function AdminPista({ date }: { date: Date }) {
       }
 
       setSuccessMsg("¡Pista reservada!");
-      setTimeout(() => {
+      setTimeout(async () => {
         setShowOverlay(false);
         setSuccessMsg("");
         setUsuarioSeleccionado(null);
         setInvitadoNombre("");
         setInvitadoTlf("");
         setModoInvitado(false);
-
-        const cargarReservas = async () => {
-          const año = date.getFullYear();
-          const mes = (date.getMonth() + 1).toString().padStart(2, "0");
-          const dia = date.getDate().toString().padStart(2, "0");
-          const fechaStr = `${año}-${mes}-${dia}`;
-          const { data, error } = await supabase
-            .from("reservas")
-            .select("*")
-            .gte("inicio", `${fechaStr}T00:00:00`)
-            .lt("inicio", `${fechaStr}T23:59:59`)
-            .order("inicio", { ascending: true });
-          if (!error) setReservasSupabase(data || []);
-        };
-        cargarReservas();
+        await recargarReservasDia();
       }, 1500);
     } catch (error) {
       console.error("Error inesperado:", error);
@@ -788,62 +750,43 @@ function AdminPista({ date }: { date: Date }) {
       setErrorMsg("No se pudo identificar la reserva.");
       return;
     }
-
     try {
-      let response;
-
+      let res: Response;
       if (bloqueSeleccionado.estado === "clase") {
-        response = await supabase
-          .from("reservas")
-          .delete()
-          .eq("id", reservaSeleccionadaId);
+        res = await fetch(
+          `${BASE}/rest/v1/reservas?id=eq.${reservaSeleccionadaId}`,
+          { method: "DELETE", headers: authH() },
+        );
       } else {
-        response = await supabase
-          .from("reservas")
-          .update({
-            estado: "libre",
-            user_id: null,
-            pagado_1: false,
-            pagado_2: false,
-            pagado_3: false,
-            pagado_4: false,
-          })
-          .eq("id", reservaSeleccionadaId);
+        res = await fetch(
+          `${BASE}/rest/v1/reservas?id=eq.${reservaSeleccionadaId}`,
+          {
+            method: "PATCH",
+            headers: jsonH(),
+            body: JSON.stringify({
+              estado: "libre",
+              user_id: null,
+              pagado_1: false,
+              pagado_2: false,
+              pagado_3: false,
+              pagado_4: false,
+            }),
+          },
+        );
       }
-
-      if (response.error) {
-        console.error("Error al cancelar:", response.error);
+      if (!res.ok) {
         setErrorMsg("Error al cancelar la reserva.");
         return;
       }
-
       setSuccessMsg(
         bloqueSeleccionado.estado === "clase"
           ? "¡Clase eliminada!"
           : "¡Reserva cancelada!",
       );
-
-      setTimeout(() => {
+      setTimeout(async () => {
         setShowOverlay(false);
         setSuccessMsg("");
-
-        const cargarReservas = async () => {
-          const año = date.getFullYear();
-          const mes = (date.getMonth() + 1).toString().padStart(2, "0");
-          const dia = date.getDate().toString().padStart(2, "0");
-          const fechaStr = `${año}-${mes}-${dia}`;
-
-          const { data } = await supabase
-            .from("reservas")
-            .select("*")
-            .gte("inicio", `${fechaStr}T00:00:00`)
-            .lt("inicio", `${fechaStr}T23:59:59`)
-            .order("inicio", { ascending: true });
-
-          setReservasSupabase(data || []);
-        };
-
-        cargarReservas();
+        await recargarReservasDia();
       }, 1500);
     } catch (err) {
       console.error("Error inesperado:", err);
@@ -859,41 +802,21 @@ function AdminPista({ date }: { date: Date }) {
       setErrorMsg("No se pudo identificar la reserva.");
       return;
     }
-
     try {
-      const { error } = await supabase
-        .from("reservas")
-        .delete()
-        .eq("id", reservaSeleccionadaId);
-
-      if (error) {
-        console.error("Error al eliminar el bloque:", error);
-        setErrorMsg("Error al confirmar la reserva. Inténtalo de nuevo.");
+      const res = await fetch(
+        `${BASE}/rest/v1/reservas?id=eq.${reservaSeleccionadaId}`,
+        { method: "DELETE", headers: authH() },
+      );
+      if (!res.ok) {
+        setErrorMsg("Error al eliminar el bloque. Inténtalo de nuevo.");
         return;
       }
-
       setSuccessMsg("¡Bloque eliminado!");
-      setTimeout(() => {
+      setTimeout(async () => {
         setShowOverlay(false);
         setSuccessMsg("");
         setUsuarioSeleccionado(null);
-
-        const cargarReservas = async () => {
-          const año = date.getFullYear();
-          const mes = (date.getMonth() + 1).toString().padStart(2, "0");
-          const dia = date.getDate().toString().padStart(2, "0");
-          const fechaStr = `${año}-${mes}-${dia}`;
-
-          const { data, error } = await supabase
-            .from("reservas")
-            .select("*")
-            .gte("inicio", `${fechaStr}T00:00:00`)
-            .lt("inicio", `${fechaStr}T23:59:59`)
-            .order("inicio", { ascending: true });
-
-          if (!error) setReservasSupabase(data || []);
-        };
-        cargarReservas();
+        await recargarReservasDia();
       }, 1500);
     } catch (error) {
       console.error("Error inesperado:", error);
@@ -907,7 +830,6 @@ function AdminPista({ date }: { date: Date }) {
   const handleCrearClase = async () => {
     setCrearClaseError("");
     setCrearClaseSuccess("");
-
     if (
       !fechaClaseSeleccionada ||
       !pistaClaseSeleccionada ||
@@ -917,23 +839,24 @@ function AdminPista({ date }: { date: Date }) {
       setCrearClaseError("Debes seleccionar fecha, pista, horario y monitor.");
       return;
     }
-
     const [inicioHora, finHora] = franjaClaseSeleccionada.split(" - ");
-    const fecha = fechaClaseSeleccionada;
-
     try {
-      const { error } = await supabase.from("reservas").insert({
-        pista_id: pistaClaseSeleccionada,
-        estado: "clase",
-        inicio: `${fecha}T${inicioHora}:00`,
-        fin: `${fecha}T${finHora}:00`,
-        user_id: monitorSeleccionado,
+      const res = await fetch(`${BASE}/rest/v1/reservas`, {
+        method: "POST",
+        headers: jsonH(),
+        body: JSON.stringify({
+          pista_id: pistaClaseSeleccionada,
+          estado: "clase",
+          inicio: `${fechaClaseSeleccionada}T${inicioHora}:00`,
+          fin: `${fechaClaseSeleccionada}T${finHora}:00`,
+          user_id: monitorSeleccionado,
+        }),
       });
-
-      if (error) {
-        console.error(error);
+      if (!res.ok) {
+        const err = await res.json();
+        const msg = err?.message ?? "";
         setCrearClaseError(
-          error.message.includes(
+          msg.includes(
             "Ya existe otra reserva en esta pista que se solapa en el horario",
           )
             ? "Ya hay una reserva que se solapa en este horario."
@@ -941,9 +864,8 @@ function AdminPista({ date }: { date: Date }) {
         );
         return;
       }
-
       setCrearClaseSuccess("¡Clase creada correctamente!");
-      setTimeout(() => {
+      setTimeout(async () => {
         setShowOverlayCrearClase(false);
         setFechaClaseSeleccionada("");
         setPistaClaseSeleccionada("");
@@ -951,15 +873,7 @@ function AdminPista({ date }: { date: Date }) {
         setMonitorSeleccionado("");
         setCrearClaseError("");
         setCrearClaseSuccess("");
-
-        const fechaStr = fecha;
-        supabase
-          .from("reservas")
-          .select("*")
-          .gte("inicio", `${fechaStr}T00:00:00`)
-          .lt("inicio", `${fechaStr}T23:59:59`)
-          .order("inicio", { ascending: true })
-          .then(({ data }) => setReservasSupabase(data || []));
+        await recargarReservasDia();
       }, 1200);
     } catch (err) {
       console.error(err);
@@ -969,11 +883,10 @@ function AdminPista({ date }: { date: Date }) {
 
   /* ----------------------------------------------------
     6.5) BLOQUEAR TORNEO
------------------------------------------------------*/
+  -----------------------------------------------------*/
   const handleBloquearTorneo = async () => {
     setTorneoError("");
     setTorneoSuccess("");
-
     if (
       !torneoFechaInicio ||
       !torneoHoraInicio ||
@@ -983,15 +896,12 @@ function AdminPista({ date }: { date: Date }) {
       setTorneoError("Debes seleccionar fecha y hora de inicio y fin.");
       return;
     }
-
     const horaInicioMin =
       parseInt(torneoHoraInicio.split(":")[0]) * 60 +
       parseInt(torneoHoraInicio.split(":")[1]);
     const horaFinMin =
       parseInt(torneoHoraFin.split(":")[0]) * 60 +
       parseInt(torneoHoraFin.split(":")[1]);
-
-    // Validar que fin > inicio
     if (
       torneoFechaFin < torneoFechaInicio ||
       (torneoFechaFin === torneoFechaInicio && horaFinMin <= horaInicioMin)
@@ -999,23 +909,18 @@ function AdminPista({ date }: { date: Date }) {
       setTorneoError("La fecha de fin debe ser posterior a la de inicio.");
       return;
     }
-
     setTorneoLoading(true);
 
-    // 1) Calcular todos los bloques que hay que reservar
     type Bloque = { fecha: string; horaInicio: string; horaFin: string };
     const bloques: Bloque[] = [];
-
     const franjas = [
       { inicioMin: 9 * 60, finMin: 14 * 60 },
       { inicioMin: 16 * 60, finMin: 23 * 60 },
     ];
-
     const pad = (n: number) => n.toString().padStart(2, "0");
     const toHora = (min: number) =>
       `${pad(Math.floor(min / 60))}:${pad(min % 60)}`;
 
-    // Generar lista de fechas usando mediodía para evitar problemas de DST
     const fechas: string[] = [];
     const cursor = new Date(`${torneoFechaInicio}T12:00:00`);
     const cursorFin = new Date(`${torneoFechaFin}T12:00:00`);
@@ -1027,24 +932,15 @@ function AdminPista({ date }: { date: Date }) {
     for (const fecha of fechas) {
       const esPrimerDia = fecha === torneoFechaInicio;
       const esUltimoDia = fecha === torneoFechaFin;
-
       for (const franja of franjas) {
-        const bloqueInicioMin = Math.max(
-          franja.inicioMin,
-          esPrimerDia ? horaInicioMin : 0,
-        );
-        const bloqueFinMin = Math.min(
-          franja.finMin,
-          esUltimoDia ? horaFinMin : 24 * 60,
-        );
-
-        if (bloqueFinMin > bloqueInicioMin) {
+        const ini = Math.max(franja.inicioMin, esPrimerDia ? horaInicioMin : 0);
+        const fin = Math.min(franja.finMin, esUltimoDia ? horaFinMin : 24 * 60);
+        if (fin > ini)
           bloques.push({
             fecha,
-            horaInicio: toHora(bloqueInicioMin),
-            horaFin: toHora(bloqueFinMin),
+            horaInicio: toHora(ini),
+            horaFin: toHora(fin),
           });
-        }
       }
     }
 
@@ -1056,185 +952,138 @@ function AdminPista({ date }: { date: Date }) {
       return;
     }
 
-    console.log("=== DEPURACIÓN TORNEO ===");
-    console.log("Bloques calculados:", bloques);
-
-    // 2) Comprobar si hay reservas NO libres en ese rango
     const rangoInicioStr = `${bloques[0].fecha}T${bloques[0].horaInicio}:00`;
     const rangoFinStr = `${bloques[bloques.length - 1].fecha}T${bloques[bloques.length - 1].horaFin}:00`;
 
-    console.log("Rango query inicio:", rangoInicioStr);
-    console.log("Rango query fin:", rangoFinStr);
+    try {
+      // 2) Comprobar conflictos
+      const conflictoRes = await fetch(
+        `${BASE}/rest/v1/reservas?select=id,estado,inicio,fin,pista_id&inicio=gte.${rangoInicioStr}&inicio=lte.${rangoFinStr}&estado=neq.libre&estado=neq.cerrado`,
+        { headers: authH() },
+      );
+      const reservasConflicto = await conflictoRes.json();
+      if (!conflictoRes.ok) {
+        setTorneoError("Error al comprobar reservas existentes.");
+        setTorneoLoading(false);
+        return;
+      }
+      if (Array.isArray(reservasConflicto) && reservasConflicto.length > 0) {
+        const detalle = reservasConflicto
+          .map((r: any) => {
+            const h = new Date(r.inicio).toLocaleString("es-ES", {
+              weekday: "short",
+              day: "2-digit",
+              month: "2-digit",
+              hour: "2-digit",
+              minute: "2-digit",
+            });
+            return `Pista ${r.pista_id} – ${r.estado} – ${h}`;
+          })
+          .join("\n");
+        setTorneoError(
+          `Hay reservas activas que impiden el bloqueo:\n${detalle}`,
+        );
+        setTorneoLoading(false);
+        return;
+      }
 
-    const { data: reservasConflicto, error: errorConflicto } = await supabase
-      .from("reservas")
-      .select("id, estado, inicio, fin, pista_id")
-      .gte("inicio", rangoInicioStr)
-      .lte("inicio", rangoFinStr)
-      .neq("estado", "libre")
-      .neq("estado", "cerrado");
+      // 3) Borrar libres
+      const borrarRes = await fetch(
+        `${BASE}/rest/v1/reservas?inicio=gte.${rangoInicioStr}&inicio=lte.${rangoFinStr}&estado=eq.libre`,
+        { method: "DELETE", headers: authH() },
+      );
+      if (!borrarRes.ok) {
+        setTorneoError("Error al liberar las pistas.");
+        setTorneoLoading(false);
+        return;
+      }
 
-    console.log("Reservas conflicto encontradas:", reservasConflicto);
-    console.log("Error query:", errorConflicto);
+      // 4) Insertar torneo
+      const inserts = pistasDB.flatMap((p) =>
+        bloques.map((b) => ({
+          pista_id: p.id,
+          estado: "torneo",
+          inicio: `${b.fecha}T${b.horaInicio}:00`,
+          fin: `${b.fecha}T${b.horaFin}:00`,
+          user_id: null,
+        })),
+      );
+      const insertarRes = await fetch(`${BASE}/rest/v1/reservas`, {
+        method: "POST",
+        headers: {
+          ...authH(),
+          "Content-Type": "application/json",
+          Prefer: "return=minimal",
+        },
+        body: JSON.stringify(inserts),
+      });
+      if (!insertarRes.ok) {
+        setTorneoError("Error al crear los bloques de torneo.");
+        setTorneoLoading(false);
+        return;
+      }
 
-    if (errorConflicto) {
-      setTorneoError("Error al comprobar reservas existentes.");
-      setTorneoLoading(false);
-      return;
-    }
-
-    if (reservasConflicto && reservasConflicto.length > 0) {
-      const detalle = reservasConflicto
-        .map((r) => {
-          const h = new Date(r.inicio).toLocaleString("es-ES", {
-            weekday: "short",
-            day: "2-digit",
-            month: "2-digit",
-            hour: "2-digit",
-            minute: "2-digit",
-          });
-          return `Pista ${r.pista_id} – ${r.estado} – ${h}`;
-        })
-        .join("\n");
-      setTorneoError(
-        `Hay reservas activas que impiden el bloqueo:\n${detalle}`,
+      setTorneoSuccess(
+        `¡Torneo bloqueado correctamente! ${inserts.length} bloques creados.`,
       );
       setTorneoLoading(false);
-      return;
-    }
-
-    // 3) Borrar todas las reservas "libre" en el rango para todas las pistas
-    const { error: errorBorrar } = await supabase
-      .from("reservas")
-      .delete()
-      .gte("inicio", rangoInicioStr)
-      .lte("inicio", rangoFinStr)
-      .eq("estado", "libre");
-
-    if (errorBorrar) {
-      setTorneoError("Error al liberar las pistas.");
+      setTimeout(async () => {
+        setShowOverlayTorneo(false);
+        setTorneoFechaInicio("");
+        setTorneoHoraInicio("");
+        setTorneoFechaFin("");
+        setTorneoHoraFin("");
+        setTorneoSuccess("");
+        await recargarReservasDia();
+      }, 2000);
+    } catch (e: any) {
+      console.error("Error torneo:", e);
+      setTorneoError(`Error inesperado: ${e.message}`);
       setTorneoLoading(false);
-      return;
     }
-
-    // 4) Insertar bloques de torneo para cada pista
-    const inserts = pistasDB.flatMap((p) =>
-      bloques.map((b) => ({
-        pista_id: p.id,
-        estado: "torneo",
-        inicio: `${b.fecha}T${b.horaInicio}:00`,
-        fin: `${b.fecha}T${b.horaFin}:00`,
-        user_id: null,
-      })),
-    );
-
-    const { error: errorInsertar } = await supabase
-      .from("reservas")
-      .insert(inserts);
-
-    if (errorInsertar) {
-      setTorneoError("Error al crear los bloques de torneo.");
-      setTorneoLoading(false);
-      return;
-    }
-
-    setTorneoSuccess(
-      `¡Torneo bloqueado correctamente! ${inserts.length} bloques creados.`,
-    );
-    setTorneoLoading(false);
-
-    // Recargar reservas del día visible
-    setTimeout(() => {
-      setShowOverlayTorneo(false);
-      setTorneoFechaInicio("");
-      setTorneoHoraInicio("");
-      setTorneoFechaFin("");
-      setTorneoHoraFin("");
-      setTorneoSuccess("");
-
-      const año = date.getFullYear();
-      const mes = (date.getMonth() + 1).toString().padStart(2, "0");
-      const dia = date.getDate().toString().padStart(2, "0");
-      const fechaStr = `${año}-${mes}-${dia}`;
-      supabase
-        .from("reservas")
-        .select("*")
-        .gte("inicio", `${fechaStr}T00:00:00`)
-        .lt("inicio", `${fechaStr}T23:59:59`)
-        .order("inicio", { ascending: true })
-        .then(({ data }) => setReservasSupabase(data || []));
-    }, 2000);
   };
 
   /* ----------------------------------------------------
     6.5b) ELIMINAR TORNEO
------------------------------------------------------*/
+  -----------------------------------------------------*/
   const handleEliminarTorneo = async () => {
     setElimTorneoError("");
     setElimTorneoSuccess("");
-
     if (!elimTorneoFechaInicio || !elimTorneoFechaFin) {
       setElimTorneoError("Debes seleccionar fecha de inicio y fin.");
       return;
     }
-
     if (elimTorneoFechaFin < elimTorneoFechaInicio) {
       setElimTorneoError("La fecha de fin debe ser posterior a la de inicio.");
       return;
     }
-
     setElimTorneoLoading(true);
-
     try {
-      const url = `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/reservas?estado=eq.torneo&inicio=gte.${elimTorneoFechaInicio}T00:00:00&inicio=lte.${elimTorneoFechaFin}T23:59:59`;
-
-      const storageKey = Object.keys(localStorage).find(
-        (k) => k.startsWith("sb-") && k.endsWith("-auth-token"),
-      );
-      const raw = storageKey ? localStorage.getItem(storageKey) : null;
-      const accessToken = raw ? JSON.parse(raw)?.access_token : null;
-
-      const res = await fetch(url, {
-        method: "DELETE",
-        headers: {
-          apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
-          Authorization: `Bearer ${accessToken ?? import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-          Prefer: "return=representation",
+      const res = await fetch(
+        `${BASE}/rest/v1/reservas?estado=eq.torneo&inicio=gte.${elimTorneoFechaInicio}T00:00:00&inicio=lte.${elimTorneoFechaFin}T23:59:59`,
+        {
+          method: "DELETE",
+          headers: { ...authH(), Prefer: "return=representation" },
         },
-      });
-
+      );
       if (!res.ok) {
         const err = await res.json();
         setElimTorneoError(`Error al eliminar: ${JSON.stringify(err)}`);
         setElimTorneoLoading(false);
         return;
       }
-
       const data = await res.json();
       const count = Array.isArray(data) ? data.length : 0;
-
       setElimTorneoSuccess(
         `✅ ${count} bloque${count !== 1 ? "s" : ""} de torneo eliminado${count !== 1 ? "s" : ""}.`,
       );
       setElimTorneoLoading(false);
-
-      setTimeout(() => {
+      setTimeout(async () => {
         setShowOverlayEliminarTorneo(false);
         setElimTorneoFechaInicio("");
         setElimTorneoFechaFin("");
         setElimTorneoSuccess("");
-
-        const año = date.getFullYear();
-        const mes = (date.getMonth() + 1).toString().padStart(2, "0");
-        const dia = date.getDate().toString().padStart(2, "0");
-        const fechaStr = `${año}-${mes}-${dia}`;
-        supabase
-          .from("reservas")
-          .select("*")
-          .gte("inicio", `${fechaStr}T00:00:00`)
-          .lt("inicio", `${fechaStr}T23:59:59`)
-          .order("inicio", { ascending: true })
-          .then(({ data }) => setReservasSupabase(data || []));
+        await recargarReservasDia();
       }, 2000);
     } catch (e: any) {
       setElimTorneoError(`Error inesperado: ${e.message}`);
@@ -1244,12 +1093,11 @@ function AdminPista({ date }: { date: Date }) {
 
   /* ----------------------------------------------------
     6.6) ASIGNAR PISTA FIJA
------------------------------------------------------*/
+  -----------------------------------------------------*/
   const handleAsignarPistaFija = async () => {
     setFijaError("");
     setFijaSuccess("");
     setFijaAvisos([]);
-
     if (
       !fijaFechaInicio ||
       !fijaFechaFin ||
@@ -1261,93 +1109,88 @@ function AdminPista({ date }: { date: Date }) {
       setFijaError("Debes completar todos los campos.");
       return;
     }
-
     if (fijaFechaFin < fijaFechaInicio) {
       setFijaError("La fecha de fin debe ser posterior a la de inicio.");
       return;
     }
-
     const [inicioHora] = fijaFranja.split(" - ");
-
     setFijaLoading(true);
 
-    // Generar todas las fechas del día de la semana elegido entre inicio y fin
     const fechaLimite = new Date(`${fijaFechaFin}T12:00:00`);
-
     const fechas: string[] = [];
     const cursor = new Date(`${fijaFechaInicio}T12:00:00`);
     while (cursor <= fechaLimite) {
-      if (cursor.getDay() === fijaDiaSemana) {
+      if (cursor.getDay() === fijaDiaSemana)
         fechas.push(cursor.toISOString().split("T")[0]);
-      }
       cursor.setDate(cursor.getDate() + 1);
     }
-
     if (fechas.length === 0) {
       setFijaError("No hay fechas válidas en el rango seleccionado.");
       setFijaLoading(false);
       return;
     }
 
-    // Buscar reservas existentes en esas fechas/pista/franja
     const avisos: string[] = [];
     const reservasAOcupar: number[] = [];
 
     for (const fecha of fechas) {
-      const { data, error } = await supabase
-        .from("reservas")
-        .select("id, estado, inicio, user_id, invitado_nombre")
-        .eq("pista_id", fijaPista)
-        .eq("inicio", `${fecha}T${inicioHora}:00`);
-
-      if (error) {
+      try {
+        const res = await fetch(
+          `${BASE}/rest/v1/reservas?select=id,estado,inicio,user_id,invitado_nombre&pista_id=eq.${fijaPista}&inicio=eq.${fecha}T${inicioHora}:00`,
+          { headers: authH() },
+        );
+        const data = await res.json();
+        const reserva = Array.isArray(data) ? data[0] : null;
+        const fechaFormateada = new Date(
+          `${fecha}T12:00:00`,
+        ).toLocaleDateString("es-ES", {
+          weekday: "long",
+          day: "2-digit",
+          month: "long",
+        });
+        if (!reserva)
+          avisos.push(
+            `${fechaFormateada} ${inicioHora} — sin bloque en base de datos`,
+          );
+        else if (reserva.estado === "libre") reservasAOcupar.push(reserva.id);
+        else if (reserva.estado === "clase")
+          avisos.push(`${fechaFormateada} ${inicioHora} — hay una clase`);
+        else if (reserva.estado === "ocupada") {
+          const nombre =
+            reserva.invitado_nombre ||
+            perfiles.find((p) => p.id === reserva.user_id)?.first_name +
+              " " +
+              perfiles.find((p) => p.id === reserva.user_id)?.last_name ||
+            "otro usuario";
+          avisos.push(
+            `${fechaFormateada} ${inicioHora} — ocupada por ${nombre}`,
+          );
+        } else
+          avisos.push(
+            `${fechaFormateada} ${inicioHora} — estado: ${reserva.estado}`,
+          );
+      } catch {
         setFijaError("Error al comprobar reservas.");
         setFijaLoading(false);
         return;
       }
-
-      const reserva = data?.[0];
-      const fechaFormateada = new Date(`${fecha}T12:00:00`).toLocaleDateString(
-        "es-ES",
-        { weekday: "long", day: "2-digit", month: "long" },
-      );
-
-      if (!reserva) {
-        avisos.push(
-          `${fechaFormateada} ${inicioHora} — sin bloque en base de datos`,
-        );
-      } else if (reserva.estado === "libre") {
-        reservasAOcupar.push(reserva.id);
-      } else if (reserva.estado === "clase") {
-        avisos.push(`${fechaFormateada} ${inicioHora} — hay una clase`);
-      } else if (reserva.estado === "ocupada") {
-        const nombre =
-          reserva.invitado_nombre ||
-          perfiles.find((p) => p.id === reserva.user_id)?.first_name +
-            " " +
-            perfiles.find((p) => p.id === reserva.user_id)?.last_name ||
-          "otro usuario";
-        avisos.push(`${fechaFormateada} ${inicioHora} — ocupada por ${nombre}`);
-      } else {
-        avisos.push(
-          `${fechaFormateada} ${inicioHora} — estado: ${reserva.estado}`,
-        );
-      }
     }
 
-    // Actualizar las que están libres
     if (reservasAOcupar.length > 0) {
-      const { error } = await supabase
-        .from("reservas")
-        .update({
-          estado: "ocupada",
-          user_id: fijaUsuario,
-          invitado_nombre: null,
-          invitado_tlf: null,
-        })
-        .in("id", reservasAOcupar);
-
-      if (error) {
+      const res = await fetch(
+        `${BASE}/rest/v1/reservas?id=in.(${reservasAOcupar.join(",")})`,
+        {
+          method: "PATCH",
+          headers: jsonH(),
+          body: JSON.stringify({
+            estado: "ocupada",
+            user_id: fijaUsuario,
+            invitado_nombre: null,
+            invitado_tlf: null,
+          }),
+        },
+      );
+      if (!res.ok) {
         setFijaError("Error al asignar las reservas.");
         setFijaLoading(false);
         return;
@@ -1360,28 +1203,15 @@ function AdminPista({ date }: { date: Date }) {
         (avisos.length > 0 ? ` ${avisos.length} con aviso.` : ""),
     );
     setFijaLoading(false);
-
-    // Recargar calendario
-    const año = date.getFullYear();
-    const mes = (date.getMonth() + 1).toString().padStart(2, "0");
-    const dia = date.getDate().toString().padStart(2, "0");
-    const fechaStr = `${año}-${mes}-${dia}`;
-    supabase
-      .from("reservas")
-      .select("*")
-      .gte("inicio", `${fechaStr}T00:00:00`)
-      .lt("inicio", `${fechaStr}T23:59:59`)
-      .order("inicio", { ascending: true })
-      .then(({ data }) => setReservasSupabase(data || []));
+    await recargarReservasDia();
   };
 
   /* ----------------------------------------------------
     6.7) CREAR BLOQUE RECURRENTE
------------------------------------------------------*/
+  -----------------------------------------------------*/
   const handleCrearBloqueRecurrente = async () => {
     setRecError("");
     setRecSuccess("");
-
     if (recPistas.length === 0) {
       setRecError("Debes seleccionar al menos una pista.");
       return;
@@ -1415,14 +1245,12 @@ function AdminPista({ date }: { date: Date }) {
       return;
     }
 
-    // Comprobar solapamientos entre franjas seleccionadas
     const franjasParseadas = franjasSeleccionadas.map((f) => {
       const [ini, finH] = f.split(" - ");
       const [ih, im] = ini.split(":").map(Number);
       const [fh, fm] = finH.split(":").map(Number);
       return { ini: ih * 60 + im, fin: fh * 60 + fm, label: f };
     });
-
     for (let i = 0; i < franjasParseadas.length; i++) {
       for (let j = i + 1; j < franjasParseadas.length; j++) {
         const a = franjasParseadas[i];
@@ -1437,17 +1265,13 @@ function AdminPista({ date }: { date: Date }) {
     }
 
     setRecLoading(true);
-
-    // Generar fechas que coincidan con los días seleccionados
     const fechas: string[] = [];
-    const cursor = new Date(`${recFechaInicio}T12:00:00`);
-    while (cursor <= fin) {
-      if (recDias.includes(cursor.getDay())) {
-        fechas.push(cursor.toISOString().split("T")[0]);
-      }
-      cursor.setDate(cursor.getDate() + 1);
+    const cur = new Date(`${recFechaInicio}T12:00:00`);
+    while (cur <= fin) {
+      if (recDias.includes(cur.getDay()))
+        fechas.push(cur.toISOString().split("T")[0]);
+      cur.setDate(cur.getDate() + 1);
     }
-
     if (fechas.length === 0) {
       setRecError(
         "No hay fechas válidas con los días seleccionados en ese rango.",
@@ -1456,124 +1280,105 @@ function AdminPista({ date }: { date: Date }) {
       return;
     }
 
-    // Buscar reservas existentes para detectar solapamientos
-    const { data: reservasExistentes, error: errorConsulta } = await supabase
-      .from("reservas")
-      .select("pista_id, inicio, fin")
-      .in("pista_id", recPistas)
-      .gte("inicio", `${recFechaInicio}T00:00:00`)
-      .lte("inicio", `${recFechaFin}T23:59:59`);
+    try {
+      const existentesRes = await fetch(
+        `${BASE}/rest/v1/reservas?select=pista_id,inicio,fin&pista_id=in.(${recPistas.join(",")})&inicio=gte.${recFechaInicio}T00:00:00&inicio=lte.${recFechaFin}T23:59:59`,
+        { headers: authH() },
+      );
+      const reservasExistentes = await existentesRes.json();
+      if (!existentesRes.ok) {
+        setRecError("Error al consultar reservas existentes.");
+        setRecLoading(false);
+        return;
+      }
 
-    if (errorConsulta) {
-      setRecError("Error al consultar reservas existentes.");
-      setRecLoading(false);
-      return;
-    }
-
-    // Set de ocupados para lookup rápido: "pistaId|fecha|horaInicio"
-    const ocupados = new Set<string>();
-    for (const r of reservasExistentes || []) {
-      const fechaR = new Date(r.inicio).toISOString().split("T")[0];
-      const horaR = new Date(r.inicio).toTimeString().slice(0, 5);
-      ocupados.add(`${r.pista_id}|${fechaR}|${horaR}`);
-    }
-
-    // Generar inserts evitando solapamientos
-    const inserts: {
-      pista_id: number;
-      estado: string;
-      inicio: string;
-      fin: string;
-      user_id: null;
-    }[] = [];
-
-    for (const fecha of fechas) {
-      for (const pistaId of recPistas) {
-        const reservasEstaPista = (reservasExistentes || []).filter((r) => {
-          const fechaR = new Date(r.inicio).toISOString().split("T")[0];
-          return r.pista_id === pistaId && fechaR === fecha;
-        });
-
-        for (const franja of franjasSeleccionadas) {
-          const [inicioHora, finHora] = franja.split(" - ");
-          const [ih, im] = inicioHora.split(":").map(Number);
-          const [fh, fm] = finHora.split(":").map(Number);
-          const franjaIni = ih * 60 + im;
-          const franjaFin = fh * 60 + fm;
-
-          const solapa = reservasEstaPista.some((r) => {
-            const horaInicioR = new Date(r.inicio).toTimeString().slice(0, 5);
-            const horaFinR = new Date(r.fin).toTimeString().slice(0, 5);
-            const [rih, rim] = horaInicioR.split(":").map(Number);
-            const [rfh, rfm] = horaFinR.split(":").map(Number);
-            const resIni = rih * 60 + rim;
-            const resFin = rfh * 60 + rfm;
-            return franjaIni < resFin && resIni < franjaFin;
-          });
-
-          if (!solapa) {
-            inserts.push({
-              pista_id: pistaId,
-              estado: "libre",
-              inicio: `${fecha}T${inicioHora}:00`,
-              fin: `${fecha}T${finHora}:00`,
-              user_id: null,
+      const inserts: {
+        pista_id: number;
+        estado: string;
+        inicio: string;
+        fin: string;
+        user_id: null;
+      }[] = [];
+      for (const fecha of fechas) {
+        for (const pistaId of recPistas) {
+          const reservasEstaPista = (reservasExistentes || []).filter(
+            (r: any) => {
+              return (
+                r.pista_id === pistaId &&
+                new Date(r.inicio).toISOString().split("T")[0] === fecha
+              );
+            },
+          );
+          for (const franja of franjasSeleccionadas) {
+            const [inicioHora, finHora] = franja.split(" - ");
+            const [ih, im] = inicioHora.split(":").map(Number);
+            const [fh, fm] = finHora.split(":").map(Number);
+            const franjaIni = ih * 60 + im;
+            const franjaFin = fh * 60 + fm;
+            const solapa = reservasEstaPista.some((r: any) => {
+              const horaIR = new Date(r.inicio).toTimeString().slice(0, 5);
+              const horaFR = new Date(r.fin).toTimeString().slice(0, 5);
+              const [rih, rim] = horaIR.split(":").map(Number);
+              const [rfh, rfm] = horaFR.split(":").map(Number);
+              return franjaIni < rfh * 60 + rfm && rih * 60 + rim < franjaFin;
             });
+            if (!solapa)
+              inserts.push({
+                pista_id: pistaId,
+                estado: "libre",
+                inicio: `${fecha}T${inicioHora}:00`,
+                fin: `${fecha}T${finHora}:00`,
+                user_id: null,
+              });
           }
         }
       }
-    }
 
-    if (inserts.length === 0) {
-      setRecError(
-        "No hay bloques nuevos que crear. Todos los horarios ya están ocupados.",
-      );
-      setRecLoading(false);
-      return;
-    }
-
-    // Insertar en lotes de 500
-    const LOTE = 500;
-    for (let i = 0; i < inserts.length; i += LOTE) {
-      const lote = inserts.slice(i, i + LOTE);
-      const { error: errorInsert } = await supabase
-        .from("reservas")
-        .insert(lote);
-      if (errorInsert) {
+      if (inserts.length === 0) {
         setRecError(
-          `Error al insertar bloques (lote ${Math.floor(i / LOTE) + 1}).`,
+          "No hay bloques nuevos que crear. Todos los horarios ya están ocupados.",
         );
         setRecLoading(false);
         return;
       }
+
+      const LOTE = 500;
+      for (let i = 0; i < inserts.length; i += LOTE) {
+        const res = await fetch(`${BASE}/rest/v1/reservas`, {
+          method: "POST",
+          headers: {
+            ...authH(),
+            "Content-Type": "application/json",
+            Prefer: "return=minimal",
+          },
+          body: JSON.stringify(inserts.slice(i, i + LOTE)),
+        });
+        if (!res.ok) {
+          setRecError(
+            `Error al insertar bloques (lote ${Math.floor(i / LOTE) + 1}).`,
+          );
+          setRecLoading(false);
+          return;
+        }
+      }
+
+      setRecSuccess(
+        `✅ ${inserts.length} bloque${inserts.length !== 1 ? "s" : ""} creado${inserts.length !== 1 ? "s" : ""} correctamente.`,
+      );
+      setRecLoading(false);
+      await recargarReservasDia();
+    } catch (e: any) {
+      setRecError(`Error inesperado: ${e.message}`);
+      setRecLoading(false);
     }
-
-    setRecSuccess(
-      `✅ ${inserts.length} bloque${inserts.length !== 1 ? "s" : ""} creado${inserts.length !== 1 ? "s" : ""} correctamente.`,
-    );
-    setRecLoading(false);
-
-    // Recargar calendario del día visible
-    const año = date.getFullYear();
-    const mes = (date.getMonth() + 1).toString().padStart(2, "0");
-    const dia = date.getDate().toString().padStart(2, "0");
-    const fechaStr = `${año}-${mes}-${dia}`;
-    supabase
-      .from("reservas")
-      .select("*")
-      .gte("inicio", `${fechaStr}T00:00:00`)
-      .lt("inicio", `${fechaStr}T23:59:59`)
-      .order("inicio", { ascending: true })
-      .then(({ data }) => setReservasSupabase(data || []));
   };
 
   /* ----------------------------------------------------
     6.8) ELIMINAR BLOQUE RECURRENTE
------------------------------------------------------*/
+  -----------------------------------------------------*/
   const handleEliminarBloqueRecurrente = async () => {
     setElimRecError("");
     setElimRecSuccess("");
-
     if (elimRecPistas.length === 0) {
       setElimRecError("Debes seleccionar al menos una pista.");
       return;
@@ -1590,7 +1395,6 @@ function AdminPista({ date }: { date: Date }) {
       setElimRecError("La fecha de fin debe ser posterior a la de inicio.");
       return;
     }
-
     const franjasSeleccionadas = elimRecFranjas.filter((f) => f !== "");
     if (franjasSeleccionadas.length === 0) {
       setElimRecError("Debes seleccionar al menos una franja horaria.");
@@ -1598,18 +1402,14 @@ function AdminPista({ date }: { date: Date }) {
     }
 
     setElimRecLoading(true);
-
-    // Generar fechas que coincidan con los días seleccionados
     const fin = new Date(`${elimRecFechaFin}T12:00:00`);
     const fechas: string[] = [];
     const cursor = new Date(`${elimRecFechaInicio}T12:00:00`);
     while (cursor <= fin) {
-      if (elimRecDias.includes(cursor.getDay())) {
+      if (elimRecDias.includes(cursor.getDay()))
         fechas.push(cursor.toISOString().split("T")[0]);
-      }
       cursor.setDate(cursor.getDate() + 1);
     }
-
     if (fechas.length === 0) {
       setElimRecError(
         "No hay fechas válidas con los días seleccionados en ese rango.",
@@ -1618,64 +1418,52 @@ function AdminPista({ date }: { date: Date }) {
       return;
     }
 
-    // Construir los timestamps exactos a eliminar
     const iniciosAEliminar: string[] = [];
-    for (const fecha of fechas) {
+    for (const fecha of fechas)
       for (const franja of franjasSeleccionadas) {
-        const [inicioHora] = franja.split(" - ");
-        iniciosAEliminar.push(`${fecha}T${inicioHora}:00`);
+        const [h] = franja.split(" - ");
+        iniciosAEliminar.push(`${fecha}T${h}:00`);
       }
-    }
 
-    // Eliminar en lotes de 100 (el filtro .in() tiene límites)
     let totalEliminadas = 0;
     const LOTE = 100;
-
-    for (const pistaId of elimRecPistas) {
-      for (let i = 0; i < iniciosAEliminar.length; i += LOTE) {
-        const lote = iniciosAEliminar.slice(i, i + LOTE);
-        const { error, count } = await supabase
-          .from("reservas")
-          .delete({ count: "exact" })
-          .eq("pista_id", pistaId)
-          .eq("estado", "libre")
-          .in("inicio", lote);
-
-        if (error) {
-          setElimRecError(`Error al eliminar bloques: ${error.message}`);
-          setElimRecLoading(false);
-          return;
+    try {
+      for (const pistaId of elimRecPistas) {
+        for (let i = 0; i < iniciosAEliminar.length; i += LOTE) {
+          const lote = iniciosAEliminar.slice(i, i + LOTE);
+          const res = await fetch(
+            `${BASE}/rest/v1/reservas?pista_id=eq.${pistaId}&estado=eq.libre&inicio=in.(${lote.join(",")})`,
+            {
+              method: "DELETE",
+              headers: { ...authH(), Prefer: "return=representation" },
+            },
+          );
+          if (!res.ok) {
+            setElimRecError("Error al eliminar bloques.");
+            setElimRecLoading(false);
+            return;
+          }
+          const data = await res.json();
+          totalEliminadas += Array.isArray(data) ? data.length : 0;
         }
-        totalEliminadas += count ?? 0;
       }
+      setElimRecSuccess(
+        `✅ ${totalEliminadas} bloque${totalEliminadas !== 1 ? "s" : ""} eliminado${totalEliminadas !== 1 ? "s" : ""} correctamente.`,
+      );
+      setElimRecLoading(false);
+      await recargarReservasDia();
+    } catch (e: any) {
+      setElimRecError(`Error inesperado: ${e.message}`);
+      setElimRecLoading(false);
     }
-
-    setElimRecSuccess(
-      `✅ ${totalEliminadas} bloque${totalEliminadas !== 1 ? "s" : ""} eliminado${totalEliminadas !== 1 ? "s" : ""} correctamente.`,
-    );
-    setElimRecLoading(false);
-
-    // Recargar calendario del día visible
-    const año = date.getFullYear();
-    const mes = (date.getMonth() + 1).toString().padStart(2, "0");
-    const dia = date.getDate().toString().padStart(2, "0");
-    const fechaStr = `${año}-${mes}-${dia}`;
-    supabase
-      .from("reservas")
-      .select("*")
-      .gte("inicio", `${fechaStr}T00:00:00`)
-      .lt("inicio", `${fechaStr}T23:59:59`)
-      .order("inicio", { ascending: true })
-      .then(({ data }) => setReservasSupabase(data || []));
   };
 
   /* ----------------------------------------------------
     6.9) CREAR CLASE RECURRENTE
------------------------------------------------------*/
+  -----------------------------------------------------*/
   const handleCrearClaseRecurrente = async () => {
     setClaseRecError("");
     setClaseRecSuccess("");
-
     if (!claseRecPista) {
       setClaseRecError("Debes seleccionar una pista.");
       return;
@@ -1696,21 +1484,18 @@ function AdminPista({ date }: { date: Date }) {
       setClaseRecError("Debes seleccionar un monitor.");
       return;
     }
-
     const franjasSeleccionadas = claseRecFranjas.filter((f) => f !== "");
     if (franjasSeleccionadas.length === 0) {
       setClaseRecError("Debes seleccionar al menos una franja horaria.");
       return;
     }
 
-    // Comprobar solapamientos entre franjas seleccionadas
     const franjasParseadas = franjasSeleccionadas.map((f) => {
       const [ini, finH] = f.split(" - ");
       const [ih, im] = ini.split(":").map(Number);
       const [fh, fm] = finH.split(":").map(Number);
       return { ini: ih * 60 + im, fin: fh * 60 + fm, label: f };
     });
-
     for (let i = 0; i < franjasParseadas.length; i++) {
       for (let j = i + 1; j < franjasParseadas.length; j++) {
         const a = franjasParseadas[i];
@@ -1725,18 +1510,14 @@ function AdminPista({ date }: { date: Date }) {
     }
 
     setClaseRecLoading(true);
-
-    // Generar fechas que coincidan con los días seleccionados
     const fin = new Date(`${claseRecFechaFin}T12:00:00`);
     const fechas: string[] = [];
     const cursor = new Date(`${claseRecFechaInicio}T12:00:00`);
     while (cursor <= fin) {
-      if (claseRecDias.includes(cursor.getDay())) {
+      if (claseRecDias.includes(cursor.getDay()))
         fechas.push(cursor.toISOString().split("T")[0]);
-      }
       cursor.setDate(cursor.getDate() + 1);
     }
-
     if (fechas.length === 0) {
       setClaseRecError(
         "No hay fechas válidas con los días seleccionados en ese rango.",
@@ -1745,110 +1526,96 @@ function AdminPista({ date }: { date: Date }) {
       return;
     }
 
-    // Buscar reservas existentes para detectar solapamientos
-    const { data: reservasExistentes, error: errorConsulta } = await supabase
-      .from("reservas")
-      .select("pista_id, inicio, fin")
-      .eq("pista_id", claseRecPista)
-      .gte("inicio", `${claseRecFechaInicio}T00:00:00`)
-      .lte("inicio", `${claseRecFechaFin}T23:59:59`);
-
-    if (errorConsulta) {
-      setClaseRecError("Error al consultar reservas existentes.");
-      setClaseRecLoading(false);
-      return;
-    }
-
-    // Generar inserts evitando solapamientos
-    const inserts: {
-      pista_id: number;
-      estado: string;
-      inicio: string;
-      fin: string;
-      user_id: string;
-    }[] = [];
-
-    for (const fecha of fechas) {
-      const reservasEstaFecha = (reservasExistentes || []).filter((r) => {
-        const fechaR = new Date(r.inicio).toISOString().split("T")[0];
-        return fechaR === fecha;
-      });
-
-      for (const franja of franjasSeleccionadas) {
-        const [inicioHora, finHora] = franja.split(" - ");
-        const [ih, im] = inicioHora.split(":").map(Number);
-        const [fh, fm] = finHora.split(":").map(Number);
-        const franjaIni = ih * 60 + im;
-        const franjaFin = fh * 60 + fm;
-
-        const solapa = reservasEstaFecha.some((r) => {
-          const horaInicioR = new Date(r.inicio).toTimeString().slice(0, 5);
-          const horaFinR = new Date(r.fin).toTimeString().slice(0, 5);
-          const [rih, rim] = horaInicioR.split(":").map(Number);
-          const [rfh, rfm] = horaFinR.split(":").map(Number);
-          const resIni = rih * 60 + rim;
-          const resFin = rfh * 60 + rfm;
-          return franjaIni < resFin && resIni < franjaFin;
-        });
-
-        if (!solapa) {
-          inserts.push({
-            pista_id: claseRecPista as number,
-            estado: "clase",
-            inicio: `${fecha}T${inicioHora}:00`,
-            fin: `${fecha}T${finHora}:00`,
-            user_id: claseRecMonitor as string,
-          });
-        }
-      }
-    }
-
-    if (inserts.length === 0) {
-      setClaseRecError(
-        "No hay clases nuevas que crear. Todos los horarios ya están ocupados.",
+    try {
+      const existentesRes = await fetch(
+        `${BASE}/rest/v1/reservas?select=pista_id,inicio,fin&pista_id=eq.${claseRecPista}&inicio=gte.${claseRecFechaInicio}T00:00:00&inicio=lte.${claseRecFechaFin}T23:59:59`,
+        { headers: authH() },
       );
-      setClaseRecLoading(false);
-      return;
-    }
-
-    const LOTE = 500;
-    for (let i = 0; i < inserts.length; i += LOTE) {
-      const lote = inserts.slice(i, i + LOTE);
-      const { error: errorInsert } = await supabase
-        .from("reservas")
-        .insert(lote);
-      if (errorInsert) {
-        setClaseRecError(`Error al insertar clases: ${errorInsert.message}`);
+      const reservasExistentes = await existentesRes.json();
+      if (!existentesRes.ok) {
+        setClaseRecError("Error al consultar reservas existentes.");
         setClaseRecLoading(false);
         return;
       }
+
+      const inserts: {
+        pista_id: number;
+        estado: string;
+        inicio: string;
+        fin: string;
+        user_id: string;
+      }[] = [];
+      for (const fecha of fechas) {
+        const reservasEstaFecha = (reservasExistentes || []).filter(
+          (r: any) => new Date(r.inicio).toISOString().split("T")[0] === fecha,
+        );
+        for (const franja of franjasSeleccionadas) {
+          const [inicioHora, finHora] = franja.split(" - ");
+          const [ih, im] = inicioHora.split(":").map(Number);
+          const [fh, fm] = finHora.split(":").map(Number);
+          const franjaIni = ih * 60 + im;
+          const franjaFin = fh * 60 + fm;
+          const solapa = reservasEstaFecha.some((r: any) => {
+            const horaIR = new Date(r.inicio).toTimeString().slice(0, 5);
+            const horaFR = new Date(r.fin).toTimeString().slice(0, 5);
+            const [rih, rim] = horaIR.split(":").map(Number);
+            const [rfh, rfm] = horaFR.split(":").map(Number);
+            return franjaIni < rfh * 60 + rfm && rih * 60 + rim < franjaFin;
+          });
+          if (!solapa)
+            inserts.push({
+              pista_id: claseRecPista as number,
+              estado: "clase",
+              inicio: `${fecha}T${inicioHora}:00`,
+              fin: `${fecha}T${finHora}:00`,
+              user_id: claseRecMonitor as string,
+            });
+        }
+      }
+
+      if (inserts.length === 0) {
+        setClaseRecError(
+          "No hay clases nuevas que crear. Todos los horarios ya están ocupados.",
+        );
+        setClaseRecLoading(false);
+        return;
+      }
+
+      const LOTE = 500;
+      for (let i = 0; i < inserts.length; i += LOTE) {
+        const res = await fetch(`${BASE}/rest/v1/reservas`, {
+          method: "POST",
+          headers: {
+            ...authH(),
+            "Content-Type": "application/json",
+            Prefer: "return=minimal",
+          },
+          body: JSON.stringify(inserts.slice(i, i + LOTE)),
+        });
+        if (!res.ok) {
+          setClaseRecError(`Error al insertar clases.`);
+          setClaseRecLoading(false);
+          return;
+        }
+      }
+
+      setClaseRecSuccess(
+        `✅ ${inserts.length} clase${inserts.length !== 1 ? "s" : ""} creada${inserts.length !== 1 ? "s" : ""} correctamente.`,
+      );
+      setClaseRecLoading(false);
+      await recargarReservasDia();
+    } catch (e: any) {
+      setClaseRecError(`Error inesperado: ${e.message}`);
+      setClaseRecLoading(false);
     }
-
-    setClaseRecSuccess(
-      `✅ ${inserts.length} clase${inserts.length !== 1 ? "s" : ""} creada${inserts.length !== 1 ? "s" : ""} correctamente.`,
-    );
-    setClaseRecLoading(false);
-
-    const año = date.getFullYear();
-    const mes = (date.getMonth() + 1).toString().padStart(2, "0");
-    const dia = date.getDate().toString().padStart(2, "0");
-    const fechaStr = `${año}-${mes}-${dia}`;
-    supabase
-      .from("reservas")
-      .select("*")
-      .gte("inicio", `${fechaStr}T00:00:00`)
-      .lt("inicio", `${fechaStr}T23:59:59`)
-      .order("inicio", { ascending: true })
-      .then(({ data }) => setReservasSupabase(data || []));
   };
 
   /* ----------------------------------------------------
     6.10) ELIMINAR CLASE RECURRENTE
------------------------------------------------------*/
+  -----------------------------------------------------*/
   const handleEliminarClaseRecurrente = async () => {
     setElimClaseRecError("");
     setElimClaseRecSuccess("");
-
     if (!elimClaseRecPista) {
       setElimClaseRecError("Debes seleccionar una pista.");
       return;
@@ -1867,7 +1634,6 @@ function AdminPista({ date }: { date: Date }) {
       );
       return;
     }
-
     const franjasSeleccionadas = elimClaseRecFranjas.filter((f) => f !== "");
     if (franjasSeleccionadas.length === 0) {
       setElimClaseRecError("Debes seleccionar al menos una franja horaria.");
@@ -1879,18 +1645,14 @@ function AdminPista({ date }: { date: Date }) {
     }
 
     setElimClaseRecLoading(true);
-
-    // Generar fechas que coincidan con los días seleccionados
     const fin = new Date(`${elimClaseRecFechaFin}T12:00:00`);
     const fechas: string[] = [];
     const cursor = new Date(`${elimClaseRecFechaInicio}T12:00:00`);
     while (cursor <= fin) {
-      if (elimClaseRecDias.includes(cursor.getDay())) {
+      if (elimClaseRecDias.includes(cursor.getDay()))
         fechas.push(cursor.toISOString().split("T")[0]);
-      }
       cursor.setDate(cursor.getDate() + 1);
     }
-
     if (fechas.length === 0) {
       setElimClaseRecError(
         "No hay fechas válidas con los días seleccionados en ese rango.",
@@ -1899,53 +1661,42 @@ function AdminPista({ date }: { date: Date }) {
       return;
     }
 
-    // Construir los timestamps exactos a eliminar
     const iniciosAEliminar: string[] = [];
-    for (const fecha of fechas) {
+    for (const fecha of fechas)
       for (const franja of franjasSeleccionadas) {
-        const [inicioHora] = franja.split(" - ");
-        iniciosAEliminar.push(`${fecha}T${inicioHora}:00`);
+        const [h] = franja.split(" - ");
+        iniciosAEliminar.push(`${fecha}T${h}:00`);
       }
-    }
 
-    // Eliminar en lotes de 100
     let totalEliminadas = 0;
     const LOTE = 100;
-
-    for (let i = 0; i < iniciosAEliminar.length; i += LOTE) {
-      const lote = iniciosAEliminar.slice(i, i + LOTE);
-      const { error, count } = await supabase
-        .from("reservas")
-        .delete({ count: "exact" })
-        .eq("pista_id", elimClaseRecPista)
-        .eq("estado", "clase")
-        .eq("user_id", elimClaseRecMonitor)
-        .in("inicio", lote);
-
-      if (error) {
-        setElimClaseRecError(`Error al eliminar clases: ${error.message}`);
-        setElimClaseRecLoading(false);
-        return;
+    try {
+      for (let i = 0; i < iniciosAEliminar.length; i += LOTE) {
+        const lote = iniciosAEliminar.slice(i, i + LOTE);
+        const res = await fetch(
+          `${BASE}/rest/v1/reservas?pista_id=eq.${elimClaseRecPista}&estado=eq.clase&user_id=eq.${elimClaseRecMonitor}&inicio=in.(${lote.join(",")})`,
+          {
+            method: "DELETE",
+            headers: { ...authH(), Prefer: "return=representation" },
+          },
+        );
+        if (!res.ok) {
+          setElimClaseRecError("Error al eliminar clases.");
+          setElimClaseRecLoading(false);
+          return;
+        }
+        const data = await res.json();
+        totalEliminadas += Array.isArray(data) ? data.length : 0;
       }
-      totalEliminadas += count ?? 0;
+      setElimClaseRecSuccess(
+        `✅ ${totalEliminadas} clase${totalEliminadas !== 1 ? "s" : ""} eliminada${totalEliminadas !== 1 ? "s" : ""} correctamente.`,
+      );
+      setElimClaseRecLoading(false);
+      await recargarReservasDia();
+    } catch (e: any) {
+      setElimClaseRecError(`Error inesperado: ${e.message}`);
+      setElimClaseRecLoading(false);
     }
-
-    setElimClaseRecSuccess(
-      `✅ ${totalEliminadas} clase${totalEliminadas !== 1 ? "s" : ""} eliminada${totalEliminadas !== 1 ? "s" : ""} correctamente.`,
-    );
-    setElimClaseRecLoading(false);
-
-    const año = date.getFullYear();
-    const mes = (date.getMonth() + 1).toString().padStart(2, "0");
-    const dia = date.getDate().toString().padStart(2, "0");
-    const fechaStr = `${año}-${mes}-${dia}`;
-    supabase
-      .from("reservas")
-      .select("*")
-      .gte("inicio", `${fechaStr}T00:00:00`)
-      .lt("inicio", `${fechaStr}T23:59:59`)
-      .order("inicio", { ascending: true })
-      .then(({ data }) => setReservasSupabase(data || []));
   };
 
   /* ----------------------------------------------------
@@ -1968,7 +1719,6 @@ function AdminPista({ date }: { date: Date }) {
         >
           {bloqueSeleccionado ? (
             <div className="div_confirmar_reserva">
-              {/* cancelOverlay && <h2>¿Quieres cancelar esta pista?</h2> */}
               {cancelClaseOverlay && <h2>¿Quieres cancelar esta clase?</h2>}
 
               {bloqueSeleccionado.user_id && (
@@ -2046,7 +1796,6 @@ function AdminPista({ date }: { date: Date }) {
                 <h2>Pista {bloqueSeleccionado.pista}</h2>
               </div>
 
-              {/* SECCIÓN PAGADO (solo en ocupada) */}
               {cancelOverlay && (
                 <div className="admin_pagado_section">
                   <p className="admin_pagado_titulo">Pagado</p>
@@ -2078,11 +1827,9 @@ function AdminPista({ date }: { date: Date }) {
                 </div>
               )}
 
-              {/* SECCIÓN PRODUCTOS (solo en ocupada) */}
               {cancelOverlay && (
                 <div className="admin_productos_section">
                   <p className="admin_productos_titulo">Productos</p>
-
                   <div className="admin_productos_botones">
                     {PRODUCTOS.map(({ key, label }) => (
                       <button
@@ -2094,7 +1841,6 @@ function AdminPista({ date }: { date: Date }) {
                       </button>
                     ))}
                   </div>
-
                   {pedidosLoading ? (
                     <p style={{ textAlign: "center", color: "white" }}>
                       Cargando...
@@ -2122,7 +1868,6 @@ function AdminPista({ date }: { date: Date }) {
                                 ?.label
                             }
                           </span>
-
                           <label className="admin_producto_pagado_label">
                             <input
                               type="checkbox"
@@ -2137,7 +1882,6 @@ function AdminPista({ date }: { date: Date }) {
                             />
                             <span>Pagado</span>
                           </label>
-
                           <button
                             className="admin_producto_cantidad_btn"
                             onClick={() => handleReducirProducto(pedido)}
@@ -2151,7 +1895,6 @@ function AdminPista({ date }: { date: Date }) {
                 </div>
               )}
 
-              {/* SELECT DE USUARIO (solo en bloque libre) */}
               {!cancelOverlay && !cancelClaseOverlay && (
                 <div className="admin_elegir_usuario">
                   <div className="admin_modo_toggle">
@@ -2176,7 +1919,6 @@ function AdminPista({ date }: { date: Date }) {
                       Invitado
                     </button>
                   </div>
-
                   {!modoInvitado ? (
                     <div className="admin_buscador_usuario">
                       <input
@@ -2269,15 +2011,11 @@ function AdminPista({ date }: { date: Date }) {
             >
               Atrás
             </button>
-
-            {/* Cancelar CLASE */}
             {cancelClaseOverlay && (
               <button className="reserva_boton" onClick={handleCancelarReserva}>
                 Cancelar clase
               </button>
             )}
-
-            {/* Cancelar RESERVA normal */}
             {!cancelClaseOverlay && cancelOverlay && (
               <button
                 className="reserva_boton"
@@ -2286,8 +2024,6 @@ function AdminPista({ date }: { date: Date }) {
                 Cancelar pista
               </button>
             )}
-
-            {/* Confirmar reserva (bloque libre) */}
             {!cancelClaseOverlay && !cancelOverlay && (
               <>
                 <button
@@ -2328,7 +2064,6 @@ function AdminPista({ date }: { date: Date }) {
                 ⚠️ <strong>Confirmar cancelación</strong> ⚠️
               </h2>
               <h2>¿Seguro que quieres cancelar esta pista?</h2>
-
               {bloqueSeleccionado?.user_id && (
                 <div>
                   <h2>
@@ -2356,7 +2091,6 @@ function AdminPista({ date }: { date: Date }) {
                   </h2>
                 </div>
               )}
-
               <div className="admin_div_info_reserva">
                 <h2>
                   {date
@@ -2374,7 +2108,6 @@ function AdminPista({ date }: { date: Date }) {
                 <h2>Pista {bloqueSeleccionado?.pista}</h2>
               </div>
             </div>
-
             <div className="div_confirmar_reserva_botones">
               <button
                 className="reserva_boton"
@@ -2409,7 +2142,6 @@ function AdminPista({ date }: { date: Date }) {
           >
             <div className="div_confirmar_reserva">
               <h2>Crear bloque pista libre</h2>
-
               <input
                 type="date"
                 className="admin_elegir_usuario_select"
@@ -2417,7 +2149,6 @@ function AdminPista({ date }: { date: Date }) {
                 min={todayISO}
                 onChange={(e) => setFechaBloqueSeleccionada(e.target.value)}
               />
-
               <select
                 className="admin_elegir_usuario_select"
                 value={franjaSeleccionada}
@@ -2430,7 +2161,6 @@ function AdminPista({ date }: { date: Date }) {
                   </option>
                 ))}
               </select>
-
               <select
                 className="admin_elegir_usuario_select"
                 id="admin_elegir_usuario_select_ultimo"
@@ -2444,7 +2174,6 @@ function AdminPista({ date }: { date: Date }) {
                   </option>
                 ))}
               </select>
-
               {crearBloqueError && (
                 <p className="reserva_error grande">{crearBloqueError}</p>
               )}
@@ -2452,7 +2181,6 @@ function AdminPista({ date }: { date: Date }) {
                 <p className="reserva_success grande">{crearBloqueSuccess}</p>
               )}
             </div>
-
             <div className="div_confirmar_reserva_botones">
               <button
                 className="reserva_boton"
@@ -2484,7 +2212,6 @@ function AdminPista({ date }: { date: Date }) {
           >
             <div className="div_confirmar_reserva">
               <h2>Reservar clase</h2>
-
               <input
                 type="date"
                 className="admin_elegir_usuario_select"
@@ -2492,7 +2219,6 @@ function AdminPista({ date }: { date: Date }) {
                 min={todayISO}
                 onChange={(e) => setFechaClaseSeleccionada(e.target.value)}
               />
-
               <select
                 className="admin_elegir_usuario_select"
                 value={franjaClaseSeleccionada}
@@ -2505,7 +2231,6 @@ function AdminPista({ date }: { date: Date }) {
                   </option>
                 ))}
               </select>
-
               <select
                 className="admin_elegir_usuario_select"
                 value={pistaClaseSeleccionada}
@@ -2520,7 +2245,6 @@ function AdminPista({ date }: { date: Date }) {
                   </option>
                 ))}
               </select>
-
               <select
                 className="admin_elegir_usuario_select"
                 id="admin_elegir_usuario_select_ultimo"
@@ -2534,7 +2258,6 @@ function AdminPista({ date }: { date: Date }) {
                   </option>
                 ))}
               </select>
-
               {crearClaseError && (
                 <p className="reserva_error grande">{crearClaseError}</p>
               )}
@@ -2542,7 +2265,6 @@ function AdminPista({ date }: { date: Date }) {
                 <p className="reserva_success grande">{crearClaseSuccess}</p>
               )}
             </div>
-
             <div className="div_confirmar_reserva_botones">
               <button
                 className="reserva_boton"
@@ -2571,7 +2293,6 @@ function AdminPista({ date }: { date: Date }) {
           >
             <div className="div_confirmar_reserva">
               <h2>Bloquear fin de semana — Torneo</h2>
-
               <div className="admin_torneo_form">
                 <label className="admin_torneo_label">Inicio del torneo</label>
                 <div className="admin_torneo_fila">
@@ -2621,7 +2342,6 @@ function AdminPista({ date }: { date: Date }) {
                     </select>
                   </div>
                 </div>
-
                 <label className="admin_torneo_label">Fin del torneo</label>
                 <div className="admin_torneo_fila">
                   <div
@@ -2671,7 +2391,6 @@ function AdminPista({ date }: { date: Date }) {
                   </div>
                 </div>
               </div>
-
               {torneoError && (
                 <p
                   className="reserva_error grande"
@@ -2684,7 +2403,6 @@ function AdminPista({ date }: { date: Date }) {
                 <p className="reserva_success grande">{torneoSuccess}</p>
               )}
             </div>
-
             <div className="div_confirmar_reserva_botones">
               <button
                 className="reserva_boton"
@@ -2717,7 +2435,6 @@ function AdminPista({ date }: { date: Date }) {
           >
             <div className="div_confirmar_reserva">
               <h2>Eliminar torneo</h2>
-
               <div className="admin_torneo_form">
                 <label className="admin_torneo_label">Fecha inicio</label>
                 <input
@@ -2735,7 +2452,6 @@ function AdminPista({ date }: { date: Date }) {
                   onChange={(e) => setElimTorneoFechaFin(e.target.value)}
                 />
               </div>
-
               {elimTorneoError && (
                 <p className="reserva_error grande">{elimTorneoError}</p>
               )}
@@ -2743,7 +2459,6 @@ function AdminPista({ date }: { date: Date }) {
                 <p className="reserva_success grande">{elimTorneoSuccess}</p>
               )}
             </div>
-
             <div className="div_confirmar_reserva_botones">
               <button
                 className="reserva_boton"
@@ -2776,8 +2491,6 @@ function AdminPista({ date }: { date: Date }) {
           >
             <div className="div_confirmar_reserva">
               <h2>Asignar pista fija</h2>
-
-              {/* BUSCADOR USUARIO */}
               <div className="admin_elegir_usuario">
                 <div className="admin_buscador_usuario">
                   <input
@@ -2835,8 +2548,6 @@ function AdminPista({ date }: { date: Date }) {
                   )}
                 </div>
               </div>
-
-              {/* PISTA */}
               <select
                 className="admin_elegir_usuario_select"
                 value={fijaPista}
@@ -2849,8 +2560,6 @@ function AdminPista({ date }: { date: Date }) {
                   </option>
                 ))}
               </select>
-
-              {/* FRANJA */}
               <select
                 className="admin_elegir_usuario_select"
                 value={fijaFranja}
@@ -2863,8 +2572,6 @@ function AdminPista({ date }: { date: Date }) {
                   </option>
                 ))}
               </select>
-
-              {/* DÍA DE LA SEMANA */}
               <select
                 className="admin_elegir_usuario_select"
                 value={fijaDiaSemana}
@@ -2879,8 +2586,6 @@ function AdminPista({ date }: { date: Date }) {
                 <option value={6}>Sábado</option>
                 <option value={0}>Domingo</option>
               </select>
-
-              {/* FECHAS */}
               <div className="admin_torneo_form">
                 <label className="admin_torneo_label">Fecha inicio</label>
                 <input
@@ -2901,8 +2606,6 @@ function AdminPista({ date }: { date: Date }) {
                   onChange={(e) => setFijaFechaFin(e.target.value)}
                 />
               </div>
-
-              {/* AVISOS */}
               {fijaAvisos.length > 0 && (
                 <div className="admin_fija_avisos">
                   <p className="admin_fija_avisos_titulo">⚠️ Avisos</p>
@@ -2913,13 +2616,11 @@ function AdminPista({ date }: { date: Date }) {
                   ))}
                 </div>
               )}
-
               {fijaError && <p className="reserva_error grande">{fijaError}</p>}
               {fijaSuccess && (
                 <p className="reserva_success grande">{fijaSuccess}</p>
               )}
             </div>
-
             <div className="div_confirmar_reserva_botones">
               <button
                 className="reserva_boton"
@@ -2960,8 +2661,6 @@ function AdminPista({ date }: { date: Date }) {
           >
             <div className="div_confirmar_reserva">
               <h2>Crear bloque pista — Recurrente</h2>
-
-              {/* PISTAS */}
               <div className="admin_cal_seccion">
                 <p className="admin_cal_titulo">Pistas</p>
                 <div className="admin_cal_checkboxes">
@@ -2984,8 +2683,6 @@ function AdminPista({ date }: { date: Date }) {
                   ))}
                 </div>
               </div>
-
-              {/* DÍAS DE LA SEMANA */}
               <div className="admin_cal_seccion">
                 <p className="admin_cal_titulo">Días de la semana</p>
                 <div className="admin_cal_checkboxes">
@@ -3016,8 +2713,6 @@ function AdminPista({ date }: { date: Date }) {
                   ))}
                 </div>
               </div>
-
-              {/* FECHAS */}
               <div className="admin_torneo_form">
                 <label className="admin_torneo_label">Fecha inicio</label>
                 <input
@@ -3035,12 +2730,9 @@ function AdminPista({ date }: { date: Date }) {
                   onChange={(e) => setRecFechaFin(e.target.value)}
                 />
               </div>
-
-              {/* FRANJAS */}
               <div className="admin_cal_seccion">
                 <p className="admin_cal_titulo">Franjas horarias</p>
                 <div className="admin_cal_franjas">
-                  {" "}
                   {recFranjas.map((franja, i) => (
                     <select
                       key={i}
@@ -3060,15 +2752,13 @@ function AdminPista({ date }: { date: Date }) {
                       ))}
                     </select>
                   ))}
-                </div>{" "}
+                </div>
               </div>
-
               {recError && <p className="reserva_error grande">{recError}</p>}
               {recSuccess && (
                 <p className="reserva_success grande">{recSuccess}</p>
               )}
             </div>
-
             <div className="div_confirmar_reserva_botones">
               <button
                 className="reserva_boton"
@@ -3101,8 +2791,6 @@ function AdminPista({ date }: { date: Date }) {
           >
             <div className="div_confirmar_reserva">
               <h2>Eliminar bloque pista — Recurrente</h2>
-
-              {/* PISTAS */}
               <div className="admin_cal_seccion">
                 <p className="admin_cal_titulo">Pistas</p>
                 <div className="admin_cal_checkboxes">
@@ -3125,8 +2813,6 @@ function AdminPista({ date }: { date: Date }) {
                   ))}
                 </div>
               </div>
-
-              {/* DÍAS DE LA SEMANA */}
               <div className="admin_cal_seccion">
                 <p className="admin_cal_titulo">Días de la semana</p>
                 <div className="admin_cal_checkboxes">
@@ -3157,8 +2843,6 @@ function AdminPista({ date }: { date: Date }) {
                   ))}
                 </div>
               </div>
-
-              {/* FECHAS */}
               <div className="admin_torneo_form">
                 <label className="admin_torneo_label">Fecha inicio</label>
                 <input
@@ -3176,8 +2860,6 @@ function AdminPista({ date }: { date: Date }) {
                   onChange={(e) => setElimRecFechaFin(e.target.value)}
                 />
               </div>
-
-              {/* FRANJAS */}
               <div className="admin_cal_seccion">
                 <p className="admin_cal_titulo">Franjas horarias a eliminar</p>
                 <div className="admin_cal_franjas">
@@ -3202,7 +2884,6 @@ function AdminPista({ date }: { date: Date }) {
                   ))}
                 </div>
               </div>
-
               {elimRecError && (
                 <p className="reserva_error grande">{elimRecError}</p>
               )}
@@ -3210,7 +2891,6 @@ function AdminPista({ date }: { date: Date }) {
                 <p className="reserva_success grande">{elimRecSuccess}</p>
               )}
             </div>
-
             <div className="div_confirmar_reserva_botones">
               <button
                 className="reserva_boton"
@@ -3243,8 +2923,6 @@ function AdminPista({ date }: { date: Date }) {
           >
             <div className="div_confirmar_reserva">
               <h2>Reservar clase — Recurrente</h2>
-
-              {/* PISTA */}
               <div className="admin_cal_seccion">
                 <p className="admin_cal_titulo">Pista</p>
                 <select
@@ -3260,8 +2938,6 @@ function AdminPista({ date }: { date: Date }) {
                   ))}
                 </select>
               </div>
-
-              {/* MONITOR */}
               <div className="admin_cal_seccion">
                 <p className="admin_cal_titulo">Monitor</p>
                 <select
@@ -3277,8 +2953,6 @@ function AdminPista({ date }: { date: Date }) {
                   ))}
                 </select>
               </div>
-
-              {/* DÍAS DE LA SEMANA */}
               <div className="admin_cal_seccion">
                 <p className="admin_cal_titulo">Días de la semana</p>
                 <div className="admin_cal_checkboxes">
@@ -3309,8 +2983,6 @@ function AdminPista({ date }: { date: Date }) {
                   ))}
                 </div>
               </div>
-
-              {/* FECHAS */}
               <div className="admin_torneo_form">
                 <label className="admin_torneo_label">Fecha inicio</label>
                 <input
@@ -3328,8 +3000,6 @@ function AdminPista({ date }: { date: Date }) {
                   onChange={(e) => setClaseRecFechaFin(e.target.value)}
                 />
               </div>
-
-              {/* FRANJAS */}
               <div className="admin_cal_seccion">
                 <p className="admin_cal_titulo">Franjas horarias (1h)</p>
                 <div className="admin_cal_franjas">
@@ -3354,7 +3024,6 @@ function AdminPista({ date }: { date: Date }) {
                   ))}
                 </div>
               </div>
-
               {claseRecError && (
                 <p className="reserva_error grande">{claseRecError}</p>
               )}
@@ -3362,7 +3031,6 @@ function AdminPista({ date }: { date: Date }) {
                 <p className="reserva_success grande">{claseRecSuccess}</p>
               )}
             </div>
-
             <div className="div_confirmar_reserva_botones">
               <button
                 className="reserva_boton"
@@ -3395,8 +3063,6 @@ function AdminPista({ date }: { date: Date }) {
           >
             <div className="div_confirmar_reserva">
               <h2>Eliminar clase — Recurrente</h2>
-
-              {/* PISTA */}
               <div className="admin_cal_seccion">
                 <p className="admin_cal_titulo">Pista</p>
                 <select
@@ -3412,8 +3078,6 @@ function AdminPista({ date }: { date: Date }) {
                   ))}
                 </select>
               </div>
-
-              {/* MONITOR */}
               <div className="admin_cal_seccion">
                 <p className="admin_cal_titulo">Monitor</p>
                 <select
@@ -3429,8 +3093,6 @@ function AdminPista({ date }: { date: Date }) {
                   ))}
                 </select>
               </div>
-
-              {/* DÍAS DE LA SEMANA */}
               <div className="admin_cal_seccion">
                 <p className="admin_cal_titulo">Días de la semana</p>
                 <div className="admin_cal_checkboxes">
@@ -3461,8 +3123,6 @@ function AdminPista({ date }: { date: Date }) {
                   ))}
                 </div>
               </div>
-
-              {/* FECHAS */}
               <div className="admin_torneo_form">
                 <label className="admin_torneo_label">Fecha inicio</label>
                 <input
@@ -3480,8 +3140,6 @@ function AdminPista({ date }: { date: Date }) {
                   onChange={(e) => setElimClaseRecFechaFin(e.target.value)}
                 />
               </div>
-
-              {/* FRANJAS */}
               <div className="admin_cal_seccion">
                 <p className="admin_cal_titulo">
                   Franjas horarias a eliminar (1h)
@@ -3508,7 +3166,6 @@ function AdminPista({ date }: { date: Date }) {
                   ))}
                 </div>
               </div>
-
               {elimClaseRecError && (
                 <p className="reserva_error grande">{elimClaseRecError}</p>
               )}
@@ -3516,7 +3173,6 @@ function AdminPista({ date }: { date: Date }) {
                 <p className="reserva_success grande">{elimClaseRecSuccess}</p>
               )}
             </div>
-
             <div className="div_confirmar_reserva_botones">
               <button
                 className="reserva_boton"
@@ -3540,7 +3196,6 @@ function AdminPista({ date }: { date: Date }) {
       {/* CALENDARIO */}
       <section className="admin_section_reservar_pista">
         <div className="admin_div_calendario_pistas">
-          {/* HEADER */}
           <div className="div_calendario_header">
             <div className="div_hora_columna_header">HORA</div>
             {pistasDB.map((p) => (
@@ -3550,15 +3205,12 @@ function AdminPista({ date }: { date: Date }) {
               </div>
             ))}
           </div>
-
-          {/* BODY */}
           <div className="admin_div_calendario_body">
             {horas.map((h) => (
               <div key={h} className="div_hora_celda" data-hora={h}>
                 {h}
               </div>
             ))}
-
             {pistas.map((p, idx) =>
               todasLasReservas
                 .filter((r) => r.pista === p)
@@ -3568,14 +3220,12 @@ function AdminPista({ date }: { date: Date }) {
                   const esOcupada = bloque.estado === "ocupada";
                   const esClase = bloque.estado === "clase";
                   const esTorneo = bloque.estado === "torneo";
-
                   const todoPagado =
                     bloque.estado === "ocupada" &&
                     bloque.pagado_1 &&
                     bloque.pagado_2 &&
                     bloque.pagado_3 &&
                     bloque.pagado_4;
-
                   return (
                     <div
                       key={`${p}-${bloque.inicio}-${i}`}
@@ -3606,7 +3256,6 @@ function AdminPista({ date }: { date: Date }) {
                   );
                 }),
             )}
-
             {pistas.map((p, idx) =>
               horas.map((h) => {
                 if (estaCeldaOcupada(p, h)) return null;
@@ -3614,10 +3263,7 @@ function AdminPista({ date }: { date: Date }) {
                   <div
                     key={`${p}-${h}-vacia`}
                     className="div_celda_vacia"
-                    style={{
-                      gridColumn: idx + 2,
-                      gridRow: calcularFila(h),
-                    }}
+                    style={{ gridColumn: idx + 2, gridRow: calcularFila(h) }}
                   />
                 );
               }),
@@ -3641,7 +3287,6 @@ function AdminPista({ date }: { date: Date }) {
           </span>
           CREAR PISTA LIBRE
         </button>
-
         <button
           className="admin_seccion_funciones_boton"
           onClick={() => {
@@ -3660,7 +3305,6 @@ function AdminPista({ date }: { date: Date }) {
           </span>
           CREAR PISTA LIBRE - RECURRENTE
         </button>
-
         <button
           className="admin_seccion_funciones_boton"
           onClick={() => {
@@ -3680,7 +3324,6 @@ function AdminPista({ date }: { date: Date }) {
           </span>
           ELIMINAR PISTA LIBRE - RECURRENTE
         </button>
-
         <button
           className="admin_seccion_funciones_boton"
           onClick={() => {
@@ -3700,7 +3343,6 @@ function AdminPista({ date }: { date: Date }) {
           </span>
           RESERVAR PISTA CLASE - RECURRENTE
         </button>
-
         <button
           className="admin_seccion_funciones_boton"
           onClick={() => {
@@ -3721,7 +3363,6 @@ function AdminPista({ date }: { date: Date }) {
           </span>
           ELIMINAR PISTA CLASE - RECURRENTE
         </button>
-
         <button
           className="admin_seccion_funciones_boton"
           onClick={() => {
@@ -3739,7 +3380,6 @@ function AdminPista({ date }: { date: Date }) {
           </span>
           BLOQUEAR FIN DE SEMANA TORNEO
         </button>
-
         <button
           className="admin_seccion_funciones_boton"
           onClick={() => {
@@ -3756,7 +3396,6 @@ function AdminPista({ date }: { date: Date }) {
           </span>
           ELIMINAR TORNEO
         </button>
-
         <button
           className="admin_seccion_funciones_boton"
           onClick={() => {
