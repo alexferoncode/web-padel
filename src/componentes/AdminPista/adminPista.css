@@ -462,6 +462,12 @@
   cursor: default;
 }
 
+.admin_torneo_sublabel {
+  font-size: 14px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.6);
+  text-shadow: 0 0 5px black;
+}
 
 /* Pista fija — avisos */
 

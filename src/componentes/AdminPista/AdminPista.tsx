@@ -209,6 +209,15 @@ function AdminPista({ date }: { date: Date }) {
     "",
   );
 
+  // Overlay eliminar torneo
+  const [showOverlayEliminarTorneo, setShowOverlayEliminarTorneo] =
+    useState(false);
+  const [elimTorneoFechaInicio, setElimTorneoFechaInicio] = useState("");
+  const [elimTorneoFechaFin, setElimTorneoFechaFin] = useState("");
+  const [elimTorneoError, setElimTorneoError] = useState("");
+  const [elimTorneoSuccess, setElimTorneoSuccess] = useState("");
+  const [elimTorneoLoading, setElimTorneoLoading] = useState(false);
+
   /* ----------------------------------------------------
       0) CARGAR PISTAS
   -----------------------------------------------------*/
@@ -1155,6 +1164,82 @@ function AdminPista({ date }: { date: Date }) {
         .order("inicio", { ascending: true })
         .then(({ data }) => setReservasSupabase(data || []));
     }, 2000);
+  };
+
+  /* ----------------------------------------------------
+    6.5b) ELIMINAR TORNEO
+-----------------------------------------------------*/
+  const handleEliminarTorneo = async () => {
+    setElimTorneoError("");
+    setElimTorneoSuccess("");
+
+    if (!elimTorneoFechaInicio || !elimTorneoFechaFin) {
+      setElimTorneoError("Debes seleccionar fecha de inicio y fin.");
+      return;
+    }
+
+    if (elimTorneoFechaFin < elimTorneoFechaInicio) {
+      setElimTorneoError("La fecha de fin debe ser posterior a la de inicio.");
+      return;
+    }
+
+    setElimTorneoLoading(true);
+
+    try {
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/reservas?estado=eq.torneo&inicio=gte.${elimTorneoFechaInicio}T00:00:00&inicio=lte.${elimTorneoFechaFin}T23:59:59`;
+
+      const storageKey = Object.keys(localStorage).find(
+        (k) => k.startsWith("sb-") && k.endsWith("-auth-token"),
+      );
+      const raw = storageKey ? localStorage.getItem(storageKey) : null;
+      const accessToken = raw ? JSON.parse(raw)?.access_token : null;
+
+      const res = await fetch(url, {
+        method: "DELETE",
+        headers: {
+          apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+          Authorization: `Bearer ${accessToken ?? import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          Prefer: "return=representation",
+        },
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        setElimTorneoError(`Error al eliminar: ${JSON.stringify(err)}`);
+        setElimTorneoLoading(false);
+        return;
+      }
+
+      const data = await res.json();
+      const count = Array.isArray(data) ? data.length : 0;
+
+      setElimTorneoSuccess(
+        `✅ ${count} bloque${count !== 1 ? "s" : ""} de torneo eliminado${count !== 1 ? "s" : ""}.`,
+      );
+      setElimTorneoLoading(false);
+
+      setTimeout(() => {
+        setShowOverlayEliminarTorneo(false);
+        setElimTorneoFechaInicio("");
+        setElimTorneoFechaFin("");
+        setElimTorneoSuccess("");
+
+        const año = date.getFullYear();
+        const mes = (date.getMonth() + 1).toString().padStart(2, "0");
+        const dia = date.getDate().toString().padStart(2, "0");
+        const fechaStr = `${año}-${mes}-${dia}`;
+        supabase
+          .from("reservas")
+          .select("*")
+          .gte("inicio", `${fechaStr}T00:00:00`)
+          .lt("inicio", `${fechaStr}T23:59:59`)
+          .order("inicio", { ascending: true })
+          .then(({ data }) => setReservasSupabase(data || []));
+      }, 2000);
+    } catch (e: any) {
+      setElimTorneoError(`Error inesperado: ${e.message}`);
+      setElimTorneoLoading(false);
+    }
   };
 
   /* ----------------------------------------------------
@@ -2490,34 +2575,100 @@ function AdminPista({ date }: { date: Date }) {
               <div className="admin_torneo_form">
                 <label className="admin_torneo_label">Inicio del torneo</label>
                 <div className="admin_torneo_fila">
-                  <input
-                    type="date"
-                    className="admin_elegir_usuario_select admin_torneo_input_fecha"
-                    value={torneoFechaInicio}
-                    onChange={(e) => setTorneoFechaInicio(e.target.value)}
-                  />
-                  <input
-                    type="time"
-                    className="admin_elegir_usuario_select admin_torneo_input_hora"
-                    value={torneoHoraInicio}
-                    onChange={(e) => setTorneoHoraInicio(e.target.value)}
-                  />
+                  <div
+                    style={{
+                      flex: 2,
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 4,
+                    }}
+                  >
+                    <span className="admin_torneo_sublabel">Fecha inicio</span>
+                    <input
+                      type="date"
+                      className="admin_elegir_usuario_select admin_torneo_input_fecha"
+                      value={torneoFechaInicio}
+                      onChange={(e) => setTorneoFechaInicio(e.target.value)}
+                    />
+                  </div>
+                  <div
+                    style={{
+                      flex: 1,
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 4,
+                    }}
+                  >
+                    <span className="admin_torneo_sublabel">Hora inicio</span>
+                    <select
+                      className="admin_elegir_usuario_select admin_torneo_input_hora"
+                      value={torneoHoraInicio}
+                      onChange={(e) => setTorneoHoraInicio(e.target.value)}
+                    >
+                      <option value="">--:--</option>
+                      {Array.from({ length: 48 }, (_, i) => {
+                        const h = Math.floor(i / 2)
+                          .toString()
+                          .padStart(2, "0");
+                        const m = i % 2 === 0 ? "00" : "30";
+                        return (
+                          <option
+                            key={i}
+                            value={`${h}:${m}`}
+                          >{`${h}:${m}`}</option>
+                        );
+                      })}
+                    </select>
+                  </div>
                 </div>
 
                 <label className="admin_torneo_label">Fin del torneo</label>
                 <div className="admin_torneo_fila">
-                  <input
-                    type="date"
-                    className="admin_elegir_usuario_select admin_torneo_input_fecha"
-                    value={torneoFechaFin}
-                    onChange={(e) => setTorneoFechaFin(e.target.value)}
-                  />
-                  <input
-                    type="time"
-                    className="admin_elegir_usuario_select admin_torneo_input_hora"
-                    value={torneoHoraFin}
-                    onChange={(e) => setTorneoHoraFin(e.target.value)}
-                  />
+                  <div
+                    style={{
+                      flex: 2,
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 4,
+                    }}
+                  >
+                    <span className="admin_torneo_sublabel">Fecha fin</span>
+                    <input
+                      type="date"
+                      className="admin_elegir_usuario_select admin_torneo_input_fecha"
+                      value={torneoFechaFin}
+                      onChange={(e) => setTorneoFechaFin(e.target.value)}
+                    />
+                  </div>
+                  <div
+                    style={{
+                      flex: 1,
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 4,
+                    }}
+                  >
+                    <span className="admin_torneo_sublabel">Hora fin</span>
+                    <select
+                      className="admin_elegir_usuario_select admin_torneo_input_hora"
+                      value={torneoHoraFin}
+                      onChange={(e) => setTorneoHoraFin(e.target.value)}
+                    >
+                      <option value="">--:--</option>
+                      {Array.from({ length: 48 }, (_, i) => {
+                        const h = Math.floor(i / 2)
+                          .toString()
+                          .padStart(2, "0");
+                        const m = i % 2 === 0 ? "00" : "30";
+                        return (
+                          <option
+                            key={i}
+                            value={`${h}:${m}`}
+                          >{`${h}:${m}`}</option>
+                        );
+                      })}
+                    </select>
+                  </div>
                 </div>
               </div>
 
@@ -2548,6 +2699,65 @@ function AdminPista({ date }: { date: Date }) {
                 disabled={torneoLoading}
               >
                 {torneoLoading ? "Procesando..." : "Bloquear torneo"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* OVERLAY ELIMINAR TORNEO */}
+      {showOverlayEliminarTorneo && (
+        <div
+          className="reserva_overlay show"
+          onClick={() => setShowOverlayEliminarTorneo(false)}
+        >
+          <div
+            className="reservas_contenido"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="div_confirmar_reserva">
+              <h2>Eliminar torneo</h2>
+
+              <div className="admin_torneo_form">
+                <label className="admin_torneo_label">Fecha inicio</label>
+                <input
+                  type="date"
+                  className="admin_elegir_usuario_select"
+                  value={elimTorneoFechaInicio}
+                  onChange={(e) => setElimTorneoFechaInicio(e.target.value)}
+                />
+                <label className="admin_torneo_label">Fecha fin</label>
+                <input
+                  type="date"
+                  className="admin_elegir_usuario_select"
+                  value={elimTorneoFechaFin}
+                  min={elimTorneoFechaInicio}
+                  onChange={(e) => setElimTorneoFechaFin(e.target.value)}
+                />
+              </div>
+
+              {elimTorneoError && (
+                <p className="reserva_error grande">{elimTorneoError}</p>
+              )}
+              {elimTorneoSuccess && (
+                <p className="reserva_success grande">{elimTorneoSuccess}</p>
+              )}
+            </div>
+
+            <div className="div_confirmar_reserva_botones">
+              <button
+                className="reserva_boton"
+                id="reserva_boton_cerrar"
+                onClick={() => setShowOverlayEliminarTorneo(false)}
+              >
+                Atrás
+              </button>
+              <button
+                className="reserva_boton"
+                onClick={handleEliminarTorneo}
+                disabled={elimTorneoLoading}
+              >
+                {elimTorneoLoading ? "Eliminando..." : "Eliminar torneo"}
               </button>
             </div>
           </div>
@@ -3528,6 +3738,23 @@ function AdminPista({ date }: { date: Date }) {
             <span className="admin_colores_leyenda_span admin_torneo" />
           </span>
           BLOQUEAR FIN DE SEMANA TORNEO
+        </button>
+
+        <button
+          className="admin_seccion_funciones_boton"
+          onClick={() => {
+            setElimTorneoError("");
+            setElimTorneoSuccess("");
+            setElimTorneoFechaInicio("");
+            setElimTorneoFechaFin("");
+            setShowOverlayEliminarTorneo(true);
+          }}
+        >
+          <span className="admin_boton_icono_left">
+            <span className="admin_colores_leyenda_span admin_torneo" />{" "}
+            <span className="admin_icono_x">✕</span>
+          </span>
+          ELIMINAR TORNEO
         </button>
 
         <button
